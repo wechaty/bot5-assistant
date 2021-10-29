@@ -40,12 +40,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gcaufy/wechaty-voteout.git"
+    "url": "git+https://github.com/wechaty/bot5-assistant.git"
   },
   "bugs": {
-    "url": "https://github.com/gcaufy/wechaty-voteout/issues"
+    "url": "https://github.com/wechaty/bot5-assistant/issues"
   },
-  "homepage": "https://github.com/gcaufy/wechaty-voteout#readme",
+  "homepage": "https://github.com/wechaty/bot5-assistant#readme",
   "license": "MIT",
   "devDependencies": {
     "@chatie/eslint-config": "^1.0.2",
