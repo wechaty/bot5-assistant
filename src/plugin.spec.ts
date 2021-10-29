@@ -8,7 +8,7 @@ import {
 
 import {
   VoteOut,
-}                     from './vote-out.js'
+}                     from './bot5.js'
 
 test('VoteOut()', async t => {
   t.doesNotThrow(() => validatePlugin(VoteOut), 'should pass the validation')

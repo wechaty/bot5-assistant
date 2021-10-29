@@ -1,5 +1,5 @@
 {
-  "name": "bot5-assistant",
+  "name": "wechaty-bot5-assistant",
   "version": "0.1.0",
   "description": "BOT Friday Club Assistant",
   "type": "module",
@@ -54,20 +54,19 @@
     "@chatie/tsconfig": "^0.20.6",
     "@types/lru-cache": "^5.1.1",
     "@types/mustache": "^4.1.2",
-    "pkg-jq": "^0.2.11",
-    "shx": "^0.3.3",
+    "@types/request": "^2.48.7",
     "tstest": "^0.7.3",
     "verpub": "^0.1.4",
-    "wechaty": "^0.77.20",
-    "wechaty-plugin-contrib": "^1.0.10",
-    "wechaty-puppet-mock": "^0.35.8"
+    "wechaty": "^1",
+    "wechaty-plugin-contrib": "^1.0.15",
+    "wechaty-puppet-mock": "^1"
   },
   "readme": "README.md",
   "dependencies": {
     "lru-cache": "^6.0.0",
-    "mustache": "^4.2.0"
+    "mustache": "^4.2.0",
+    "request": "^2.88.2"
   },
-  "_commitid": "82cac3b",
   "git": {
     "scripts": {
       "pre-push": "npx git-scripts-pre-push"

@@ -22,15 +22,15 @@ npm install wechaty-voteout --save
 ```sh
 $ vim mybot.js
 
-import { Wechaty } from 'wechaty';
-import { VoteOut } from 'wechaty-voteout';
+import { Wechaty } from 'wechaty'
+import { Bot5Assistant } from 'wechaty-bot5-assistant'
 
-const bot = Wechaty.instance();
+const bot = Wechaty.instance()
 
-bot.use(VoteOut({ /* options */ }))
+bot.use(Bot5Assistant({ /* options */ }))
 .on('scan', (url, code) => console.log(`Scan QR Code to login: ${code}\n${url}`))
 .on('login', user => console.log(`User ${user} logged in`))
-.start();
+.start()
 ```
 
 ### Step 3: Run
@@ -47,46 +47,14 @@ const DEFAULT_CONFIG = {
   // Can be a RegExp (for topic) or a function (filter room instance)
   // E.g. room: function (room) { room.topic().indexOf('我的') > -1 }
   room: [/Room Topic 1/i, 'room_id@chatroom'],
-  // When the people reach the target, then means (s)he has been voted out.
-  threshold: 3,
-  // Who never be kicked-out by voting.
-  // RegExp for contact name, string for contact id
-  whitelist: [],
-  // Different puppet get different sign
-  // We run more cases to see what sign it is, and update the comment here.
-  downEmoji: [
-    '[弱]',
-    '[ThumbsDown]',
-    '<img class="qqemoji qqemoji80" text="[弱]_web" src="/zh_CN/htmledition/v2/images/spacer.gif" />',
-  ],
-  // Warn template, set to falsy to disable the warn message
-  warn: [
-    '可能是因为你的聊天内容不当导致被用户投票，当前票数为 {{ downNum }}，当天累计票数达到 {{ threshold }} 时，你将被请出此群。',
-  ]
-  // Kick-out template, set to falsy to disable the message.
-  kick: '经 {{ voters }} 几人投票，你即将离开此群。',
-  repeat: '你已经投票过 {{ votee }} 了，无需再投。',
 }
 ```
 
 ## History
 
-### master v1.0 (Oct 23, 2021)
+### master v0.1 (Oct 29, 2021)
 
-1. ES Module enabled
-
-### v0.6 (Jun 15, 2020)
-
-1. Enhancing the `VoteOutConfig` for plugin.
-1. Refactored the source code to use the helper functions from `wechaty-plugin-contrib`
-
-### v0.2 (Jun 9, 2020)
-
-Converted to TypeScript with DevOps by @huan
-
-### v0.0.3 (May 1, 2020)
-
-First version by @gcaufy
+1. Code init
 
 ## Maintainers
 

@@ -1,6 +1,6 @@
 export {
   VoteOut,
-}                 from './vote-out.js'
+}                 from './bot5.js'
 export type {
   VoteOutConfig,
 }                 from './config.js'
