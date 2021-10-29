@@ -72,7 +72,7 @@ async function onMessage (msg: Message) {
     }
   }
 
-  if (inMeeting && msg.text() === '开完了') {
+  if (msg.text() === '开完了') {
     inMeeting = false
   }
 }

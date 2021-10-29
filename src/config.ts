@@ -35,7 +35,7 @@ const repeat: talkers.RoomTalkerOptions = [
   'You can only vote {{ votee }} for once.',
 ]
 
-export interface VoteOutConfig {
+export interface Bot5AssistantConfig {
   room: matchers.RoomMatcherOptions,
 
   threshold? : number,
@@ -51,7 +51,7 @@ export interface VoteOutConfig {
 // https://stackoverflow.com/a/51804844/1123955
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 
-export const DEFAULT_CONFIG: Omit<Required<VoteOutConfig>, 'room'> = {
+export const DEFAULT_CONFIG: Omit<Required<Bot5AssistantConfig>, 'room'> = {
   downEmoji: [
     '[ThumbsDown]',
     '[弱]',

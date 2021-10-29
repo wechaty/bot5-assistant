@@ -1,8 +1,8 @@
 export {
-  VoteOut,
-}                 from './bot5.js'
+  Bot5Assistant,
+}                 from './plugin.js'
 export type {
-  VoteOutConfig,
+  Bot5AssistantConfig,
 }                 from './config.js'
 export {
   VERSION,

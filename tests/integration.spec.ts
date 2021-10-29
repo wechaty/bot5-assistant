@@ -8,14 +8,14 @@ import {
   WechatyBuilder,
 }                               from 'wechaty'
 
-import { VoteOut } from '../src/mod.js'
+import { Bot5Assistant } from '../src/mod.js'
 
 import {
   PuppetMock,
 }                 from 'wechaty-puppet-mock'
 
 test.skip('integration testing', async (t) => {
-  const VoteOutPlugin = VoteOut({ room: 'fake-id' })
+  const VoteOutPlugin = Bot5Assistant({ room: 'fake-id' })
 
   const bot = new WechatyBuilder().options({
     puppet: new PuppetMock(),

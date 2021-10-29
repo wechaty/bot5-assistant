@@ -3,7 +3,7 @@ import type {
   Contact,
 }                 from 'wechaty'
 import {
-  VoteOutConfig,
+  Bot5AssistantConfig,
   DEFAULT_CONFIG,
 }                 from './config.js'
 import type {
@@ -28,7 +28,7 @@ export interface MustacheView {
  * Build Mustache View
  */
 async function getMustacheView (
-  config  : VoteOutConfig,
+  config  : Bot5AssistantConfig,
   payload : VotePayload,
   room    : Room,
   votee   : Contact,

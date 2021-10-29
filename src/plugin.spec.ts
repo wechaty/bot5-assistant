@@ -7,9 +7,9 @@ import {
 }                   from 'wechaty-plugin-contrib'
 
 import {
-  VoteOut,
-}                     from './bot5.js'
+  Bot5Assistant,
+}                     from './plugin.js'
 
 test('VoteOut()', async t => {
-  t.doesNotThrow(() => validatePlugin(VoteOut), 'should pass the validation')
+  t.doesNotThrow(() => validatePlugin(Bot5Assistant), 'should pass the validation')
 })

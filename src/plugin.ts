@@ -18,7 +18,7 @@ import {
 
 import {
   DEFAULT_CONFIG,
-  VoteOutConfig as Bot5AssistantConfig,
+  Bot5AssistantConfig,
 }                         from './config.js'
 
 import * as store from './store.js'
@@ -45,8 +45,8 @@ export function Bot5Assistant (config: Bot5AssistantConfig): WechatyPlugin {
   // const talkWarn   = talkers.roomTalker<MustacheView>(config.warn)
   // const talkKick   = talkers.messageTalker<MustacheView>(config.kick)
 
-  return function VoteOutPlugin (wechaty: Wechaty) {
-    log.verbose('WechatyPluginContrib', 'Bot5Assistant() VoteOutPlugin(%s)', wechaty)
+  return function Bot5AssistantPlugin (wechaty: Wechaty) {
+    log.verbose('WechatyPluginContrib', 'Bot5Assistant() Bot5AssistantPlugin(%s)', wechaty)
 
     wechaty.on('message', onMessage)
 
