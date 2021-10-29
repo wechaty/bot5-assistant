@@ -1,0 +1,84 @@
+{
+  "name": "bot5-assistant",
+  "version": "0.1.0",
+  "description": "BOT Friday Club Assistant",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/src/mod.js",
+      "require": "./dist/cjs/src/mod.js"
+    }
+  },
+  "typings": "./dist/esm/src/mod.d.ts",
+  "engines": {
+    "node": ">=16",
+    "npm": ">=7"
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json",
+    "clean": "shx rm -fr dist/*",
+    "dist": "npm-run-all clean build dist:commonjs",
+    "dist:commonjs": "jq -n \"{ type: \\\"commonjs\\\" }\" > dist/cjs/package.json",
+    "release": "verpub publish",
+    "release:dry": "verpub --dry-run",
+    "lint": "npm-run-all lint:es lint:ts lint:md",
+    "lint:md": "markdownlint README.md",
+    "lint:ts": "tsc --isolatedModules --noEmit",
+    "example": "cross-env NODE_OPTIONS=\"--no-warnings --loader=ts-node/esm\" node examples/ding-dong-bot.ts",
+    "start": "npm run example",
+    "test": "npm run lint && npm run test:unit",
+    "test:pack": "bash -x scripts/npm-pack-testing.sh",
+    "test:unit": "cross-env NODE_OPTIONS=\"--no-warnings --loader=ts-node/esm\" tap \"src/**/*.spec.ts\" \"tests/**/*.spec.ts\"",
+    "lint:es": "eslint --ignore-pattern tests/fixtures/ '{bin,examples,scripts,src,tests}/**/*.ts'"
+  },
+  "keywords": [
+    "wechaty"
+  ],
+  "author": {
+    "name": "Anqi CUI",
+    "url": "https://wechaty.js.org/contributors/caq"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gcaufy/wechaty-voteout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gcaufy/wechaty-voteout/issues"
+  },
+  "homepage": "https://github.com/gcaufy/wechaty-voteout#readme",
+  "license": "MIT",
+  "devDependencies": {
+    "@chatie/eslint-config": "^1.0.2",
+    "@chatie/git-scripts": "^0.6.2",
+    "@chatie/semver": "^0.4.7",
+    "@chatie/tsconfig": "^0.20.6",
+    "@types/lru-cache": "^5.1.1",
+    "@types/mustache": "^4.1.2",
+    "pkg-jq": "^0.2.11",
+    "shx": "^0.3.3",
+    "tstest": "^0.7.3",
+    "verpub": "^0.1.4",
+    "wechaty": "^0.77.20",
+    "wechaty-plugin-contrib": "^1.0.10",
+    "wechaty-puppet-mock": "^0.35.8"
+  },
+  "readme": "README.md",
+  "dependencies": {
+    "lru-cache": "^6.0.0",
+    "mustache": "^4.2.0"
+  },
+  "_commitid": "82cac3b",
+  "git": {
+    "scripts": {
+      "pre-push": "npx git-scripts-pre-push"
+    }
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "src/"
+  ],
+  "publishConfig": {
+    "tag": "next"
+  }
+}
