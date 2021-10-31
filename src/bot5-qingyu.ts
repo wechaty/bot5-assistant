@@ -6,8 +6,6 @@ import {
   Message,
 }             from 'wechaty'
 
-let inMeeting = false
-
 async function getBody (path: string) {
   const options = {
     method: 'GET',
@@ -29,12 +27,13 @@ async function getBody (path: string) {
 const countDown = /【倒计时】([0-9]+)分钟开始！'/
 let timer: undefined | ReturnType<typeof setTimeout>
 
-async function onMessage (msg: Message) {
+async function processMessage (
+  context: {
+    inMeeting: boolean,
+  },
+  msg: Message,
+) {
   log.info('StarterBot', msg.toString())
-
-  if (msg.text() === 'ding') {
-    await msg.say('dong ' + inMeeting)
-  }
 
   if (msg.self()) return
 
@@ -44,11 +43,11 @@ async function onMessage (msg: Message) {
   if (!topic) return
   if (!topic.startsWith('BOT5')) return
 
-  if (!inMeeting && msg.text() === '开会了') {
-    inMeeting = true
+  if (!context.inMeeting && msg.text() === '开会了') {
+    context.inMeeting = true
   }
 
-  if (!inMeeting) return
+  if (!context.inMeeting) return
 
   const body = await getBody(encodeURI('/sandbox/chat?botid=1006663&token=rsvpai&uid=' + msg.talker() + '&q=' + msg.text())) as string
   console.info(body)
@@ -73,10 +72,10 @@ async function onMessage (msg: Message) {
   }
 
   if (msg.text() === '开完了') {
-    inMeeting = false
+    context.inMeeting = false
   }
 }
 
 export {
-  onMessage,
+  processMessage,
 }
