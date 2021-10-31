@@ -4,11 +4,11 @@
 [![NPM](https://github.com/wechaty/bot5-assistant/workflows/NPM/badge.svg)](https://github.com/wechaty/bot5-assistant/actions?query=workflow%3ANPM)
 [![Powered by Wechaty](https://img.shields.io/badge/Powered%20By-Wechaty-brightgreen.svg)](https://github.com/Wechaty/wechaty)
 
-BOT5 Meeting Assistant BOT powered by Wechaty.
+BOT5 Meeting Assistant BOT powered by RSVP.ai & Wechaty & XState.
 
 ![BOT5 Club](docs/images/caq-bot5-qingyu.webp)
 
-## Get Start
+## Getting Started
 
 ### Step 1: Install
 
