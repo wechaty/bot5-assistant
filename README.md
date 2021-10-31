@@ -55,7 +55,7 @@ const DEFAULT_CONFIG = {
 
 ## RSVP.ai
 
-RSVP.ai is a machine-learning company that provides deep natural language understanding services for conversation-styled applications. We grew out of a collaboration between Tsinghua University and University of Waterloo.
+RSVP.ai is a machine-learning company that provides deep natural language understanding services for conversation-styled applications. It grew out of a collaboration between Tsinghua University and University of Waterloo.
 
 RSVP.ai is a small and dedicated team making the smart machines today become the thinking machines tomorrow.
 
