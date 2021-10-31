@@ -1,13 +1,12 @@
 # BOT5 Club Assistant Bot Plugin
 
 [![NPM Version](https://img.shields.io/npm/v/wechaty-bot5-assistant?color=brightgreen)](https://www.npmjs.com/package/wechaty-bot5-assistant)
-[![NPM](https://github.com/wechaty/wechaty-bot5-assistant/workflows/NPM/badge.svg)](https://github.com/Gcaufy/wechaty-bot5-assistant/actions?query=workflow%3ANPM)
-[![Wechaty Plugin Contrib](https://img.shields.io/badge/Wechaty%20Plugin-BOT5-Assistant-brightgreen.svg)](https://github.com/Gcaufy/wechaty-bot5-assistant)
+[![NPM](https://github.com/wechaty/bot5-assistant/workflows/NPM/badge.svg)](https://github.com/wechaty/bot5-assistant/actions?query=workflow%3ANPM)
 [![Powered by Wechaty](https://img.shields.io/badge/Powered%20By-Wechaty-brightgreen.svg)](https://github.com/Wechaty/wechaty)
 
 BOT5 Meeting Assistant BOT powered by Wechaty.
 
-![ScreenShot](https://user-images.githubusercontent.com/2182004/80809484-5d311400-8bf4-11ea-95c6-39426730067c.png)
+![BOT5 Club](docs/images/caq-bot5-qingyu.webp)
 
 ## Get Start
 
@@ -50,7 +49,7 @@ const DEFAULT_CONFIG = {
   // Which room(s) you want the bot to work with.
   // Can be a RegExp (for topic) or a function (filter room instance)
   // E.g. room: function (room) { room.topic().indexOf('我的') > -1 }
-  room: [/Room Topic 1/i, 'room_id@chatroom'],
+  room: [/BOT5/i, 'room_id@chatroom'],
 }
 ```
 
