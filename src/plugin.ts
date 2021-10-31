@@ -17,7 +17,7 @@ import type {
 import { processMessage } from './bot5-qingyu.js'
 
 const dongOptions: talkers.MessageTalkerOptions = [
-  'dong {{ inMeeting }}',
+  'dong 开会状态： {{ inMeeting }}',
 ]
 
 export function Bot5Assistant (config: Bot5AssistantConfig): WechatyPlugin {
