@@ -33,11 +33,12 @@ export function Bot5Assistant (config: Bot5AssistantConfig): WechatyPlugin {
       /**
        * Validate Vote Message
        */
-      if (message.type() !== type.Message.Text) { return  }
+      if (message.type() !== type.Message.Text) { return }
+      if (message.self())                       { return }
 
       const room  = message.room()
-      if (!room)                                { return  }
-      if (!await isMeetingRoom(room))           { return  }
+      if (!room)                                { return }
+      if (!await isMeetingRoom(room))           { return }
 
       // const talker = message.talker()
       // const mentionList = await message.mentionList()
