@@ -59,7 +59,7 @@
     "wechaty-puppet-mock": "^1"
   },
   "peerDependencies": {
-    "wechaty-plugin-contrib": "^1.0.16"
+    "wechaty-plugin-contrib": "^1"
   },
   "readme": "README.md",
   "dependencies": {
