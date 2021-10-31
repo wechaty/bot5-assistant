@@ -6,6 +6,8 @@ import {
   Message,
 }             from 'wechaty'
 
+import type { Bot5AssistantContext } from './plugin.js'
+
 async function getBody (path: string) {
   const options = {
     method: 'GET',
@@ -28,24 +30,24 @@ const countDown = /【倒计时】([0-9]+)分钟开始！'/
 let timer: undefined | ReturnType<typeof setTimeout>
 
 async function processMessage (
-  context: {
-    inMeeting: boolean,
-  },
+  context: Bot5AssistantContext,
   msg: Message,
 ) {
   log.info('StarterBot', msg.toString())
 
-  if (!context.inMeeting && msg.text() === '开会了') {
-    context.inMeeting = true
-    await msg.say('收到，现在 BOT5 Assistant 开始主持会议啦，请大家座好！')
+  if (context.fsm.state.matches('meeting')) {
+    if (msg.text() === '开完了') {
+      context.fsm.send('FINISH')
+      await msg.say('收到，现在 BOT5 Assistant 结束主持会议啦，大家散会！')
+    }
+  } else {
+    if (msg.text() === '开会了') {
+      context.fsm.send('START')
+      await msg.say('收到，现在 BOT5 Assistant 开始主持会议啦，请大家座好！')
+    }
   }
 
-  if (context.inMeeting && msg.text() === '开完了') {
-    context.inMeeting = false
-    await msg.say('收到，现在 BOT5 Assistant 结束主持会议啦，大家散会！')
-  }
-
-  if (!context.inMeeting) return
+  if (context.fsm.state.matches('idle')) return
 
   const body = await getBody(encodeURI('/sandbox/chat?botid=1006663&token=rsvpai&uid=' + msg.talker().id + '&q=' + msg.text())) as string
   console.info('### BOT5 Assistant <> RSVP.ai ###\n', body)
