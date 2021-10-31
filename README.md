@@ -1,11 +1,11 @@
-# Wechaty VoteOut Plugin
+# BOT5 Club Assistant Bot Plugin
 
-[![NPM Version](https://img.shields.io/npm/v/wechaty-voteout?color=brightgreen)](https://www.npmjs.com/package/wechaty-voteout)
-[![NPM](https://github.com/Gcaufy/wechaty-voteout/workflows/NPM/badge.svg)](https://github.com/Gcaufy/wechaty-voteout/actions?query=workflow%3ANPM)
-[![Wechaty Plugin Contrib](https://img.shields.io/badge/Wechaty%20Plugin-VoteOut-brightgreen.svg)](https://github.com/Gcaufy/wechaty-voteout)
+[![NPM Version](https://img.shields.io/npm/v/wechaty-bot5-assistant?color=brightgreen)](https://www.npmjs.com/package/wechaty-bot5-assistant)
+[![NPM](https://github.com/wechaty/wechaty-bot5-assistant/workflows/NPM/badge.svg)](https://github.com/Gcaufy/wechaty-bot5-assistant/actions?query=workflow%3ANPM)
+[![Wechaty Plugin Contrib](https://img.shields.io/badge/Wechaty%20Plugin-BOT5-Assistant-brightgreen.svg)](https://github.com/Gcaufy/wechaty-bot5-assistant)
 [![Powered by Wechaty](https://img.shields.io/badge/Powered%20By-Wechaty-brightgreen.svg)](https://github.com/Wechaty/wechaty)
 
-Wechaty VoteOut Plugin can help you to have a vote and kick-out feature for you room.
+BOT5 Meeting Assistant BOT powered by Wechaty.
 
 ![ScreenShot](https://user-images.githubusercontent.com/2182004/80809484-5d311400-8bf4-11ea-95c6-39426730067c.png)
 
@@ -14,7 +14,7 @@ Wechaty VoteOut Plugin can help you to have a vote and kick-out feature for you 
 ### Step 1: Install
 
 ```sh
-npm install wechaty-voteout --save
+npm install wechaty-bot5-assistant --save
 ```
 
 ### Step 2: Make a bot
@@ -22,12 +22,16 @@ npm install wechaty-voteout --save
 ```sh
 $ vim mybot.js
 
-import { Wechaty } from 'wechaty'
+import { WechatyBuilder } from 'wechaty'
 import { Bot5Assistant } from 'wechaty-bot5-assistant'
 
-const bot = Wechaty.instance()
+const bot = WechatyBuilder.build()
 
-bot.use(Bot5Assistant({ /* options */ }))
+bot.use(Bot5Assistant({
+  room: [
+    /^BOT5/,
+  ]
+}))
 .on('scan', (url, code) => console.log(`Scan QR Code to login: ${code}\n${url}`))
 .on('login', user => console.log(`User ${user} logged in`))
 .start()
@@ -52,18 +56,22 @@ const DEFAULT_CONFIG = {
 
 ## History
 
-### master v0.1 (Oct 29, 2021)
+### master v0.2 (Oct 29, 2021)
 
-1. Code init
-
-## Maintainers
-
-@huan
+1. Code init in Bot Friday Club meeting
+1. Code clean for integrating with [Friday BOT](https://github.com/wechaty/friday)
 
 ## Author
 
-@caq
+- [@caq](https://github.com/caq), [Anqi CUI](http://me.caq9.info/), Co-founder & Chief AI Officer of [RSVP.ai](https://rsvp.ai/)
+- [@huan](https://github.com/huan), Huan LI, Founding chairman of [BOT5 Club](https://bot5.ml), author of [Wechaty](https://wechaty.js.org)
 
 ## Reference
 
-* [Wechaty](https://github.com/wechaty/wechaty)
+- [Wechaty](https://github.com/wechaty/wechaty)
+
+## Copyright & License
+
+- Code & Docs © 2021-now Wechaty Contributors
+- Code released under the Apache-2.0 License
+- Docs released under Creative Commons
