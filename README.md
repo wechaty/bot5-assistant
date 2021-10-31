@@ -53,6 +53,16 @@ const DEFAULT_CONFIG = {
 }
 ```
 
+## Finate State Machine (FSM)
+
+It's a finite state machine, which means it has a finite number of states.
+
+> Huan(202110): the above line is suggested by GitHub Pilot.
+
+We are trying to use [XState](https://xstate.js.org/) to implement the FSM and using FSM to manage our meeting state transitions.
+
+Currently we are just getting started, you can learn more about the BOT5 Club Meeting FSM at <https://wechaty.github.io/bot5-assistant/>
+
 ## History
 
 ### master v0.2 (Oct 29, 2021)
