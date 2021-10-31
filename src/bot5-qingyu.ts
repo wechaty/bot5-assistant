@@ -4,7 +4,7 @@ import request from 'request'
 import {
   log,
   Message,
-} from 'wechaty'
+}             from 'wechaty'
 
 let inMeeting = false
 
