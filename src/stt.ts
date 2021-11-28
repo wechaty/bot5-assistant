@@ -17,30 +17,22 @@ import type {
   FileBoxInterface,
 }                     from 'file-box'
 
-// 导入对应产品模块的client models。
-// const CvmClient = tencentcloud.cvm.v20170312.Client
 const AsrClient = TencentCloud.asr.v20190614.Client
 
 const clientConfig = {
-  // 腾讯云认证信息
   /**
    * Huan(202111): the plain text secret is for easy developing.
    *  will be removed in the future and use environment variable from plugin options instead.
    */
+  // 腾讯云认证信息
   credential: {
     secretId: 'AKIDpTryoMefPs4zdz5uSjiRt75nFQNC8oCJ',
     secretKey: 'sTnqd9NK0PWMvEG1UgbFbgU1HGzQaT6S',
   },
   // 可选配置实例
-  profile: {
-    httpProfile: {
-      reqMethod: 'POST', // 请求方法
-      reqTimeout: 30, // 请求超时时间，默认60s
-    },
-    signMethod: 'TC3-HMAC-SHA256', // 签名方法
-  },
+  profile: {},
   // 产品地域
-  region: 'ap-shanghai',
+  region: 'ap-singapore',
 } as const
 
 // 实例化要请求产品(以cvm为例)的client对象
