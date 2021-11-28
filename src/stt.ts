@@ -72,6 +72,8 @@ async function stt (
     SourceType: 1,
     /**
       * 识别音频的音频格式。mp3、wav。
+      * Huan(202111): wav、pcm、ogg-opus、speex、silk、mp3、m4a、aac
+      *   @see https://cloud.tencent.com/document/product/1093/52097
       */
     VoiceFormat: fileBox.name.split('.').pop() as any, // FIXME: check the file extension
     /**
