@@ -65,7 +65,11 @@ Currently we are just getting started, you can learn more about the BOT5 Club Me
 
 ## History
 
-### master v0.2 (Oct 29, 2021)
+### main v0.3 (Nov 29, 2021)
+
+1. add `stt()` for convert speech to text
+
+### v0.2 (Oct 29, 2021)
 
 1. Code init in Bot Friday Club meeting
 1. Code clean for integrating with [Friday BOT](https://github.com/wechaty/friday)
@@ -79,6 +83,10 @@ Currently we are just getting started, you can learn more about the BOT5 Club Me
 ## Reference
 
 - [Wechaty](https://github.com/wechaty/wechaty)
+
+### Silk to Text
+
+- [Tencent Cloud - 文档中心 > 语音识别 > API 文档 > 录音文件识别极速版相关接口 > 录音文件识别极速版](https://cloud.tencent.com/document/product/1093/52097)
 
 ## Copyright & License
 
