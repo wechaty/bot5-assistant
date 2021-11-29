@@ -1,6 +1,6 @@
 {
   "name": "wechaty-bot5-assistant",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "BOT Friday Club Assistant",
   "type": "module",
   "exports": {
