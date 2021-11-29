@@ -1,11 +1,11 @@
-const START = 'bot5/START'
-const STOP = 'bot5/STOP'
-const CANCEL = 'bot5/CANCEL'
-const FINISH = 'bot5/FINISH'
+const CANCEL = 'event/CANCEL'
+const FINISH = 'event/FINISH'
+const START  = 'event/START'
+const STOP   = 'event/STOP'
 
 export {
-  START,
-  STOP,
   CANCEL,
   FINISH,
+  START,
+  STOP,
 }

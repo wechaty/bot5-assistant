@@ -10,18 +10,20 @@ import { createFixture } from 'wechaty-mocker'
 import {
   getInterpreter,
 }                     from './meeting-interpreter.js'
+import * as states    from './states.js'
+import * as events    from './events.js'
 
 test('Bot5MeetingFsm smoke testing', async t => {
   for await (const fixture of createFixture()) {
     // const sandbox = sinon.createSandbox()
     const interpreter = getInterpreter(fixture.wechaty.wechaty)
-    t.ok(interpreter.state.matches('idle'), 'should be idle')
+    t.ok(interpreter.state.matches(states.IDLE), 'should be idle')
 
-    t.ok(interpreter.state.can('START'), 'should can START')
+    t.ok(interpreter.state.can(events.START), 'should can START')
 
-    interpreter.send('START')
-    t.ok(interpreter.state.matches('meeting'), 'should be in meeting state')
+    interpreter.send(events.START)
+    t.ok(interpreter.state.matches(states.MEETING), 'should be in meeting state')
 
-    t.notOk(interpreter.state.can('START'), 'should can not START again in meeting')
+    t.notOk(interpreter.state.can(events.START), 'should can not START again in meeting')
   }
 })

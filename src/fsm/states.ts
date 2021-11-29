@@ -1,19 +1,7 @@
-import * as events from './events.js'
-
-const idle = {
-  on: {
-    [events.START]: 'meeting',
-  },
-} as const
-
-const meeting = {
-  on: {
-    [events.CANCEL] : 'idle',
-    [events.FINISH] : 'idle',
-  },
-} as const
+const IDLE    = 'state/IDLE'
+const MEETING = 'state/MEETING'
 
 export {
-  meeting,
-  idle,
+  MEETING,
+  IDLE,
 }

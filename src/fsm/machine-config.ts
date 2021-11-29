@@ -8,8 +8,11 @@ import type { Wechaty } from 'wechaty'
 import * as events from './events.js'
 import * as states from './states.js'
 
+type States = typeof states[keyof typeof states]
+type Events = typeof events[keyof typeof events]
+
 interface MeetingEventSchema {
-  type: keyof typeof events
+  type: Events
 }
 
 interface MeetingActionSchema {
@@ -22,28 +25,24 @@ interface MeetingContext {
 
 interface MeetingStateSchema {
   states: {
-    [key in keyof typeof states]:  StateSchema<any>
+    [key in States]:  StateSchema<any>
   }
-  value: keyof typeof states // types for `state.matches<T>()`
+  value: States // types for `state.matches<T>()`
   context: MeetingContext
 }
 
-const idle = {
-  on: {
-    START: 'meeting',
+const statesX = {
+  [states.IDLE]: {
+    on: {
+      [events.START]: states.MEETING,
+    },
   },
-} as const
-
-const meeting = {
-  on: {
-    CANCEL : 'idle',
-    FINISH  : 'idle',
+  [states.MEETING]: {
+    on: {
+      [events.CANCEL]: states.IDLE,
+      [events.FINISH]: states.IDLE,
+    },
   },
-} as const
-
-const states = {
-  idle,
-  meeting,
 } as const
 
 const config: (wechaty: Wechaty) => MachineConfig<
@@ -55,8 +54,8 @@ const config: (wechaty: Wechaty) => MachineConfig<
     wechaty,
   },
   id: 'meeting-machine',
-  initial: 'idle',
-  states,
+  initial: states.IDLE,
+  states: statesX,
 } as const)
 
 export type {
