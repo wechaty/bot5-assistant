@@ -28,23 +28,26 @@ npm install --production *-*.*.*.tgz \
   "wechaty@$NPM_TAG" \
 
 #
-# CommonJS
+# Huan(202111): we do not support CJS anymore for our own projects.
 #
-./node_modules/.bin/tsc \
-  --target es6 \
-  --module CommonJS \
-  \
-  --moduleResolution node \
-  --esModuleInterop \
-  --lib esnext \
-  --noEmitOnError \
-  --noImplicitAny \
-  --skipLibCheck \
-  smoke-testing.ts
+# #
+# # CommonJS
+# #
+# ./node_modules/.bin/tsc \
+#   --target es6 \
+#   --module CommonJS \
+#   \
+#   --moduleResolution node \
+#   --esModuleInterop \
+#   --lib esnext \
+#   --noEmitOnError \
+#   --noImplicitAny \
+#   --skipLibCheck \
+#   smoke-testing.ts
 
-echo
-echo "CommonJS: pack testing..."
-node smoke-testing.js
+# echo
+# echo "CommonJS: pack testing..."
+# node smoke-testing.js
 
 #
 # ES Modules
