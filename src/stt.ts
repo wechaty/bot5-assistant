@@ -10,7 +10,7 @@
 import * as TencentCloud from 'tencentcloud-sdk-nodejs'
 import type { SentenceRecognitionRequest } from 'tencentcloud-sdk-nodejs/tencentcloud/services/asr/v20190614/asr_models'
 
-import uuid from 'uuid'
+import * as uuid from 'uuid'
 import type {
   FileBoxInterface,
 }                     from 'file-box'
@@ -30,7 +30,7 @@ const clientConfig = {
   // 可选配置实例
   profile: {},
   // 产品地域
-  region: 'ap-singapore',
+  region: 'na-siliconvalley',
 } as const
 
 // 实例化要请求产品(以cvm为例)的client对象
