@@ -21,11 +21,10 @@ cd $TMPDIR
 
 npm init -y
 npm install --production *-*.*.*.tgz \
-  @types/node \
   @chatie/tsconfig@$NPM_TAG \
   wechaty-plugin-contrib@$NPM_TAG \
+  wechaty@$NPM_TAG \
   pkg-jq \
-  "wechaty@$NPM_TAG" \
 
 #
 # Huan(202111): we do not support CJS anymore for our own projects.

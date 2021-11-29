@@ -5,8 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/esm/src/mod.js",
-      "require": "./dist/cjs/src/mod.js"
+      "import": "./dist/esm/src/mod.js"
     }
   },
   "typings": "./dist/esm/src/mod.d.ts",
@@ -15,12 +14,9 @@
     "npm": ">=7"
   },
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.cjs.json",
+    "build": "tsc",
     "clean": "shx rm -fr dist/*",
-    "dist": "npm-run-all clean build dist:commonjs",
-    "dist:commonjs": "jq -n \"{ type: \\\"commonjs\\\" }\" > dist/cjs/package.json",
-    "release": "verpub publish",
-    "release:dry": "verpub --dry-run",
+    "dist": "npm-run-all clean build",
     "lint": "npm-run-all lint:es lint:ts lint:md",
     "lint:md": "markdownlint README.md",
     "lint:ts": "tsc --isolatedModules --noEmit",
@@ -55,7 +51,6 @@
     "@types/lru-cache": "^5.1.1",
     "@types/request": "^2.48.7",
     "@types/uuid": "^8.3.3",
-    "verpub": "^0.1.4",
     "wechaty": "^1",
     "wechaty-mocker": "^1.10.2",
     "wechaty-puppet-mock": "^1"
