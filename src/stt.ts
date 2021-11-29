@@ -29,7 +29,9 @@ const clientConfig = {
   },
   // 可选配置实例
   profile: {},
-  // 产品地域
+  /**
+   * 产品地域 @link https://intl.cloud.tencent.com/document/product/213/6091
+   */
   region: 'na-siliconvalley',
 } as const
 

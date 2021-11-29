@@ -5,17 +5,11 @@
 import type { MachineConfig, StateSchema } from 'xstate'
 import type { Wechaty } from 'wechaty'
 
-type MeetingEvent =
-  | 'START'
-  | 'FINISH'
-  | 'CANCEL'
-
-type MeetingState =
-  | 'meeting'
-  | 'idle'
+import * as events from './events.js'
+import * as states from './states.js'
 
 interface MeetingEventSchema {
-  type: MeetingEvent
+  type: keyof typeof events
 }
 
 interface MeetingActionSchema {
@@ -28,9 +22,9 @@ interface MeetingContext {
 
 interface MeetingStateSchema {
   states: {
-    [key in MeetingState]:  StateSchema<any>
+    [key in keyof typeof states]:  StateSchema<any>
   }
-  value: MeetingState // types for `state.matches<T>()`
+  value: keyof typeof states // types for `state.matches<T>()`
   context: MeetingContext
 }
 
@@ -70,6 +64,5 @@ export type {
   MeetingContext,
   MeetingEventSchema,
   MeetingStateSchema,
-  MeetingState,
 }
 export { config }
