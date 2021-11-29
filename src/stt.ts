@@ -1,5 +1,3 @@
-#!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-
 /**
  * 文档中心 > 语音识别 > API 文档 > 录音文件识别极速版相关接口 > 录音文件识别极速版
  *  @link https://cloud.tencent.com/document/product/1093/52097
