@@ -20,6 +20,7 @@ import { getInterpreter } from './fsm/meeting-interpreter.js'
 export interface Bot5AssistantContext {
   fsm: ReturnType<typeof getInterpreter>
   wechaty: Wechaty,
+  qingyu_botid: config.qingyu_botid
 }
 
 const dongOptions: talkers.MessageTalkerOptions = [
