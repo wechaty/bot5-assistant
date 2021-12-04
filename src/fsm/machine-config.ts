@@ -9,6 +9,10 @@ type MeetingEvent =
   | 'START'
   | 'FINISH'
   | 'CANCEL'
+  | 'YES'
+  | 'NO'
+  | 'NEXT'
+  | 'TALK'
 
 type MeetingState =
   | 'meeting'
