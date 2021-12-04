@@ -3,7 +3,7 @@
 
 import {
   test,
-  sinon,
+  // sinon,
 }                   from 'tstest'
 
 import {
@@ -11,6 +11,7 @@ import {
   interpret,
   createMachine,
   actions,
+  // spawn,
 }                   from 'xstate'
 import * as WECHATY from 'wechaty'
 import {
@@ -30,45 +31,60 @@ import {
 }                     from './stt-machine.js'
 import { FileBox, FileBoxInterface } from 'file-box'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const getFixtures = () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const EXPECTED_TEXT = '大可乐两个，统一冰红茶三箱。'
-const FILE_BOX = FileBox.fromFile(path.join(
-  __dirname,
-  '../../tests/fixtures/sample.silk',
-)) as FileBoxInterface
+  const EXPECTED_TEXT = '大可乐两个，统一冰红茶三箱。'
+  const FILE_BOX = FileBox.fromFile(path.join(
+    __dirname,
+    '../../tests/fixtures/sample.silk',
+  )) as FileBoxInterface
 
-const MESSAGE_BASE = {
-  wechaty: {
-    Message: {
-      Type: WECHATY.types.Message,
+  const MESSAGE_BASE = {
+    wechaty: {
+      Message: {
+        Type: WECHATY.types.Message,
+      },
     },
-  },
+  }
+
+  const TEXT_MESSAGE = {
+    ...MESSAGE_BASE,
+    text: () => EXPECTED_TEXT,
+    type: () => WECHATY.impls.MessageImpl.Type.Text,
+  } as WECHATY.Message
+
+  const AUDIO_MESSAGE = {
+    ...MESSAGE_BASE,
+    toFileBox: () => Promise.resolve(FILE_BOX),
+    type: () => WECHATY.impls.MessageImpl.Type.Audio,
+  } as WECHATY.Message
+
+  const IMAGE_MESSAGE = {
+    ...AUDIO_MESSAGE, // just dump data from audio message
+    type: () => WECHATY.impls.MessageImpl.Type.Image,
+  } as WECHATY.Message
+
+  return {
+    EXPECTED_TEXT,
+    AUDIO_MESSAGE,
+    TEXT_MESSAGE,
+    IMAGE_MESSAGE,
+  }
 }
 
-const TEXT_MESSAGE = {
-  ...MESSAGE_BASE,
-  text: () => EXPECTED_TEXT,
-  type: () => WECHATY.impls.MessageImpl.Type.Text,
-} as WECHATY.Message
-
-const AUDIO_MESSAGE = {
-  ...MESSAGE_BASE,
-  toFileBox: () => Promise.resolve(FILE_BOX),
-  type: () => WECHATY.impls.MessageImpl.Type.Audio,
-} as WECHATY.Message
-
-const IMAGE_MESSAGE = {
-  ...AUDIO_MESSAGE, // just dump data from audio message
-  type: () => WECHATY.impls.MessageImpl.Type.Image,
-} as WECHATY.Message
-
-const parentMachine = createMachine({
+const parentMachineTest = createMachine({
   id: 'parent',
   initial: 'working',
   context: {
+    // stt: {} as any,
     text: undefined as undefined | string,
   },
+  // entry: [
+  //   actions.assign({
+  //     stt: () => spawn(sttMachine, 'stt'),
+  //   }),
+  // ],
   invoke: {
     id: 'stt',
     onDone: 'done',
@@ -94,9 +110,7 @@ const parentMachine = createMachine({
   },
 }, {
   actions: {
-    saveText: actions.assign({
-      text: (_, event) => event.data.text,
-    }),
+    saveText: actions.assign({ text: (_, event) => event.payload.text }),
   },
 })
 
@@ -108,11 +122,13 @@ test('stt machine initialState', async t => {
 
 test('stt machine process audio message', async t => {
 
+  const fixtures = getFixtures()
+
   let machineDoneCallback = () => {}
   const machineDoneFuture = new Promise<void>(resolve => {
     machineDoneCallback = resolve
   })
-  const interpreter = interpret(parentMachine)
+  const interpreter = interpret(parentMachineTest)
     .onDone(machineDoneCallback)
     .start()
 
@@ -120,75 +136,71 @@ test('stt machine process audio message', async t => {
 
   const textEventFuture = firstValueFrom(from(interpreter).pipe(
     filter(state => state.event.type === 'TEXT'),
-    map(state => state.event.data.text),
+    map(state => state.event.payload.text),
   ))
 
   interpreter.send({
-    data: {
-      message: AUDIO_MESSAGE,
+    payload: {
+      message: fixtures.AUDIO_MESSAGE,
     },
     type: 'MESSAGE',
   } as any)
 
-  let snappshot = interpreter.getSnapshot()
-  t.equal(snappshot.value, 'working', 'should be working state')
-  t.equal(snappshot.event.type, 'MESSAGE', 'should be MESSAGE event')
-  t.same(snappshot.context, { text: undefined }, 'should be initial context')
+  let snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.value, 'working', 'should be working state')
+  t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
+  t.same(snapshot.context, { text: undefined }, 'should be initial context')
 
   await textEventFuture
-  snappshot = interpreter.getSnapshot()
-  t.equal(snappshot.value, 'working', 'should be working')
-  t.equal(snappshot.event.type, 'TEXT', 'should be TEXT event')
-  t.same(snappshot.event.data, { text: EXPECTED_TEXT }, 'should has stt-ed TEXT event data')
-  t.same(snappshot.context, { text: EXPECTED_TEXT }, 'should set stt-ed text to context')
+  snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.value, 'working', 'should be working')
+  t.equal(snapshot.event.type, 'TEXT', 'should be TEXT event')
+  t.equal(snapshot.event.payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
+  t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
 
   interpreter.send('STOP')
 
   await machineDoneFuture
-  snappshot = interpreter.getSnapshot()
-  t.equal(snappshot.value, 'done', 'should be done')
-  t.equal(snappshot.event.type, 'STOP', 'should be STOP event')
+  snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.value, 'done', 'should be done')
+  t.equal(snapshot.event.type, 'STOP', 'should be STOP event')
 
   interpreter.stop()
 })
 
 test.only('stt machine process text message', async t => {
+  const fixtures = getFixtures()
 
-  const interpreter = interpret(parentMachine).start()
-
-  interpreter.subscribe(s => console.info('state:', s.value))
+  const interpreter = interpret(parentMachineTest).start()
 
   const textEventFuture = firstValueFrom(from(interpreter).pipe(
     filter(state => state.event.type === 'TEXT'),
-    map(state => state.event.data.text),
+    map(state => state.event.payload.text),
   ))
 
   interpreter.send({
-    data: {
-      message: TEXT_MESSAGE,
+    payload: {
+      message: fixtures.TEXT_MESSAGE,
     },
     type: 'MESSAGE',
   } as any)
 
-  // let snappshot = interpreter.getSnapshot()
-  // t.equal(snappshot.value, 'working', 'should be working state')
-  // t.equal(snappshot.event.type, 'TEXT', 'should be MESSAGE event')
-  // t.same(snappshot.context, { text: undefined }, 'should be initial context')
+  let snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.value, 'working', 'should be working state')
+  t.equal(snapshot.event.type, 'TEXT', 'should be MESSAGE event')
+  t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should be text context')
 
   await textEventFuture
 
-  const snappshot = interpreter.getSnapshot()
-  // t.equal(snappshot.value, 'working', 'should be working')
-  t.equal(snappshot.event.type, 'TEXT', 'should be TEXT event')
-  t.same(snappshot.event.data, { text: EXPECTED_TEXT }, 'should has stt-ed TEXT event data')
-  // t.same(snappshot.context, { text: EXPECTED_TEXT }, 'should set stt-ed text to context')
+  snapshot = interpreter.getSnapshot()
+  // console.info('snapshot.actions:', snapshot.actions)
+  // console.info('snapshot.events:', snapshot.events)
+  // console.info('snapshot.history.actions:', snapshot.history?.actions)
+
+  t.equal(snapshot.value, 'working', 'should be working')
+  t.equal(snapshot.event.type, 'TEXT', 'should be TEXT event')
+  t.equal(snapshot.event.payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
+  t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
 
   interpreter.stop()
 })
-
-// interpreter.send({
-//   message: IMAGE_MESSAGE,
-//   type: 'MESSAGE',
-// })
-
-// t.notOk(interpreter.state.can(events.START), 'should can not START again in meeting')

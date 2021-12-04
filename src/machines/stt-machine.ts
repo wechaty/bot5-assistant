@@ -1,8 +1,6 @@
 /* eslint-disable sort-keys */
 import {
   sendParent,
-  assign,
-  actions,
 }                   from 'xstate'
 import { createModel } from 'xstate/lib/model.js'
 
@@ -17,9 +15,9 @@ const sttModel = createModel(
   },
   {
     events: {
-      MESSAGE : (message: Message) => ({ data: { message } }),
-      NO_TEXT : ()                 => ({ data: undefined }),
-      TEXT    : (text: string)     => ({ data: { text } }),
+      MESSAGE : (message: Message) => ({ payload: { message } }),
+      NO_TEXT : ()                 => ({}),
+      TEXT    : (text: string)     => ({ payload: { text } }),
     },
   },
 )
@@ -29,7 +27,7 @@ const sttMachine = sttModel.createMachine(
     initial: 'idle',
     states: {
       idle: {
-        entry: sttModel.assign({
+        exit: sttModel.assign({
           message: undefined,
           text: undefined,
         }),
@@ -50,7 +48,6 @@ const sttMachine = sttModel.createMachine(
             cond: 'isText',
             actions: [
               'assignText',
-              actions.log(ctx => console.info('ctx:', ctx)),
               'sendText',
             ],
             target: 'idle',
@@ -78,16 +75,13 @@ const sttMachine = sttModel.createMachine(
   {
     actions: {
       // send
-      sendAudio  : sendParent((_, e)  => ({ type: 'TEXT', data: { text: e.data } })),
-      sendText   : sendParent(ctx     => {
-        console.info('sendText ctx:', ctx)
-        return ({ type: 'TEXT', data: { text: ctx.text } })
-      }),
+      sendAudio  : sendParent((_, e)  => ({ type: 'TEXT', payload: { text: e.data } })),
+      sendText   : sendParent(ctx     => ({ type: 'TEXT', payload: { text: ctx.text } })),
       sendNoText : sendParent('NO_TEXT'),
       // assign
-      assignMessage:  sttModel.assign({ message:  (_, e) => e.data.message }, 'MESSAGE') as any,
-      assignAudio:    sttModel.assign({ text:     (_, e) => (e as any).data }) as any,
-      assignText:     sttModel.assign({ text:     (ctx) => ctx.message!.text() }, 'TEXT') as any,
+      assignMessage:  sttModel.assign({ message:  (_, e)  => e.payload.message },   'MESSAGE') as any,
+      assignAudio:    sttModel.assign({ text:     (_, e)  => (e as any).data },     'TEXT') as any,
+      assignText:     sttModel.assign({ text:     (ctx)   => ctx.message?.text() }, 'TEXT') as any,
     },
     services: {
       stt: async context => context.message && stt(await context.message.toFileBox()),
