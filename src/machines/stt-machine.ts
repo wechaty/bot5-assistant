@@ -1,35 +1,25 @@
 /* eslint-disable sort-keys */
-import {
-  actions, ContextFrom,
-}                       from 'xstate'
 import { createModel }  from 'xstate/lib/model.js'
 
 import type { Message } from 'wechaty'
 
 import { stt } from '../stt.js'
-
-const respond = (
-  event: Parameters<typeof actions.send>[0],
-) => actions.send(
-  event,
-  {
-    to: (
-      ctx: ContextFrom<typeof sttModel>,
-    ) => ctx.eventOrigin!,
-  },
-)
+import {
+  // ContextLastOrigin,
+  respondLastOrigin,
+}                       from './respond-last-origin.js'
 
 const sttModel = createModel(
   {
-    eventOrigin : undefined as undefined | string,
-    message     : undefined as undefined | Message,
-    text        : undefined as undefined | string,
+    lastOrigin : undefined as undefined | string,
+    message    : undefined as undefined | Message,
+    text       : undefined as undefined | string,
   },
   {
     events: {
-      MESSAGE   : (message: Message) => ({ message }),
-      NOT_AUDIO : ()                 => ({}),
-      TEXT      : (text: string)     => ({ text }),
+      MESSAGE  : (message: Message) => ({ message }),
+      NO_AUDIO : ()                 => ({}),
+      TEXT     : (text: string)     => ({ text }),
     },
   },
 )
@@ -53,7 +43,7 @@ const sttMachine = sttModel.createMachine(
             target: 'recognizingAudio',
           },
           {
-            actions: 'sendNotAudio',
+            actions: 'sendNoAudio',
             target: 'idle',
           },
         ],
@@ -78,19 +68,19 @@ const sttMachine = sttModel.createMachine(
   },
   {
     actions: {
-      sendText     : respond(ctx => sttModel.events.TEXT(ctx.text || '')) as any,
-      sendNotAudio : respond(sttModel.events.NOT_AUDIO()) as any,
+      sendText    : respondLastOrigin(ctx => sttModel.events.TEXT(ctx.text || '')) as any,
+      sendNoAudio : respondLastOrigin(sttModel.events.NO_AUDIO()) as any,
       //
       saveMessage: sttModel.assign({
         message:  (_, e) => e.message,
-        eventOrigin: (_, __, { _event }) => _event.origin,
+        lastOrigin: (_, __, { _event }) => _event.origin,
       }, 'MESSAGE') as any,
       saveText: sttModel.assign({
         text: (_, e)  => (e as any).data,
       }) as any,
       //
       clearAll: sttModel.assign({
-        eventOrigin : undefined,
+        lastOrigin : undefined,
         message     : undefined,
         text        : undefined,
       }) as any,

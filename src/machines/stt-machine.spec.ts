@@ -115,9 +115,9 @@ const parentMachineTest = createMachine({
 
 test('stt machine initialState', async t => {
   const INITIAL_STATE = {
-    eventOrigin : undefined,
-    message     : undefined,
-    text        : undefined,
+    lastOrigin : undefined,
+    message    : undefined,
+    text       : undefined,
   }
   t.equal(sttMachine.initialState.value, 'idle', 'should be initial state idle')
   t.equal(sttMachine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
@@ -184,7 +184,7 @@ test('stt machine process non-audio message (text)', async t => {
 
   let snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'NOT_AUDIO', 'should be NOT_AUDIO event')
+  t.equal(snapshot.event.type, 'NO_AUDIO', 'should be NO_AUDIO event')
 
   interpreter.send(
     sttModel.events.MESSAGE(fixtures.IMAGE_MESSAGE),
@@ -192,7 +192,7 @@ test('stt machine process non-audio message (text)', async t => {
 
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'NOT_AUDIO', 'should be NOT_AUDIO event')
+  t.equal(snapshot.event.type, 'NO_AUDIO', 'should be NO_AUDIO event')
 
   interpreter.stop()
 })

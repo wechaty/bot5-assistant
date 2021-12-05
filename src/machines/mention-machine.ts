@@ -1,8 +1,14 @@
 /* eslint-disable sort-keys */
 import { createModel }  from 'xstate/lib/model.js'
 
-import type { Message, Contact } from 'wechaty'
-import { respondLastOrigin } from './respond-last-origin.js'
+import type {
+  Message,
+  Contact,
+}                       from 'wechaty'
+import {
+  respondLastOrigin,
+  lastOrigin,
+}                       from './respond-last-origin.js'
 
 const mentionModel = createModel(
   {
@@ -60,7 +66,7 @@ const mentionMachine = mentionModel.createMachine(
       //
       saveMessage: mentionModel.assign({
         message:  (_, e) => e.message,
-        lastOrigin: (_, __, { _event }) => _event.origin,
+        lastOrigin,
       }, 'MESSAGE') as any,
       saveMentions: mentionModel.assign({
         mentions: (_, e)  => (e as any).data,
