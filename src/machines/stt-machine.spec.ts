@@ -10,7 +10,6 @@ import {
   forwardTo,
   interpret,
   createMachine,
-  actions,
   // spawn,
 }                   from 'xstate'
 import * as WECHATY from 'wechaty'
@@ -26,7 +25,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 import {
-  // sttModel,
+  sttModel,
   sttMachine,
 }                     from './stt-machine.js'
 import { FileBox, FileBoxInterface } from 'file-box'
@@ -110,14 +109,19 @@ const parentMachineTest = createMachine({
   },
 }, {
   actions: {
-    saveText: actions.assign({ text: (_, event) => event.payload.text }),
+    saveText: sttModel.assign({ text: (_, event) => event.text }, 'TEXT') as any,
   },
 })
 
 test('stt machine initialState', async t => {
+  const INITIAL_STATE = {
+    eventOrigin : undefined,
+    message     : undefined,
+    text        : undefined,
+  }
   t.equal(sttMachine.initialState.value, 'idle', 'should be initial state idle')
-  t.same(sttMachine.initialState.context, { message: undefined, text: undefined }, 'should be initial context')
-  t.same(sttMachine.initialState.event, { type: 'xstate.init' }, 'should be initial event from xstate')
+  t.equal(sttMachine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
+  t.same(sttMachine.initialState.context, INITIAL_STATE, 'should be initial context')
 })
 
 test('stt machine process audio message', async t => {
@@ -136,26 +140,25 @@ test('stt machine process audio message', async t => {
 
   const textEventFuture = firstValueFrom(from(interpreter).pipe(
     filter(state => state.event.type === 'TEXT'),
-    map(state => state.event.payload.text),
+    map(state => state.event.text),
   ))
 
-  interpreter.send({
-    payload: {
-      message: fixtures.AUDIO_MESSAGE,
-    },
-    type: 'MESSAGE',
-  } as any)
+  // interpreter.subscribe(s => console.info('event:', s.event))
+
+  interpreter.send(
+    sttModel.events.MESSAGE(fixtures.AUDIO_MESSAGE),
+  )
 
   let snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
   t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
-  t.same(snapshot.context, { text: undefined }, 'should be initial context')
+  t.equal(snapshot.context.text, undefined, 'should be initial context')
 
   await textEventFuture
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working')
   t.equal(snapshot.event.type, 'TEXT', 'should be TEXT event')
-  t.equal(snapshot.event.payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
+  t.equal(snapshot.event.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
   t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
 
   interpreter.send('STOP')
@@ -168,39 +171,28 @@ test('stt machine process audio message', async t => {
   interpreter.stop()
 })
 
-test.only('stt machine process text message', async t => {
+test('stt machine process non-audio message (text)', async t => {
   const fixtures = getFixtures()
 
   const interpreter = interpret(parentMachineTest).start()
 
-  const textEventFuture = firstValueFrom(from(interpreter).pipe(
-    filter(state => state.event.type === 'TEXT'),
-    map(state => state.event.payload.text),
-  ))
+  // interpreter.subscribe(s => console.info('event:', s.event))
 
-  interpreter.send({
-    payload: {
-      message: fixtures.TEXT_MESSAGE,
-    },
-    type: 'MESSAGE',
-  } as any)
+  interpreter.send(
+    sttModel.events.MESSAGE(fixtures.TEXT_MESSAGE),
+  )
 
   let snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'TEXT', 'should be MESSAGE event')
-  t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should be text context')
+  t.equal(snapshot.event.type, 'NOT_AUDIO', 'should be NOT_AUDIO event')
 
-  await textEventFuture
+  interpreter.send(
+    sttModel.events.MESSAGE(fixtures.IMAGE_MESSAGE),
+  )
 
   snapshot = interpreter.getSnapshot()
-  // console.info('snapshot.actions:', snapshot.actions)
-  // console.info('snapshot.events:', snapshot.events)
-  // console.info('snapshot.history.actions:', snapshot.history?.actions)
-
-  t.equal(snapshot.value, 'working', 'should be working')
-  t.equal(snapshot.event.type, 'TEXT', 'should be TEXT event')
-  t.equal(snapshot.event.payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
-  t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
+  t.equal(snapshot.value, 'working', 'should be working state')
+  t.equal(snapshot.event.type, 'NOT_AUDIO', 'should be NOT_AUDIO event')
 
   interpreter.stop()
 })
