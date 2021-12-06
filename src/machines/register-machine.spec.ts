@@ -7,23 +7,14 @@ import {
 }                   from 'tstest'
 
 import {
-  forwardTo,
   interpret,
-  createMachine,
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
 import {
-  from,
   firstValueFrom,
   Subject,
 }                   from 'rxjs'
-import {
-  filter,
-  map,
-}                   from 'rxjs/operators'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 import {
   registerMachine,
@@ -41,9 +32,13 @@ test('register machine', async t => {
   const doneFuture = firstValueFrom(done$)
 
   interpreter.subscribe(s => {
-    console.info('state:', s.value)
-    console.info('event:', s.event)
+    // console.info('state:', s.value)
+    // console.info('event:', s.event.type)
   })
+
+  let snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.value, 'registering', 'should be registering state')
+  t.same(snapshot.context.members, [], 'should be empty mention list')
 
   for await (const fixtures of createFixture()) {
     const {
@@ -52,35 +47,62 @@ test('register machine', async t => {
     }           = fixtures
 
     const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
+
+    const MEMBER_ID_LIST = [
+      mary.id,
+      mike.id,
+      mocker.bot.id,
+      mocker.player.id,
+    ]
+
     const meetingRoom = mocker.mocker.createRoom({
-      memberIdList: [
-        mary.id,
-        mike.id,
-        mocker.bot.id,
-        mocker.player.id,
-      ],
+      memberIdList: MEMBER_ID_LIST,
     })
 
-    const messageFuture = new Promise<WECHATY.Message>(resolve => wechaty.bot.once('message', resolve))
-    mary.say().to(meetingRoom)
-    const message = await messageFuture
+    const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
 
-    console.info(message)
+    mary.say('register').to(meetingRoom)
 
     interpreter.send(
-      registerModel.events.MESSAGE(message),
+      registerModel.events.MESSAGE(
+        await messageFutureNoMention,
+      ),
     )
 
-    let snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.value, 'extracting', 'should be extracting state')
+    snapshot = interpreter.getSnapshot()
+    t.equal(snapshot.value, 'mentioning', 'should be mentioning state')
     t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
-    t.same(snapshot.context.members, [], 'should be empty mention list')
+    t.same(snapshot.context.members, [], 'should have empty mentioned id list before onDone')
+
+    await new Promise(setImmediate)
+
+    snapshot = interpreter.getSnapshot()
+    t.equal(snapshot.value, 'registering', 'should be back to registering state')
+    t.equal(snapshot.event.type, 'error.platform.getMentions', 'should be error.platform.getMentions event')
+    t.same(snapshot.context.members, [], 'should have empty mentioned id list before onDone')
+
+    const messageFutureMentions = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
+
+    const MENTION_LIST = [mike, mary, mocker.player]
+    mary.say('register', MENTION_LIST).to(meetingRoom)
+
+    interpreter.send(
+      registerModel.events.MESSAGE(
+        await messageFutureMentions,
+      ),
+    )
+
+    snapshot = interpreter.getSnapshot()
+    t.equal(snapshot.value, 'mentioning', 'should be mentioning state')
+    t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
+    t.same(snapshot.context.members, [], 'should have empty mentioned id list before onDone')
 
     await doneFuture
     snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.value, 'idle', 'should be idle after working')
-    t.equal(snapshot.event.type, 'MENTIONS', 'should be MENTIONS event')
-
-    interpreter.stop()
+    t.equal(snapshot.value, 'finish', 'should be finish after done')
+    t.equal(snapshot.event.type, 'done.invoke.getMentions', 'should be done.invoke.getMentions event')
+    t.same((snapshot.event as any).data.map((c: any) => c.id), MENTION_LIST.map(c => c.id), 'should get mention list')
   }
+
+  interpreter.stop()
 })

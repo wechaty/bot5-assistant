@@ -3,6 +3,8 @@ import { createModel }  from 'xstate/lib/model.js'
 
 import type { Message, Contact } from 'wechaty'
 
+import * as events from './events.js'
+
 /**
  *
  * Huan(202112): The Actor Model here need to be improved.
@@ -11,15 +13,15 @@ import type { Message, Contact } from 'wechaty'
  */
 const registerModel = createModel(
   {
-    message    : undefined as undefined | Message,
+    message: undefined as undefined | Message,
     members    : [] as Contact[],
     chairs     : [] as Contact[],
   },
   {
     events: {
-      MESSAGE     : (message: Message) => ({ message }),
-      MENTIONS: (mentions: Contact[]) => ({ mentions }),
-      NO_MENTION: () => ({}),
+      MESSAGE: events.payloads.MESSAGE,
+      MENTIONS: events.payloads.MENTIONS,
+      NO_MENTION: events.payloads.NO_MENTION,
     },
   },
 )
@@ -34,18 +36,23 @@ const registerMachine = registerModel.createMachine(
     states: {
       start: {
         entry: ['introduceSession'],
-        on: {
-          MESSAGE: {
-            actions: 'saveMessage',
-            target: 'registering',
-          },
+        always: {
+          target: 'registering',
         },
       },
       registering: {
+        on: {
+          MESSAGE: {
+            actions: 'saveMessage',
+            target: 'mentioning',
+          },
+        },
+      },
+      mentioning: {
         invoke: {
           src: 'getMentions',
           onDone: {
-            target: 'done',
+            target: 'finish',
             actions: [
               'saveMentions',
             ],
@@ -56,7 +63,7 @@ const registerMachine = registerModel.createMachine(
           },
         },
       },
-      done: {
+      finish: {
         entry: ['announceRegisteredMembers'],
         type: 'final',
         data: ctx => ctx.members,
