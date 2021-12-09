@@ -4,7 +4,7 @@ import {
 }                   from 'wechaty'
 
 enum Intent {
-  Unknown,
+  Unknown = 0,
   Start,
   Stop,
 }

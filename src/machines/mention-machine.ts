@@ -10,6 +10,8 @@ import {
   lastOrigin,
 }                       from './respond-last-origin.js'
 
+import * as events from './events.js'
+
 const mentionModel = createModel(
   {
     lastOrigin : undefined as undefined | string,
@@ -18,9 +20,9 @@ const mentionModel = createModel(
   },
   {
     events: {
-      MESSAGE    : (message: Message) => ({ message }),
-      NO_MENTION : ()                 => ({}),
-      MENTIONS   : (mentions: Contact[]) => ({ mentions }),
+      MESSAGE    : events.payloads.MESSAGE,
+      NO_MENTION : events.payloads.NO_MENTION,
+      MENTIONS   : events.payloads.MENTIONS,
     },
   },
 )
