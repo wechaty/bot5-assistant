@@ -1,22 +1,22 @@
 /* eslint-disable sort-keys */
-import { actions } from 'xstate'
-import { createModel }  from 'xstate/lib/model.js'
+import {
+  actions,
+  assign,
+  createMachine,
+}                       from 'xstate'
 
 import {
   type Message,
   type Contact,
   type Room,
-  types as TYPES,
+  types as WechatyTypes,
 }                       from 'wechaty'
 
 import { stt } from '../stt.js'
 
-import * as events from './events.js'
-
-const isText  = (message?: Message) => !!(message) && message.type() === TYPES.Message.Text
-const isAudio = (message?: Message) => !!(message) && message.type() === TYPES.Message.Audio
-
-const nextAttendee = (attendees: Contact[], excludeIds: string[]) => attendees.filter(c => !excludeIds.includes(c.id))[0]
+import type * as events from './events.js'
+import * as types       from './types.js'
+import * as states      from './states.js'
 
 /**
  *
@@ -24,84 +24,139 @@ const nextAttendee = (attendees: Contact[], excludeIds: string[]) => attendees.f
  *  @see https://github.com/wechaty/bot5-assistant/issues/4
  *
  */
-const feedbackModel = createModel(
-  {
-    message: undefined as undefined | Message,
-    room: undefined as undefined | Room,
-    attendees: [] as Contact[],
-    feedback: undefined as undefined | string,
-    feedbacks: {} as { [key: string]: string },
-  },
-  {
-    events: {
-      MESSAGE: events.payloads.MESSAGE,
-      ROOM: events.payloads.ROOM,
-      ATTENDEES: events.payloads.ATTENDEES,
-      NEXT: events.payloads.NEXT,
-    },
-  },
-)
+type Task = {
+  origin?: string
+  message: Message
+}
 
-const feedbackMachine = feedbackModel.createMachine(
+type Context = {
+  currentTask : null | Task
+  tasks       : Task[]
+  // -------
+  attendees   : Contact[]
+  feedback    : null | string
+  feedbacks   : { [id: string]: string }
+  message     : null | Message,
+  room        : null | Room,
+}
+
+/**
+ * Huan(202112): The Typestate feature is for state.matches(...),
+ *    and not yet for within the state machine.
+ *    That's something we're going to work on for V5.
+ *  @see https://github.com/statelyai/xstate/issues/1138#issuecomment-615435171
+ */
+type Typestate =
+  | {
+    value: typeof states.feedbacked,
+    context: Context & {
+      feedback: string,
+      message: Message,
+    },
+  }
+  | {
+    value: typeof states.listening,
+    context: Context & {
+      feedback: null,
+      message: null,
+    },
+  }
+  | {
+    value: typeof states.feedbacking,
+    context: Context & {
+      feedback: null,
+      message: Message,
+    },
+  }
+
+type Event =
+  | ReturnType<typeof events.MESSAGE>
+  | ReturnType<typeof events.ATTENDEES>
+  | ReturnType<typeof events.ROOM>
+  | ReturnType<typeof events.START>
+
+const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
+const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
+
+const nextAttendee = (ctx: Context) => ctx.attendees.filter(c => !Object.keys(ctx.feedbacks).includes(c.id))[0]
+
+const feedbackMachine = createMachine<Context, Event, Typestate>(
   {
+    context: {
+      currentTask : null,
+      tasks       : [],
+      // -------
+      attendees   : [],
+      feedback    : null,
+      feedbacks   : {},
+      message     : null,
+      room        : null,
+    },
     initial: 'idle',
     states: {
-      idle: {
+      [states.idle]: {
         on: {
-          ATTENDEES: {
-            actions: feedbackModel.assign({
-              attendees: (_, e)  => e.attendees,
+          [types.ATTENDEES]: {
+            actions: assign({
+              attendees: (_, e)  => e.payload.attendees,
             }),
           },
-          ROOM: {
-            actions: feedbackModel.assign({
-              room: (_, e) => e.room,
+          [types.ROOM]: {
+            actions: assign({
+              room: (_, e) => e.payload.room,
             }),
-            target: 'listening',
           },
-          NEXT: {
-            target: 'validating',
+          [types.START]: {
+            target: 'checking',
           },
         },
       },
-      validating: {
+      checking: {
         always: [
           {
-            cond: ctx => !!(ctx.room && ctx.attendees),
+            cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.attendees.length,
+            target: 'done',
+          },
+          {
+            cond: ctx => !!(ctx.room && ctx.attendees.length),
             target: 'listening',
           },
           {
-            actions: [actions.log('[feedback] validating: no room or attendees')],
-            target: 'idle',
+            actions: actions.escalate('[feedback] checking: no room or attendees'),
+            target: 'done',
           },
         ],
       },
-      listening: {
+      [states.listening]: {
         on: {
-          MESSAGE: {
-            actions: feedbackModel.assign({
-              message:  (_, e) => e.message,
-            }),
+          [types.MESSAGE]: {
+            actions: [
+              assign({
+                message:  (_, e) => e.payload.message,
+              }),
+            ],
             target: 'feedbacking',
           },
         },
       },
-      feedbacking: {
+      [states.feedbacking]: {
         always: [
           {
-            cond: ctx => isText(ctx.message),
-            actions: feedbackModel.assign({
-              feedback: ctx => ctx.message?.text(),
-            }),
+            cond: ctx => isText(ctx.message!),
+            actions: [
+              assign({
+                feedback: ctx => ctx.message!.text(),
+              }),
+            ],
             target: 'feedbacked',
           },
           {
             target: 'stt',
-            cond: ctx => isAudio(ctx.message),
+            cond: ctx => isAudio(ctx.message!),
           },
           {
             target: 'listening',
-            actions: [],
+            actions: [actions.log('[feedback] feedbacking: no text or audio')],
           },
         ],
       },
@@ -110,9 +165,11 @@ const feedbackMachine = feedbackModel.createMachine(
           src: async ctx => ctx.message && stt(await ctx.message.toFileBox()),
           onDone: {
             target: 'feedbacked',
-            actions: feedbackModel.assign({
-              feedback: (_, e) => (e as any).data,
-            }),
+            actions: [
+              assign({
+                feedback: (_, e) => e.data ?? 'NO STT RESULT',
+              }),
+            ],
           },
           onError: {
             target: 'listening',
@@ -120,26 +177,18 @@ const feedbackMachine = feedbackModel.createMachine(
           },
         },
       },
-      feedbacked: {
+      [states.feedbacked]: {
         entry: [
           actions.log((ctx, _) => `[feedback] ${ctx.message!.talker()} feedback: ${ctx.feedback}`),
-          actions.log((ctx, _) => `[feedback] next: ${nextAttendee(ctx.attendees, Object.keys(ctx.feedbacks))}`),
-          feedbackModel.assign({
+          actions.log((ctx, _) => `[feedback] next: ${nextAttendee(ctx)}`),
+          assign({
             feedbacks: ctx => ({
               ...ctx.feedbacks,
               [ctx.message!.talker().id]: ctx.feedback || 'NO feedback',
             }),
           }),
         ],
-        always: [
-          {
-            cond: ctx => Object.keys(ctx.feedbacks).length < ctx.attendees.length,
-            target: 'listening',
-          },
-          {
-            target: 'done',
-          },
-        ],
+        always: 'checking',
       },
       done: {
         entry: [
@@ -157,6 +206,5 @@ const feedbackMachine = feedbackModel.createMachine(
 )
 
 export {
-  feedbackModel,
   feedbackMachine,
 }

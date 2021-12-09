@@ -8,7 +8,7 @@ import * as events from './events.js'
 /**
  *
  * Huan(202112): The Actor Model here need to be improved.
- *  @see https://discord.com/channels/795785288994652170/800812250306183178/917025370186870794
+ *  @see https://github.com/wechaty/bot5-assistant/issues/4
  *
  */
 const registerModel = createModel(

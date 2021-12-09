@@ -9,6 +9,8 @@ import {
   respondLastOrigin,
 }                       from './respond-last-origin.js'
 
+import * as events from './events.js'
+
 const sttModel = createModel(
   {
     lastOrigin : undefined as undefined | string,
@@ -17,9 +19,9 @@ const sttModel = createModel(
   },
   {
     events: {
-      MESSAGE  : (message: Message) => ({ message }),
-      NO_AUDIO : ()                 => ({}),
-      TEXT     : (text: string)     => ({ text }),
+      MESSAGE  : events.payloads.MESSAGE,
+      NO_AUDIO : events.payloads.NO_AUDIO,
+      TEXT     : events.payloads.TEXT,
     },
   },
 )
