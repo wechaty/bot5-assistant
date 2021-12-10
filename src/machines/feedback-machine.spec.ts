@@ -16,9 +16,18 @@ import {
   Subject,
   from,
 }                   from 'rxjs'
-
+import {
+  filter,
+  tap,
+}                   from 'rxjs/operators'
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
+import {
+  FileBox,
+  FileBoxInterface,
+}                   from 'file-box'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 import * as events  from './events.js'
 import * as types   from './types.js'
@@ -27,6 +36,23 @@ import * as states  from './states.js'
 import {
   feedbackMachine,
 }                   from './feedback-machine.js'
+
+const getAudioFixture = async () => {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+  const EXPECTED_TEXT = '大可乐两个，统一冰红茶三箱。'
+  const base64 = await FileBox.fromFile(path.join(
+    __dirname,
+    '../../tests/fixtures/sample.sil',
+  )).toBase64()
+
+  const FILE_BOX = FileBox.fromBase64(base64, 'sample.sil') as FileBoxInterface
+
+  return {
+    fileBox: FILE_BOX,
+    text: EXPECTED_TEXT,
+  }
+}
 
 const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
   const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
@@ -43,7 +69,7 @@ test('register machine', async t => {
   // const doneFuture = lastValueFrom(from(interpreter))
 
   let snapshot = interpreter.getSnapshot()
-  t.equal(snapshot.value, states.idle, 'should be registering state')
+  t.equal(snapshot.value, states.inactive, 'should be inactive state after initial')
   t.same(snapshot.context.attendees, [], 'should be empty attendee list')
 
   for await (const WECHATY_FIXTURES of createFixture()) {
@@ -76,13 +102,15 @@ test('register machine', async t => {
       throw new Error('no meeting room')
     }
 
+    const AUDIO_FIXTURE = await getAudioFixture()
+
     const FIXTURES = {
       room: MEETING_ROOM,
       members: MEMBER_LIST,
       feedbacks: {
         mary: 'im mary',
         mike: 'im mike',
-        player: 'im player',
+        player: AUDIO_FIXTURE.text,
         bot: 'im bot',
       },
     }
@@ -107,8 +135,10 @@ test('register machine', async t => {
       events.START(),
     ])
     snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.event.type, types.START, 'should get START event')
-    t.equal(snapshot.value, states.listening, 'should be state listening if meeting room & attendees has been set')
+    t.equal(snapshot.event.type, types.START, 'should get START event after reset')
+    t.same(snapshot.value, {
+      [states.active]: states.idle,
+    }, 'should be state active.idle if meeting room & attendees has been set')
     t.equal(snapshot.context.attendees.length, MEMBER_LIST.length, `should have ${MEMBER_LIST.length} attendees`)
     t.equal(snapshot.context.room, MEETING_ROOM, 'should have meeting room set')
 
@@ -118,8 +148,10 @@ test('register machine', async t => {
     ])
     snapshot = interpreter.getSnapshot()
     // console.info((snapshot.event.payload as any).message)
-    t.equal(snapshot.event.type, types.MESSAGE, 'should get MESSAGE event')
-    t.equal(snapshot.value, states.listening, 'should be back to state listening after received a text message')
+    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
+    t.same(snapshot.value, {
+      [states.active]: states.idle,
+    }, 'should be back to state idle after received a text message')
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.mary, 'should have feedback set')
     t.same(snapshot.context.feedbacks, { [mary.id]: FIXTURES.feedbacks.mary }, 'should have feedback from mary')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 1, 'should have 1 feedback so far')
@@ -136,8 +168,10 @@ test('register machine', async t => {
     )
     snapshot = interpreter.getSnapshot()
     // console.info((snapshot.event.payload as any).message)
-    t.equal(snapshot.event.type, types.MESSAGE, 'should get MESSAGE event')
-    t.equal(snapshot.value, states.listening, 'should be back to state listening after received a text message')
+    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
+    t.same(snapshot.value, {
+      [states.active]: states.idle,
+    }, 'should be back to state active.idle after received a text message')
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.mike, 'should get mike feedback')
     t.same(snapshot.context.feedbacks, {
       [mary.id]: FIXTURES.feedbacks.mary,
@@ -146,13 +180,26 @@ test('register machine', async t => {
     }, 'should have feedback from 3 users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 3, 'should have 3 feedback so far')
 
-    msg = await listenMessage(() => player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom))
+    msg = await listenMessage(() => player.say(AUDIO_FIXTURE.fileBox).to(mockMeetingRoom))
     interpreter.send(
       events.MESSAGE(msg),
     )
+    // console.info('msg', msg)
     snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.event.type, types.MESSAGE, 'should get MESSAGE event')
-    t.equal(snapshot.value, states.completed, 'should in state complete after received all feedbacks')
+    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
+    t.same(snapshot.value, {
+      [states.active]: states.stt,
+    }, 'should in state stt after received audio message')
+
+    await lastValueFrom(
+      from(interpreter).pipe(
+        // tap(x => console.info('tap state:', x.value)),
+        // tap(x => console.info('tap event:', x.event.type)),
+        filter(s => s.value === states.completed),
+      ),
+    )
+    snapshot = interpreter.getSnapshot()
+    t.equal(snapshot.value, states.completed, 'should in state completed after resolve stt message')
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.player, 'should get player feedback')
     t.same(snapshot.context.feedbacks, {
       [mary.id]: FIXTURES.feedbacks.mary,

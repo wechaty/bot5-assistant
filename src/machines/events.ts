@@ -1,3 +1,4 @@
+/* eslint-disable sort-keys */
 import {
   createAction,
   // createAsyncAction,
@@ -26,26 +27,34 @@ const payloadSay       = (text: string, mentions: Contact[]) => ({ mentions, tex
 const payloadAbort     = (error: string) => ({ error })
 const payloadCancel    = (error: string) => ({ error })
 
+const payloadData      = (data: any) => ({ data })
+
 const payloadEmpty     = () => ({})
-const payloadNoAudio   = payloadEmpty
-const payloadNoMention = payloadEmpty
-const payloadNext      = payloadEmpty
-const payloadStart     = payloadEmpty
-const payloadReset     = payloadEmpty
 
 const ATTENDEES  = createAction(types.ATTENDEES, payloadAttendees)()
 const MENTIONS   = createAction(types.MENTIONS, payloadMentions)()
 const MESSAGE    = createAction(types.MESSAGE, payloadMessage)()
-const NEXT       = createAction(types.NEXT, payloadNext)()
-const NO_AUDIO   = createAction(types.NO_AUDIO, payloadNoAudio)()
-const NO_MENTION = createAction(types.NO_MENTION, payloadNoMention)()
+const NEXT       = createAction(types.NEXT, payloadEmpty)()
+const NO_AUDIO   = createAction(types.NO_AUDIO, payloadEmpty)()
+const NO_MENTION = createAction(types.NO_MENTION, payloadEmpty)()
 const ROOM       = createAction(types.ROOM, payloadRoom)()
-const START      = createAction(types.START, payloadStart)()
+
+const START      = createAction(types.START, payloadEmpty)()
+const STOP     = createAction(types.STOP, payloadEmpty)()
+
 const TEXT       = createAction(types.TEXT, payloadText)()
 const SAY        = createAction(types.SAY, payloadSay)()
 const CANCEL = createAction(types.CANCEL, payloadCancel)()
 const ABORT = createAction(types.ABORT, payloadAbort)()
-const RESET = createAction(types.RESET, payloadReset)()
+const RESET = createAction(types.RESET, payloadEmpty)()
+const WAKEUP = createAction(types.WAKEUP, payloadEmpty)()
+
+/**
+ * Complete v.s. Finish
+ *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+ */
+const FINISH = createAction(types.FINISH, payloadData)()
+const COMPLETE = createAction(types.COMPLETE, payloadData)()
 
 const payloads = {
   ABORTED: payloadAbort,
@@ -53,14 +62,21 @@ const payloads = {
   CANCEL :payloadCancel,
   MENTIONS   : payloadMentions,
   MESSAGE    : payloadMessage,
-  NEXT       : payloadNext,
-  NO_AUDIO   : payloadNoAudio,
-  NO_MENTION : payloadNoMention,
-  RESET: payloadReset,
+  NEXT       : payloadEmpty,
+  NO_AUDIO   : payloadEmpty,
+  NO_MENTION : payloadEmpty,
+  RESET: payloadEmpty,
   ROOM       : payloadRoom,
   SAY        : payloadSay,
-  START      : payloadStart,
+
+  START      : payloadEmpty,
+  STOP: payloadEmpty,
+
   TEXT       : payloadText,
+  WAKEUP : payloadEmpty,
+
+  COMPLETE: payloadData,
+  FINISH: payloadData,
 }
 
 export {
@@ -76,6 +92,13 @@ export {
   ROOM,
   RESET,
   SAY,
+
   START,
+  STOP,
+
   TEXT,
+  WAKEUP,
+
+  COMPLETE,
+  FINISH,
 }

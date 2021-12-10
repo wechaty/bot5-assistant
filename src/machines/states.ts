@@ -6,6 +6,9 @@ const feedbacked = 'bot5-assitant/feedbacked'
 const checking = 'bot5-assitant/checking'
 const validating = 'bot5-assitant/validating'
 
+const active = 'bot5-assitant/active'
+const inactive = 'bot5-assitant/inactive'
+
 /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
@@ -20,7 +23,11 @@ const finished = 'bot5-assitant/finished'
 const aborted = 'bot5-assitant/aborted'
 const canceled = 'bot5-assitant/canceled'
 
+const stt = 'bot5-assistant/stt'
+
 export {
+  active,
+  inactive,
   aborted,
   canceled,
   checking,
@@ -32,4 +39,5 @@ export {
   feedbacking,
   feedbacked,
   validating,
+  stt,
 }

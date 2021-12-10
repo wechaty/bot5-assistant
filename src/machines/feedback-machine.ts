@@ -1,7 +1,6 @@
 /* eslint-disable sort-keys */
 import {
   actions,
-  assign,
   createMachine,
 }                       from 'xstate'
 
@@ -36,7 +35,6 @@ type Context = {
   attendees   : Contact[]
   feedback    : null | string
   feedbacks   : { [id: string]: string }
-  message     : null | Message,
   room        : null | Room,
 }
 
@@ -55,7 +53,7 @@ type Typestate =
     },
   }
   | {
-    value: typeof states.listening,
+    value: typeof states.idle,
     context: Context & {
       feedback: null,
       message: null,
@@ -74,8 +72,10 @@ type Event =
   | ReturnType<typeof events.ATTENDEES>
   | ReturnType<typeof events.ROOM>
   | ReturnType<typeof events.START>
+  | ReturnType<typeof events.STOP>
   | ReturnType<typeof events.ABORT>
   | ReturnType<typeof events.RESET>
+  | ReturnType<typeof events.WAKEUP>
 
 const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
 const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
@@ -89,14 +89,13 @@ const initialContext = {
   attendees   : [],
   feedback    : null,
   feedbacks   : {},
-  message     : null,
   room        : null,
 } as Context
 
 const feedbackMachine = createMachine<Context, Event, Typestate>(
   {
     context: initialContext,
-    initial: states.idle,
+    initial: states.inactive,
     on: {
       [types.RESET]: {
         actions: ctx => {
@@ -104,28 +103,43 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
           ctx.tasks       = []
           ctx.feedback    = null
           ctx.feedbacks   = {}
-          ctx.message     = null
           ctx.room        = null
         },
-        target: states.idle,
+        target: states.inactive,
+      },
+      [types.MESSAGE]: {
+        actions: [
+          actions.assign({
+            tasks: (ctx, e, { _event }) => [
+              ...ctx.tasks,
+              {
+                message: e.payload.message,
+                origin:  _event.origin,
+              },
+            ],
+          }),
+          actions.send(events.WAKEUP()),
+        ],
+      },
+      [types.ATTENDEES]: {
+        actions: actions.assign({
+          attendees: (_, e)  => e.payload.attendees,
+        }),
+      },
+      [types.ROOM]: {
+        actions: actions.assign({
+          room: (_, e) => e.payload.room,
+        }),
       },
     },
     states: {
-      [states.idle]: {
+      [states.inactive]: {
         on: {
-          [types.ATTENDEES]: {
-            actions: assign({
-              attendees: (_, e)  => e.payload.attendees,
-            }),
-          },
-          [types.ROOM]: {
-            actions: assign({
-              room: (_, e) => e.payload.room,
-            }),
-          },
           [types.START]: {
             target: states.validating,
           },
+          // forbidden WAKEUP transition with `inactive` state
+          [types.WAKEUP]: undefined,
         },
       },
       [states.validating]: {
@@ -134,95 +148,116 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
             cond: ctx => !(ctx.room && ctx.attendees.length),
             target: states.aborted,
           },
-          states.checking,
+          states.active,
         ],
-      },
-      [states.checking]: {
-        always: [
-          {
-            cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.attendees.length,
-            target: states.completed,
-          },
-          {
-            cond: ctx => !!(ctx.room && ctx.attendees.length),
-            target: states.listening,
-          },
-        ],
-      },
-      [states.listening]: {
-        on: {
-          [types.MESSAGE]: {
-            actions: [
-              assign({
-                message:  (_, e) => e.payload.message,
-              }),
-            ],
-            target: states.feedbacking,
-          },
-        },
-      },
-      [states.feedbacking]: {
-        always: [
-          {
-            cond: ctx => isText(ctx.message!),
-            actions: [
-              assign({
-                feedback: ctx => ctx.message!.text(),
-              }),
-            ],
-            target: states.feedbacked,
-          },
-          {
-            target: 'stt',
-            cond: ctx => isAudio(ctx.message!),
-          },
-          {
-            target: states.listening,
-            actions: [actions.log('[feedback] feedbacking: no text or audio')],
-          },
-        ],
-      },
-      stt: {
-        invoke: {
-          src: async ctx => ctx.message && stt(await ctx.message.toFileBox()),
-          onDone: {
-            target: states.feedbacked,
-            actions: [
-              assign({
-                feedback: (_, e) => e.data ?? 'NO STT RESULT',
-              }),
-            ],
-          },
-          onError: {
-            target: states.listening,
-            actions: actions.log('[feedback] stt error'),
-          },
-        },
-      },
-      [states.feedbacked]: {
-        entry: [
-          actions.log((ctx, _) => `[feedback] ${ctx.message!.talker()} feedback: ${ctx.feedback}`),
-          actions.log((ctx, _) => `[feedback] next: ${nextAttendee(ctx)}`),
-          assign({
-            feedbacks: ctx => ({
-              ...ctx.feedbacks,
-              [ctx.message!.talker().id]: ctx.feedback || 'NO feedback',
-            }),
-          }),
-        ],
-        always: states.checking,
-      },
-      [states.completed]: {
-        entry: [
-          actions.log('[feedback] completed'),
-        ],
-        type: 'final',
-        data: ctx => ctx.feedbacks,
       },
       [states.aborted]: {
         // FIXME: respond here will only work as expected with xstate@5
         entry: actions.respond(_ => events.ABORT('[feedback] aborted')),
         type: 'final',
+      },
+      [states.completed]: {
+        type: 'final',
+        data: (_, e) => (e as any).data,
+      },
+      [states.active]: {
+        onDone: states.completed,
+        on: {
+          [types.STOP]: {
+            target: states.inactive,
+            actions: [
+              actions.send(events.RESET()),
+            ],
+          },
+        },
+        initial: states.checking,
+        states: {
+          [states.idle]: {
+            on: {
+              [types.WAKEUP]: states.checking,
+            },
+          },
+          [states.checking]: {
+            always: [
+              { // everyone feedback-ed
+                cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.attendees.length,
+                target: states.finished,
+              },
+              { // new message in queue
+                cond: ctx => ctx.tasks.length > 0,
+                actions: actions.assign({
+                  currentTask: ctx => ctx.tasks.shift()!,
+                }),
+                target: states.feedbacking,
+              },
+              states.idle,
+            ],
+          },
+          [states.feedbacking]: {
+            always: [
+              {
+                cond: ctx => isText(ctx.currentTask!.message),
+                actions: [
+                  actions.assign({
+                    feedback: ctx => ctx.currentTask!.message.text(),
+                  }),
+                ],
+                target: states.feedbacked,
+              },
+              {
+                target: states.stt,
+                cond: ctx => isAudio(ctx.currentTask!.message),
+              },
+              {
+                target: states.idle,
+                actions: [actions.log('[feedback] feedbacking: no text or audio')],
+              },
+            ],
+          },
+          [states.stt]: {
+            invoke: {
+              src: async ctx => {
+                const fileBox = await ctx.currentTask!.message.toFileBox()
+                const text = await stt(fileBox)
+                // console.info('text:', text)
+                return text
+              },
+              onDone: {
+                target: states.feedbacked,
+                actions: [
+                  actions.assign({
+                    feedback: (_, e) => e.data ?? 'NO STT RESULT',
+                  }),
+                ],
+              },
+              onError: {
+                target: states.idle,
+                actions: actions.log('[feedback] stt error'),
+              },
+            },
+          },
+          [states.feedbacked]: {
+            entry: [
+              actions.log((ctx, _) => `[feedback] ${ctx.currentTask!.message.talker()} feedback: ${ctx.feedback}`),
+              actions.log((ctx, _) => `[feedback] next: ${nextAttendee(ctx)}`),
+              actions.assign({
+                feedbacks: ctx => ({
+                  ...ctx.feedbacks,
+                  [ctx.currentTask!.message.talker().id]: ctx.feedback || 'NO feedback',
+                }),
+              }),
+            ],
+            always: states.checking,
+          },
+          [states.finished]: {
+            type: 'final',
+            entry: [
+              actions.log('[feedback] finished'),
+              // actions.send(ctx => events.FINISH(ctx.feedbacks)),
+            ],
+            data: ctx => ctx.feedbacks,
+          },
+        },
       },
     },
   },

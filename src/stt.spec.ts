@@ -16,7 +16,7 @@ test('stt() smoke testing', async t => {
 
   const fileBox = FileBox.fromFile(path.join(
     __dirname,
-    '../tests/fixtures/sample.silk',
+    '../tests/fixtures/sample.sil',
   ))
 
   const text = await stt(fileBox)

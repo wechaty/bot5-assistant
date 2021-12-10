@@ -42,6 +42,17 @@ async function stt (
   fileBox: FileBoxInterface,
 ): Promise<string> {
 
+  let voiceFormat = fileBox.name.split('.').pop()
+  if (!voiceFormat) {
+    throw new Error('no ext for fileBox name: ' + fileBox.name)
+  }
+
+  switch (voiceFormat) {
+    case 'sil':
+      voiceFormat = 'silk'
+      break
+  }
+
   const req: SentenceRecognitionRequest = {
     /**
       * 腾讯云项目 ID，可填 0，总长度不超过 1024 字节。
@@ -75,7 +86,7 @@ async function stt (
       * Huan(202111): wav、pcm、ogg-opus、speex、silk、mp3、m4a、aac
       *   @see https://cloud.tencent.com/document/product/1093/52097
       */
-    VoiceFormat: fileBox.name.split('.').pop() as any, // FIXME: check the file extension
+    VoiceFormat: voiceFormat, // FIXME: check the file extension
     /**
       * 用户端对此任务的唯一标识，用户自助生成，用于用户查找识别结果。
       */

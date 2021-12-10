@@ -11,8 +11,19 @@ const ATTENDEES = 'bot5-assistant/ATTENDEES'
 const NEXT = 'bot5-assistant/NEXT'
 
 const START = 'bot5-assistant/START'
+const STOP = 'bot5-assistant/STOP'
+
 const SAY = 'bot5-assistant/SAY'
 const RESET = 'bot5-assistant/RESET'
+
+const WAKEUP = 'bot5-assistant/WAKEUP'
+
+/**
+ * Complete v.s. Finish
+ *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+ */
+const FINISH = 'bot5-assistant/FINISH'
+const COMPLETE = 'bot5-assistant/COMPLETE'
 
 /**
  * Abort v.s. Cancel
@@ -26,7 +37,10 @@ export {
   ROOM,
   ATTENDEES,
   NEXT,
+
   START,
+  STOP,
+
   SAY,
 
   TEXT,
@@ -38,4 +52,8 @@ export {
   ABORT,
   CANCEL,
   RESET,
+  WAKEUP,
+
+  FINISH,
+  COMPLETE,
 }

@@ -36,7 +36,7 @@ const getFixtures = () => {
   const EXPECTED_TEXT = '大可乐两个，统一冰红茶三箱。'
   const FILE_BOX = FileBox.fromFile(path.join(
     __dirname,
-    '../../tests/fixtures/sample.silk',
+    '../../tests/fixtures/sample.sil',
   )) as FileBoxInterface
 
   const MESSAGE_BASE = {
