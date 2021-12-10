@@ -14,7 +14,7 @@ import {
 
 import { stt } from '../stt.js'
 
-import type * as events from './events.js'
+import * as events from './events.js'
 import * as types       from './types.js'
 import * as states      from './states.js'
 
@@ -74,25 +74,42 @@ type Event =
   | ReturnType<typeof events.ATTENDEES>
   | ReturnType<typeof events.ROOM>
   | ReturnType<typeof events.START>
+  | ReturnType<typeof events.ABORT>
+  | ReturnType<typeof events.RESET>
 
 const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
 const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
 
 const nextAttendee = (ctx: Context) => ctx.attendees.filter(c => !Object.keys(ctx.feedbacks).includes(c.id))[0]
 
+const initialContext = {
+  currentTask : null,
+  tasks       : [],
+  // -------
+  attendees   : [],
+  feedback    : null,
+  feedbacks   : {},
+  message     : null,
+  room        : null,
+} as Context
+
 const feedbackMachine = createMachine<Context, Event, Typestate>(
   {
-    context: {
-      currentTask : null,
-      tasks       : [],
-      // -------
-      attendees   : [],
-      feedback    : null,
-      feedbacks   : {},
-      message     : null,
-      room        : null,
+    context: initialContext,
+    initial: states.idle,
+    on: {
+      [types.RESET]: {
+        actions: ctx => {
+          ctx.currentTask = null
+          ctx.tasks       = []
+          ctx.feedback    = null
+          ctx.feedbacks   = {}
+          ctx.message     = null
+          ctx.room        = null
+        },
+        target: states.idle,
+      },
     },
-    initial: 'idle',
     states: {
       [states.idle]: {
         on: {
@@ -107,23 +124,28 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
             }),
           },
           [types.START]: {
-            target: 'checking',
+            target: states.validating,
           },
         },
       },
-      checking: {
+      [states.validating]: {
+        always: [
+          {
+            cond: ctx => !(ctx.room && ctx.attendees.length),
+            target: states.aborted,
+          },
+          states.checking,
+        ],
+      },
+      [states.checking]: {
         always: [
           {
             cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.attendees.length,
-            target: 'done',
+            target: states.completed,
           },
           {
             cond: ctx => !!(ctx.room && ctx.attendees.length),
-            target: 'listening',
-          },
-          {
-            actions: actions.escalate('[feedback] checking: no room or attendees'),
-            target: 'done',
+            target: states.listening,
           },
         ],
       },
@@ -135,7 +157,7 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
                 message:  (_, e) => e.payload.message,
               }),
             ],
-            target: 'feedbacking',
+            target: states.feedbacking,
           },
         },
       },
@@ -148,14 +170,14 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
                 feedback: ctx => ctx.message!.text(),
               }),
             ],
-            target: 'feedbacked',
+            target: states.feedbacked,
           },
           {
             target: 'stt',
             cond: ctx => isAudio(ctx.message!),
           },
           {
-            target: 'listening',
+            target: states.listening,
             actions: [actions.log('[feedback] feedbacking: no text or audio')],
           },
         ],
@@ -164,7 +186,7 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
         invoke: {
           src: async ctx => ctx.message && stt(await ctx.message.toFileBox()),
           onDone: {
-            target: 'feedbacked',
+            target: states.feedbacked,
             actions: [
               assign({
                 feedback: (_, e) => e.data ?? 'NO STT RESULT',
@@ -172,7 +194,7 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
             ],
           },
           onError: {
-            target: 'listening',
+            target: states.listening,
             actions: actions.log('[feedback] stt error'),
           },
         },
@@ -188,14 +210,19 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
             }),
           }),
         ],
-        always: 'checking',
+        always: states.checking,
       },
-      done: {
+      [states.completed]: {
         entry: [
-          actions.log('[feedback] done'),
+          actions.log('[feedback] completed'),
         ],
         type: 'final',
         data: ctx => ctx.feedbacks,
+      },
+      [states.aborted]: {
+        // FIXME: respond here will only work as expected with xstate@5
+        entry: actions.respond(_ => events.ABORT('[feedback] aborted')),
+        type: 'final',
       },
     },
   },
