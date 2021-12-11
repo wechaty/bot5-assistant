@@ -20,24 +20,10 @@ import {
   types,
 }           from '../schemas/mod.js'
 
-/**
- *
- * Huan(202112): The Actor Model here need to be improved.
- *  @see https://github.com/wechaty/bot5-assistant/issues/4
- *
- */
-type AnyEventObjectExt = AnyEventObject & {
-  meta: {
-    origin: SCXML.Event<AnyEventObject>['origin']
-  }
-}
+import * as mailbox   from './actor-mailbox.js'
+import type { DeepReadonly } from 'utility-types'
 
-interface Mailbox {
-  currentEvent: null | AnyEventObjectExt,
-  events: AnyEventObjectExt[],
-}
-
-interface Context extends Mailbox {
+interface Context extends mailbox.Context {
   wechaty: null | Wechaty
 }
 
@@ -70,16 +56,18 @@ type Event =
 
 // const nextEvent = (ctx: Context) => ctx.attendees.filter(c => !Object.keys(ctx.feedbacks).includes(c.id))[0]
 
-const initialContext: Context = {
-  currentEvent : null,
-  events       : [],
+/**
+ * use JSON.parse() to prevent the initial context from being changed
+ */
+const initialContext: () => Context = () => ({
+  ...JSON.parse(JSON.stringify(mailbox.context)),
   // -------
-  wechaty        : null,
-}
+  wechaty: null,
+})
 
 const wechatyActor = createMachine<Context, Event, Typestate>(
   {
-    context: initialContext,
+    context: initialContext(),
     initial: states.inactive,
     on: [
       {
@@ -99,23 +87,13 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         target: undefined,
       },
       {
+        event: types.START,
+        target: undefined,
+      },
+      {
         event: '*',
         actions: [
-          actions.assign({
-            events: (ctx, e, { _event }) => {
-              console.info('[wechaty-actor] [event]', _event)
-              const newEvents = [
-                ...ctx.events,
-                {
-                  ...e,
-                  meta: {
-                    origin: _event.origin,
-                  },
-                },
-              ]
-              return newEvents
-            },
-          }),
+          mailbox.enqueue,
           actions.send(events.WAKEUP()),
         ],
       },
@@ -126,7 +104,7 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         on: {
           [types.WECHATY]: {
             actions: [
-              actions.log((_, e) => `set WECHATY: ${e.payload.wechaty}`, 'wechatyActor'),
+              // actions.log((_, e) => `set WECHATY: ${e.payload.wechaty}`, 'wechatyActor'),
               actions.assign({
                 wechaty: (_, e) => e.payload.wechaty,
               }),
@@ -134,15 +112,11 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
           },
           [types.START]: {
             actions: [
-              // actions.log((_, __, { _event }) => 'start with origin:' + _event.origin, 'wechatyActor'),
-              actions.assign({
-                currentEvent: (_, e, { _event }) => ({
-                  ...e,
-                  meta: {
-                    origin: _event.origin,
-                  },
-                }),
-              }),
+              actions.log((_, __, { _event }) => 'types.START: start with origin:' + _event.origin, 'wechatyActor'),
+              /**
+               * Set the origin from START event
+               */
+              mailbox.setCurrent,
             ],
             target: states.validating,
           },
@@ -170,20 +144,12 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         // FIXME: respond here will only work as expected with xstate@5
         entry: [
           actions.log('aborting', 'wechatyActor'),
-          actions.send(
-            events.ABORT('wechaty actor failed validating: aborted'),
-            {
-              to: ctx => {
-                // console.info('wechatyActor: aborting events:', ctx.events)
-                // console.info('wechatyActor: aborting currentEvent:', ctx.currentEvent)
-                return ctx.currentEvent?.meta.origin as any
-              },
-            }),
+          mailbox.respond(events.ABORT('wechaty actor failed validating: aborted')),
         ],
         always: states.inactive,
       },
       [states.resetting]: {
-        entry: actions.assign(initialContext),
+        entry: actions.assign(initialContext()),
         always: states.inactive,
       },
       [states.active]: {
@@ -205,13 +171,8 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
           [states.checking]: {
             always: [
               { // new event in queue
-                cond: ctx => {
-                  // console.info('checking: ctx.events.length:', ctx.events.length)
-                  return ctx.events.length > 0
-                },
-                actions: actions.assign({
-                  currentEvent: ctx => ctx.events.shift()!,
-                }),
+                cond: mailbox.nonempty,
+                actions: mailbox.dequeue,
                 target: states.processing,
               },
               {
@@ -221,11 +182,12 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
             ],
           },
           [states.processing]: {
-            entry: [
-              async ctx => {
-                // console.info('processing: ctx.currentEvent:', ctx.currentEvent)
-                if (!ctx.currentEvent) {
-                  console.error('no ctx.currentEvent')
+            invoke: {
+              src: async ctx => {
+                console.info('processing: ctx.mailbox.current:', ctx.mailbox.current?.type)
+                const current = mailbox.current(ctx)
+                if (!current) {
+                  console.error('no current')
                   return
                 }
                 if (!ctx.wechaty) {
@@ -233,18 +195,19 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
                   return
                 }
 
-                if (isActionOf(events.SAY, ctx.currentEvent)) {
+                if (isActionOf(events.SAY, current)) {
                   await ctx.wechaty.puppet.messageSendText(
-                    ctx.currentEvent.payload.conversation,
-                    ctx.currentEvent.payload.text,
-                    ctx.currentEvent.payload.mentions,
+                    current.payload.conversation,
+                    current.payload.text,
+                    current.payload.mentions,
                   )
+                  console.info('msg sent')
                 } else {
-                  console.error('unknown event type: ' + ctx.currentEvent.type)
+                  console.error('unknown event type: ' + current.type)
                 }
               },
-            ],
-            always: states.checking,
+              onDone: states.checking,
+            },
           },
         },
       },
@@ -258,4 +221,5 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
 
 export {
   wechatyActor,
+  initialContext,
 }

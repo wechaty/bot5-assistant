@@ -22,11 +22,12 @@ import {
 }           from '../schemas/mod.js'
 
 import {
+  initialContext,
   wechatyActor,
 }                   from './wechaty-actor.js'
 
 test('WechatyActor transition smoke testing', async t => {
-  let nextState = wechatyActor.transition(states.inactive, events.START())
+  let nextState = wechatyActor.transition(wechatyActor.initialState, events.START())
   // console.info('nextState:', nextState.value)
   // console.info('nextState:', nextState.event.type)
 
@@ -39,13 +40,16 @@ test('WechatyActor transition smoke testing', async t => {
   t.equal(nextState.event.type, types.WECHATY, 'should get WECHATY event')
 
   nextState = wechatyActor.transition(nextState, events.START())
+  // console.info('nextState.actions:', nextState.actions)
+  // console.info('nextState.transitions:', nextState.transitions.map(t => t.source.key))
+  // console.info('nextState.historyValue:', nextState.historyValue)
   t.same(nextState.value, {
     [states.active]: states.idle,
   }, 'should be in active.idle after received START event')
   t.equal(nextState.event.type, types.START, 'should get START event')
 })
 
-test('WechatyActor mailbox queue', async t => {
+test.only('WechatyActor mailbox queue', async t => {
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
       wechaty,
@@ -56,20 +60,27 @@ test('WechatyActor mailbox queue', async t => {
 
     const EXPECTED_TEXT = 'hello world'
     const interpreter = interpret(wechatyActor)
+      .onTransition(s => {
+        // console.info('-------')
+        // console.info('transition state:', s.value)
+        // console.info('transition event:', s.event.type)
+        // console.info('-------')
+      })
       .start()
 
     let snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.context.events.length, 0, 'should have a empty queue')
+    t.equal(snapshot.context.mailbox.queue.length, 0, 'should have a empty queue')
 
-    interpreter.send(events.SAY(EXPECTED_TEXT, room.id, []))
-    interpreter.send(events.SAY(EXPECTED_TEXT, room.id, []))
-    interpreter.send(events.SAY(EXPECTED_TEXT, room.id, []))
+    interpreter.send(events.SAY(EXPECTED_TEXT + 0, room.id, []))
+    interpreter.send(events.SAY(EXPECTED_TEXT + 1, room.id, []))
+    interpreter.send(events.SAY(EXPECTED_TEXT + 2, room.id, []))
 
     snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.context.events.length, 3, 'should queue 3 events')
+    t.equal(snapshot.context.mailbox.queue.length, 3, 'should queue 3 events')
 
     interpreter.send(events.WAKEUP())
-    t.equal(snapshot.context.events.length, 3, 'should ignore WAKEUP event')
+    // await new Promise(setImmediate)
+    t.equal(snapshot.context.mailbox.queue.length, 3, 'should ignore WAKEUP event')
 
     const spy = sinon.spy()
     wechaty.on('message', spy)
@@ -77,23 +88,35 @@ test('WechatyActor mailbox queue', async t => {
     interpreter.send(events.WECHATY(wechaty))
     interpreter.send(events.START())
 
+    /**
+     * Wait async: `wechaty.puppet.messageSendText()`
+     */
     await new Promise(setImmediate)
     t.equal(spy.callCount, 3, 'should emit 3 messages')
     t.equal(spy.args[0]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
-    t.equal(spy.args[0]![0].text(), EXPECTED_TEXT, `should emit "${EXPECTED_TEXT}"`)
+    t.equal(spy.args[0]![0].text(), EXPECTED_TEXT + 0, `should emit "${EXPECTED_TEXT}0"`)
 
     interpreter.stop()
   }
 })
 
 test('wechatyActor interpreter smoke testing', async t => {
-  const interpreter = interpret(wechatyActor)
-    .start()
+  const interpreter = interpret(
+    /**
+     * Huan(202112): using `.withContext()` at here because the `context` from `wechatyActor` machine config
+     *  might be changed by other unit tests
+     *  and in which case can fail this test
+     */
+    wechatyActor.withContext(
+      initialContext(),
+    ),
+  ).start()
   let snapshot = interpreter.getSnapshot()
 
+  // console.info(snapshot)
   t.equal(snapshot.value, states.inactive, 'should be inactive state')
-  t.same(snapshot.context.events, [], 'should be no events in the queue')
-  t.equal(snapshot.context.currentEvent, null, 'should be no current event')
+  t.same(snapshot.context.mailbox.queue, [], 'should be no events in the queue')
+  t.equal(snapshot.context.mailbox.current, null, 'should be no current event')
 
   // interpreter.subscribe(s => {
   //   console.info('[new transition]')
@@ -146,8 +169,8 @@ test('wechatyActor interpreter smoke testing', async t => {
     // console.info(snapshot.history)
     t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event after SAY')
     t.same(snapshot.value, {
-      [states.active]: states.idle,
-    }, 'should be in active.idle after SAY')
+      [states.active]: states.processing,
+    }, 'should be in active.processing after SAY')
     const message = await future
     t.equal(message.text(), EXPECTED_TEXT, `should get said message "${EXPECTED_TEXT}"`)
   }
@@ -155,7 +178,7 @@ test('wechatyActor interpreter smoke testing', async t => {
   interpreter.stop()
 })
 
-test.only('WechatyActor send ABORT event to parent', async t => {
+test('WechatyActor send ABORT event to parent', async t => {
   const parentMachine = createMachine({
     id: 'parent',
     invoke: {
