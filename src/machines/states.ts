@@ -20,24 +20,42 @@ const finished = 'bot5-assitant/finished'
  * Abort v.s. Cancel
  *  @see https://stackoverflow.com/a/9838022/1123955
  */
-const aborted = 'bot5-assitant/aborted'
+const aborting = 'bot5-assitant/aborted'
 const canceled = 'bot5-assitant/canceled'
 
-const stt = 'bot5-assistant/stt'
+/**
+ * Which one is better: errored v.s. failed?
+ *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
+ */
+const errored = 'bot5-assitant/errored'
+const failed = 'bot5-assitant/failed'
+
+const resetting = 'bot5-assitant/resetting'
+
+const recognizing = 'bot5-assistant/recognizing'
+const processing = 'bot5-assistant/processing'
 
 export {
   active,
   inactive,
-  aborted,
+  resetting,
+
+  aborting,
   canceled,
+  errored,
+  failed,
+
   checking,
   completed,
   finished,
   idle,
   listening,
   thinking,
+
   feedbacking,
   feedbacked,
+
   validating,
-  stt,
+  recognizing,
+  processing,
 }

@@ -17,6 +17,7 @@ const SAY = 'bot5-assistant/SAY'
 const RESET = 'bot5-assistant/RESET'
 
 const WAKEUP = 'bot5-assistant/WAKEUP'
+const ERROR = 'bot5-assistant/ERROR'
 
 /**
  * Complete v.s. Finish
@@ -31,6 +32,8 @@ const COMPLETE = 'bot5-assistant/COMPLETE'
  */
 const ABORT = 'bot5-assistant/ABORT'
 const CANCEL = 'bot5-assistant/CANCEL'
+
+const WECHATY = 'bot5-assistant/WECHATY'
 
 export {
   MESSAGE,
@@ -49,6 +52,7 @@ export {
   MENTIONS,
   NO_MENTION,
 
+  ERROR,
   ABORT,
   CANCEL,
   RESET,
@@ -56,4 +60,6 @@ export {
 
   FINISH,
   COMPLETE,
+
+  WECHATY,
 }
