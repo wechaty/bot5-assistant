@@ -7,7 +7,9 @@ import {
 }                   from 'tstest'
 
 import {
+  createMachine,
   interpret,
+  actions,
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
@@ -151,4 +153,34 @@ test('wechatyActor interpreter smoke testing', async t => {
   }
 
   interpreter.stop()
+})
+
+test.only('WechatyActor send ABORT event to parent', async t => {
+  const parentMachine = createMachine({
+    id: 'parent',
+    invoke: {
+      id: 'wechaty',
+      src: wechatyActor,
+    },
+    initial: 'start',
+    context: {},
+    on: {
+      [types.ABORT]: {
+        // actions: actions.log('ABORT'),
+      },
+    },
+    states: {
+      start: {
+        entry: actions.send(events.START(), { to: 'wechaty' }),
+      },
+    },
+  })
+
+  const interpreter = interpret(parentMachine)
+    .onTransition(s => console.info(s.event.type))
+    .start()
+
+  const snapshot = interpreter.getSnapshot()
+  t.equal(snapshot.event.type, types.ABORT, 'should receive ABORT event from child to parent')
+  t.equal(snapshot.value, 'start', 'should stay in start state for parent')
 })

@@ -102,15 +102,19 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         event: '*',
         actions: [
           actions.assign({
-            events: (ctx, e, { _event }) => [
-              ...ctx.events,
-              {
-                ...e,
-                meta: {
-                  origin: _event.origin,
+            events: (ctx, e, { _event }) => {
+              console.info('[wechaty-actor] [event]', _event)
+              const newEvents = [
+                ...ctx.events,
+                {
+                  ...e,
+                  meta: {
+                    origin: _event.origin,
+                  },
                 },
-              },
-            ],
+              ]
+              return newEvents
+            },
           }),
           actions.send(events.WAKEUP()),
         ],
@@ -129,7 +133,17 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
             ],
           },
           [types.START]: {
-            actions: actions.log('start', 'wechatyActor'),
+            actions: [
+              // actions.log((_, __, { _event }) => 'start with origin:' + _event.origin, 'wechatyActor'),
+              actions.assign({
+                currentEvent: (_, e, { _event }) => ({
+                  ...e,
+                  meta: {
+                    origin: _event.origin,
+                  },
+                }),
+              }),
+            ],
             target: states.validating,
           },
           /**
@@ -156,7 +170,15 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         // FIXME: respond here will only work as expected with xstate@5
         entry: [
           actions.log('aborting', 'wechatyActor'),
-          actions.respond(_ => events.ABORT('wechaty actor failed validating: aborted')),
+          actions.send(
+            events.ABORT('wechaty actor failed validating: aborted'),
+            {
+              to: ctx => {
+                // console.info('wechatyActor: aborting events:', ctx.events)
+                // console.info('wechatyActor: aborting currentEvent:', ctx.currentEvent)
+                return ctx.currentEvent?.meta.origin as any
+              },
+            }),
         ],
         always: states.inactive,
       },
