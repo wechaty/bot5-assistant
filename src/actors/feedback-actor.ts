@@ -13,9 +13,11 @@ import {
 
 import { stt } from '../stt.js'
 
-import * as events from './events.js'
-import * as types       from './types.js'
-import * as states      from './states.js'
+import {
+  events,
+  states,
+  types,
+}           from '../schemas/mod.js'
 
 /**
  *
@@ -92,21 +94,12 @@ const initialContext = {
   room        : null,
 } as Context
 
-const feedbackMachine = createMachine<Context, Event, Typestate>(
+const feedbackActor = createMachine<Context, Event, Typestate>(
   {
     context: initialContext,
     initial: states.inactive,
     on: {
-      [types.RESET]: {
-        actions: ctx => {
-          ctx.currentTask = null
-          ctx.tasks       = []
-          ctx.feedback    = null
-          ctx.feedbacks   = {}
-          ctx.room        = null
-        },
-        target: states.inactive,
-      },
+      [types.RESET]: states.resetting,
       [types.MESSAGE]: {
         actions: [
           actions.assign({
@@ -146,15 +139,19 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
         always: [
           {
             cond: ctx => !(ctx.room && ctx.attendees.length),
-            target: states.aborted,
+            target: states.aborting,
           },
           states.active,
         ],
       },
-      [states.aborted]: {
+      [states.aborting]: {
         // FIXME: respond here will only work as expected with xstate@5
         entry: actions.respond(_ => events.ABORT('[feedback] aborted')),
         type: 'final',
+      },
+      [states.resetting]: {
+        entry: actions.assign(initialContext),
+        always: states.inactive,
       },
       [states.completed]: {
         type: 'final',
@@ -166,7 +163,7 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
           [types.STOP]: {
             target: states.inactive,
             actions: [
-              actions.send(events.RESET()),
+              actions.send(events.RESET('stop')),
             ],
           },
         },
@@ -205,7 +202,7 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
                 target: states.feedbacked,
               },
               {
-                target: states.stt,
+                target: states.recognizing,
                 cond: ctx => isAudio(ctx.currentTask!.message),
               },
               {
@@ -214,9 +211,10 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
               },
             ],
           },
-          [states.stt]: {
+          [states.recognizing]: {
             invoke: {
               src: async ctx => {
+                // console.info('enter')
                 const fileBox = await ctx.currentTask!.message.toFileBox()
                 const text = await stt(fileBox)
                 // console.info('text:', text)
@@ -268,5 +266,5 @@ const feedbackMachine = createMachine<Context, Event, Typestate>(
 )
 
 export {
-  feedbackMachine,
+  feedbackActor,
 }

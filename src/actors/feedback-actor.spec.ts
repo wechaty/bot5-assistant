@@ -29,13 +29,15 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import * as events  from './events.js'
-import * as types   from './types.js'
-import * as states  from './states.js'
+import {
+  events,
+  states,
+  types,
+}           from '../schemas/mod.js'
 
 import {
-  feedbackMachine,
-}                   from './feedback-machine.js'
+  feedbackActor,
+}                   from './feedback-actor.js'
 
 const getAudioFixture = async () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -61,10 +63,14 @@ const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => 
 }
 
 test('register machine', async t => {
-  const interpreter = interpret(feedbackMachine)
+  const interpreter = interpret(feedbackActor)
     .start()
 
-  interpreter.subscribe(x => console.info('faint:', x.value, x.event.type))
+  interpreter.subscribe(s => {
+    console.info('[new transition]')
+    console.info('  state ->', s.value)
+    console.info('  event ->', s.event.type)
+  })
 
   // const doneFuture = lastValueFrom(from(interpreter))
 
@@ -80,7 +86,6 @@ test('register machine', async t => {
 
     const listenMessage = awaitMessageWechaty(wechaty.wechaty)
 
-    const { bot, player } = mocker
     const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
 
     const MEMBER_ID_LIST = [
@@ -124,12 +129,12 @@ test('register machine', async t => {
     snapshot = interpreter.getSnapshot()
     // console.info(snapshot.history)
     t.equal(snapshot.event.type, types.START, 'should get START event')
-    t.equal(snapshot.value, states.aborted, 'should be state aborted if no meeting room & attendees set')
+    t.equal(snapshot.value, states.aborting, 'should be state aborted if no meeting room & attendees set')
 
     interpreter.start()
 
     interpreter.send([
-      events.RESET(),
+      events.RESET('test'),
       events.ATTENDEES(MEMBER_LIST),
       events.ROOM(MEETING_ROOM),
       events.START(),
@@ -157,7 +162,7 @@ test('register machine', async t => {
     t.equal(Object.keys(snapshot.context.feedbacks).length, 1, 'should have 1 feedback so far')
 
     const feedbackMsgs = [
-      await listenMessage(() => bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
+      await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
       await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)),
     ]
 
@@ -175,20 +180,20 @@ test('register machine', async t => {
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.mike, 'should get mike feedback')
     t.same(snapshot.context.feedbacks, {
       [mary.id]: FIXTURES.feedbacks.mary,
-      [bot.id]: FIXTURES.feedbacks.bot,
+      [mocker.bot.id]: FIXTURES.feedbacks.bot,
       [mike.id]: FIXTURES.feedbacks.mike,
     }, 'should have feedback from 3 users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 3, 'should have 3 feedback so far')
 
-    msg = await listenMessage(() => player.say(AUDIO_FIXTURE.fileBox).to(mockMeetingRoom))
+    msg = await listenMessage(() => mocker.player.say(AUDIO_FIXTURE.fileBox).to(mockMeetingRoom))
+    // console.info('msg', msg)
     interpreter.send(
       events.MESSAGE(msg),
     )
-    // console.info('msg', msg)
     snapshot = interpreter.getSnapshot()
     t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
     t.same(snapshot.value, {
-      [states.active]: states.stt,
+      [states.active]: states.recognizing,
     }, 'should in state stt after received audio message')
 
     await lastValueFrom(
@@ -202,10 +207,10 @@ test('register machine', async t => {
     t.equal(snapshot.value, states.completed, 'should in state completed after resolve stt message')
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.player, 'should get player feedback')
     t.same(snapshot.context.feedbacks, {
-      [mary.id]: FIXTURES.feedbacks.mary,
-      [bot.id]: FIXTURES.feedbacks.bot,
-      [mike.id]: FIXTURES.feedbacks.mike,
-      [player.id]: FIXTURES.feedbacks.player,
+      [mary.id]          : FIXTURES.feedbacks.mary,
+      [mocker.bot.id]    : FIXTURES.feedbacks.bot,
+      [mike.id]          : FIXTURES.feedbacks.mike,
+      [mocker.player.id] : FIXTURES.feedbacks.player,
     }, 'should have feedback from all users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
   }
