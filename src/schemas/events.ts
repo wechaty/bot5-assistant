@@ -1,12 +1,15 @@
 /* eslint-disable sort-keys */
 import {
   createAction,
+  isActionOf,
+  isOfType,
   // createAsyncAction,
 }                         from 'typesafe-actions'
 import type {
   Message,
   Contact,
   Room,
+  Wechaty,
 }               from 'wechaty'
 
 import * as types from './types.js'
@@ -23,10 +26,13 @@ const payloadMentions  = (mentions: Contact[]) => ({ mentions })
 const payloadMessage   = (message: Message) => ({ message })
 const payloadRoom      = (room: Room) => ({ room })
 const payloadText      = (text: string)     => ({ text })
-const payloadSay       = (text: string, mentions: Contact[]) => ({ mentions, text })
-const payloadAbort     = (error: string) => ({ error })
-const payloadCancel    = (error: string) => ({ error })
+const payloadSay       = (text: string, conversation: string, mentions: string[]) => ({ conversation, mentions, text })
+const payloadWechaty  = (wechaty: Wechaty) => ({ wechaty })
 
+const payloadAbort     = (reason: string) => ({ reason })
+const payloadReset     = (reason: string) => ({ reason })
+const payloadCancel    = (reason: string) => ({ reason })
+const payloadError     = (error: string) => ({ error })
 const payloadData      = (data: any) => ({ data })
 
 const payloadEmpty     = () => ({})
@@ -40,14 +46,19 @@ const NO_MENTION = createAction(types.NO_MENTION, payloadEmpty)()
 const ROOM       = createAction(types.ROOM, payloadRoom)()
 
 const START      = createAction(types.START, payloadEmpty)()
-const STOP     = createAction(types.STOP, payloadEmpty)()
+const STOP       = createAction(types.STOP, payloadEmpty)()
 
 const TEXT       = createAction(types.TEXT, payloadText)()
 const SAY        = createAction(types.SAY, payloadSay)()
+
 const CANCEL = createAction(types.CANCEL, payloadCancel)()
 const ABORT = createAction(types.ABORT, payloadAbort)()
-const RESET = createAction(types.RESET, payloadEmpty)()
+const ERROR = createAction(types.ERROR, payloadError)()
+const RESET = createAction(types.RESET, payloadReset)()
+
 const WAKEUP = createAction(types.WAKEUP, payloadEmpty)()
+
+const WECHATY = createAction(types.WECHATY, payloadWechaty)()
 
 /**
  * Complete v.s. Finish
@@ -57,15 +68,18 @@ const FINISH = createAction(types.FINISH, payloadData)()
 const COMPLETE = createAction(types.COMPLETE, payloadData)()
 
 const payloads = {
-  ABORTED: payloadAbort,
   ATTENDEES  : payloadAttendees,
-  CANCEL :payloadCancel,
   MENTIONS   : payloadMentions,
   MESSAGE    : payloadMessage,
   NEXT       : payloadEmpty,
   NO_AUDIO   : payloadEmpty,
   NO_MENTION : payloadEmpty,
+
   RESET: payloadEmpty,
+  ABORTED: payloadAbort,
+  CANCEL :payloadCancel,
+  ERROR  :payloadError,
+
   ROOM       : payloadRoom,
   SAY        : payloadSay,
 
@@ -77,20 +91,25 @@ const payloads = {
 
   COMPLETE: payloadData,
   FINISH: payloadData,
+
+  WECHATY: payloadWechaty,
 }
 
 export {
   payloads,
-  ABORT,
   ATTENDEES,
-  CANCEL,
   MENTIONS,
+  ROOM,
   MESSAGE,
   NEXT,
   NO_AUDIO,
   NO_MENTION,
-  ROOM,
+
+  ABORT,
+  CANCEL,
   RESET,
+  ERROR,
+
   SAY,
 
   START,
@@ -101,4 +120,6 @@ export {
 
   COMPLETE,
   FINISH,
+
+  WECHATY,
 }

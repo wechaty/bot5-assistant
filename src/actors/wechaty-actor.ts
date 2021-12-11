@@ -14,9 +14,11 @@ import type {
   Wechaty,
 }                       from 'wechaty'
 
-import * as events  from './events.js'
-import * as types   from './types.js'
-import * as states  from './states.js'
+import {
+  events,
+  states,
+  types,
+}           from '../schemas/mod.js'
 
 /**
  *
@@ -79,32 +81,15 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
   {
     context: initialContext,
     initial: states.inactive,
-    // on: {
-    //   [types.RESET]: states.resetting,
-    //   [types.ABORT]: undefined,
-    //   '*': {
-    //     actions: [
-    //       actions.log((_, e) => '*[' + e.type + ']', 'wechatyActor'),
-    //       actions.assign({
-    //         events: (ctx, e, { _event }) => [
-    //           ...ctx.events,
-    //           {
-    //             ...e,
-    //             meta: {
-    //               origin: _event.origin,
-    //             },
-    //           },
-    //         ],
-    //       }),
-    //       actions.send(events.WAKEUP()),
-    //     ],
-    //   },
-    // },
     on: [
       {
         event: types.RESET,
         target: states.resetting,
       },
+      /**
+       * Forbidden transitions
+       *  @see https://xstate.js.org/docs/guides/transitions.html#forbidden-transitions
+       */
       {
         event: types.WAKEUP,
         target: undefined,
@@ -117,20 +102,15 @@ const wechatyActor = createMachine<Context, Event, Typestate>(
         event: '*',
         actions: [
           actions.assign({
-            events: (ctx, e, { _event }) => {
-              // console.info('wechatyActor: events:', e.type)
-              const newEvents = [
-                ...ctx.events,
-                {
-                  ...e,
-                  meta: {
-                    origin: _event.origin,
-                  },
+            events: (ctx, e, { _event }) => [
+              ...ctx.events,
+              {
+                ...e,
+                meta: {
+                  origin: _event.origin,
                 },
-              ]
-              // console.info('newEvents:', newEvents)
-              return newEvents
-            },
+              },
+            ],
           }),
           actions.send(events.WAKEUP()),
         ],

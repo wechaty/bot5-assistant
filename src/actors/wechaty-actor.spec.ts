@@ -13,9 +13,11 @@ import {
 import type * as WECHATY from 'wechaty'
 import { createFixture } from 'wechaty-mocker'
 
-import * as events  from './events.js'
-import * as types   from './types.js'
-import * as states  from './states.js'
+import {
+  events,
+  states,
+  types,
+}           from '../schemas/mod.js'
 
 import {
   wechatyActor,
