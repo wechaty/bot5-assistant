@@ -12,6 +12,10 @@ import {
   ActorRef,
 }                       from 'xstate'
 
+import {
+  registry, // FIXME: find a good way to get child by `session`
+}                     from 'xstate/lib/registry.js'
+
 import * as contexts  from './contexts.js'
 import * as events    from './events.js'
 import * as states    from './states.js'
@@ -41,21 +45,31 @@ const wrap = (childMachine: StateMachine<any, any, any, any>) => createMachine<c
     on: {
       '*': {
         actions: [
-          () => console.info('before enqueue'),
-          contexts.enqueue,
-          () => console.info('after enqueue'),
-          (_, __, { _event }) => {
-            console.info('[on] *: actions.send(DISPATCH) with _event:', _event)
-            return actions.send(events.DISPATCH())
-          },
+          contexts.enqueue(),
+          actions.send((_, __, meta) => {
+            // console.info('[on] *: actions.send(DISPATCH) with _event:', _event)
+            if (meta._event.origin) {
+              // this.children.get(to as string) || registry.get(to as string)
+              console.info('meta:', meta)
+              console.info('registry.get():', registry.get(meta._event.origin))
+            }
+            console.info('[on] *: current queue length:', _.queue.length)
+            return events.DISPATCH()
+          }),
         ],
         target: states.idle,
       },
     },
     states: {
       [states.spawning]: {
-        entry: actions.assign({ actorRef: _ => spawn(childMachine) }),
+        entry: [
+          actions.assign({ actorRef: _ => spawn(childMachine) }),
+          actions.log('[spawning] entry'),
+        ],
         always: states.idle,
+        exit: [
+          actions.log('[spawning] exit'),
+        ],
       },
       [states.idle]: {
         entry: actions.log('[states] idle', 'Mailbox'),
@@ -69,13 +83,13 @@ const wrap = (childMachine: StateMachine<any, any, any, any>) => createMachine<c
       },
       [states.dispatching]: {
         entry: [
-          actions.log('[states] dispatching', 'Mailbox'),
+          actions.log('[states] enter dispatching', 'Mailbox'),
         ],
         always: [
           { // new event in queue
-            cond: contexts.nonempty,
+            cond: contexts.nonempty(),
             actions: [
-              contexts.dequeue,
+              contexts.dequeue(),
               actions.log('new event in queue', 'Mailbox'),
             ],
             target: states.delivering,
@@ -89,17 +103,23 @@ const wrap = (childMachine: StateMachine<any, any, any, any>) => createMachine<c
       [states.delivering]: {
         entry: [
           actions.log('[states] delivering', 'Mailbox'),
-          ctx => ctx.current && actions.send(
-            ctx.current,
-            {
-              to: _ => ctx.actorRef!,
+          actions.send(
+            ctx => {
+              console.info('current:', ctx.current)
+              return ctx.current!
             },
+            ({
+              to: ctx => ctx.actorRef!,
+            }),
           ),
         ],
         always: states.busy,
         exit: [
           actions.assign({
-            current: _ => null,
+            current: _ => {
+              console.info('clean on exit current -> null')
+              return null
+            },
           }),
         ],
       },

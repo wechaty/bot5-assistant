@@ -29,7 +29,7 @@ interface Context {
   queue    : AnyEventObjectExt[]
 }
 
-const enqueue = actions.assign<Context>({
+const enqueue = () => actions.assign<Context>({
   queue: (ctx, e, { _event }) => {
     console.info('[enqueu] _event:', _event)
     const queue = [
@@ -46,7 +46,7 @@ const enqueue = actions.assign<Context>({
   },
 }) as any
 
-const dequeue = actions.assign<Context>({
+const dequeue = () => actions.assign<Context>({
   current: ctx => {
     console.info('[dequeue] length:', ctx.queue.length)
 
@@ -65,7 +65,7 @@ const dequeue = actions.assign<Context>({
   },
 }) as any
 
-const nonempty = (ctx: Context) => {
+const nonempty = () => (ctx: Context) => {
   const result = ctx.queue.length > 0
   console.info('[nonempty]:' + result)
   return result
