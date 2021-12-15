@@ -12,7 +12,15 @@ const DISPATCH = createAction(types.DISPATCH, payloadDispatch)()
 const IDLE  = createAction(types.IDLE, payloadIdle)()
 const RESET = createAction(types.RESET, payloadReset)()
 
+type Event =
+  | ReturnType<typeof DISPATCH>
+  | ReturnType<typeof IDLE>
+  | ReturnType<typeof RESET>
+
+type T = Event['type']
+
 export {
+  type Event,
   DISPATCH,
   IDLE,
   RESET,

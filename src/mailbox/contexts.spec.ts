@@ -7,7 +7,7 @@ import {
 
 import * as contexts from './contexts.js'
 
-test('contexts.enqueue()', async t => {
+test('contexts.assignEnqueue()', async t => {
   const CONTEXT: contexts.Context = {
     actorRef: null,
     current: null,
@@ -18,7 +18,7 @@ test('contexts.enqueue()', async t => {
   }
   const ORIGIN = 'test-origin'
 
-  const enqueueAssignAction = contexts.enqueue()
+  const enqueueAssignAction = contexts.assignEnqueue()
   t.equal(enqueueAssignAction.type, 'xstate.assign', 'should be in `assign` type')
 
   const queue = enqueueAssignAction.assignment.queue(CONTEXT, EVENT, { _event: { origin: ORIGIN } })
@@ -31,7 +31,7 @@ test('contexts.enqueue()', async t => {
   }], 'should enqueue event to context.queue')
 })
 
-test('contexts.dequeue()', async t => {
+test('contexts.assignDequeue()', async t => {
   const EVENT = {
     type: 'test-type',
   }
@@ -47,7 +47,7 @@ test('contexts.dequeue()', async t => {
     }],
   }
 
-  const dequeueAssignaction = contexts.dequeue()
+  const dequeueAssignaction = contexts.assignDequeue()
   t.equal(dequeueAssignaction.type, 'xstate.assign', 'should be in `assign` type')
 
   const current = dequeueAssignaction.assignment.current(CONTEXT, EVENT, { _event: { origin: ORIGIN } })
@@ -61,7 +61,7 @@ test('contexts.dequeue()', async t => {
   t.same(CONTEXT.queue, [], 'should be empty after dequeue event')
 })
 
-test('contexts.nonempty()', async t => {
+test('contexts.condNonempty()', async t => {
   const EMPTY_CONTEXT: contexts.Context = {
     actorRef: null,
     current: null,
@@ -73,6 +73,6 @@ test('contexts.nonempty()', async t => {
     queue: [{} as any],
   }
 
-  t.equal(contexts.nonempty()(EMPTY_CONTEXT), false, 'should be false when queue is empty')
-  t.equal(contexts.nonempty()(NONEMPTY_CONTEXT), true, 'should be false when queue is nonempty')
+  t.equal(contexts.condNonempty()(EMPTY_CONTEXT), false, 'should be false when queue is empty')
+  t.equal(contexts.condNonempty()(NONEMPTY_CONTEXT), true, 'should be false when queue is nonempty')
 })
