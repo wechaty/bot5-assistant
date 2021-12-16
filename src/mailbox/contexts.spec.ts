@@ -9,7 +9,7 @@ import * as contexts from './contexts.js'
 
 test('contexts.assignEnqueue()', async t => {
   const CONTEXT: contexts.Context = {
-    actorRef: null,
+    childRef: null,
     current: null,
     queue: [],
   }
@@ -37,7 +37,7 @@ test('contexts.assignDequeue()', async t => {
   }
   const ORIGIN = 'test-origin'
   const CONTEXT: contexts.Context = {
-    actorRef: null,
+    childRef: null,
     current: null,
     queue: [{
       ...EVENT,
@@ -63,12 +63,12 @@ test('contexts.assignDequeue()', async t => {
 
 test('contexts.condNonempty()', async t => {
   const EMPTY_CONTEXT: contexts.Context = {
-    actorRef: null,
+    childRef: null,
     current: null,
     queue: [],
   }
   const NONEMPTY_CONTEXT: contexts.Context = {
-    actorRef: null,
+    childRef: null,
     current: null,
     queue: [{} as any],
   }

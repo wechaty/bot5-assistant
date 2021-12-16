@@ -54,30 +54,42 @@ const wrap = <
       }),
       initial: states.spawning,
       on: {
+        /**
+         * Proxy EVENTs rules:
+         *  1. skip all EVENTs send from mailbox itself
+         *  2. enqueue all EVENTs which are not sent from child machine
+         *  3. mailbox.respond all EVENTs send from child machine
+         */
         [types.DISPATCH]: undefined,
         [types.RESET]: undefined,
         [types.IDLE]: undefined,
         '*': {
           actions: [
-            contexts.assignEnqueue(),
-            actions.send((_, __, meta) => {
-              // console.info('[on] *: actions.send(DISPATCH) with _event:', _event)
-              if (meta._event.origin) {
-                // this.children.get(to as string) || registry.get(to as string)
-                console.info('meta:', meta)
-                console.info('registry.get():', registry.get(meta._event.origin))
-              }
-              console.info('[on] *: current queue length:', _.queue.length)
-              console.info('mailbox.on.*.actions.send(DISPATCH) with _event:', JSON.stringify(meta._event))
-              return events.DISPATCH()
-            }),
+            contexts.assignEnqueue,
+            actions.send(
+              (ctx, e, { _event }) => {
+                if (_event.origin && _event.origin === ctx.childRef?.sessionId) {
+                  console.info('FOUND event from child:', _event.origin)
+                } else {
+                  console.info('FOUND event NOT from child:', _event.origin)
+                }
+                console.info('[on] *: current queue length:', ctx.queue.length)
+                console.info('mailbox.on.*.actions.send(DISPATCH) with _event:', JSON.stringify(_event))
+                return events.DISPATCH()
+              },
+              {
+                to: (ctx, e, { _event }) => {
+                  return undefined as any
+                },
+              },
+            ),
           ],
         },
       },
       states: {
         [states.spawning]: {
           entry: [
-            actions.assign({ actorRef: _ => spawn(childMachine) }),
+            actions.assign({ childRef: _ => spawn(childMachine) }),
             actions.log('states.spawning.entry', 'Mailbox'),
           ],
           always: states.idle,
@@ -98,7 +110,40 @@ const wrap = <
           },
         },
         [states.busy]: {
-          on: { [types.IDLE]: states.dispatching },
+          on: {
+            [types.IDLE]: states.dispatching,
+          },
+        },
+        [states.responding]: {
+          entry: [
+            actions.log((_, __, { _event }) => 'states.responding.entry ' + JSON.stringify(_event), 'Mailbox'),
+          ],
+          always: [
+            {
+              cond: contexts.condChildEvent,
+              actions: [
+                actions.send(
+                  (_, e, { _event }) => {
+                    console.info('Mailbox states.responding.entry', JSON.stringify(_event))
+                    return e
+                  },
+                  {
+                    to: ctx => ctx.current?.meta.origin!,
+                  },
+                ),
+              ],
+              target: states.busy,
+            },
+            {
+              target: states.busy,
+              actions: [
+                actions.log('states.responding.always.target states.busy (not child event)', 'Mailbox'),
+              ],
+            },
+          ],
+          exit: [
+            actions.log('states.responding.exit', 'Mailbox'),
+          ],
         },
         [states.dispatching]: {
           entry: [
@@ -106,15 +151,15 @@ const wrap = <
           ],
           always: [
             { // new event in queue
-              cond: contexts.condNonempty(),
+              cond: contexts.condNonempty,
               actions: [
-                contexts.assignDequeue(),
+                contexts.assignDequeue,
                 actions.log('states.dispatching.always condNonempty()', 'Mailbox'),
               ],
               target: states.delivering,
             },
             {
-              actions: actions.log('states.dispatching.always default', 'Mailbox'),
+              actions: actions.log('states.dispatching.always default(queue is empty)', 'Mailbox'),
               target: states.idle,
             },
           ],
@@ -128,7 +173,7 @@ const wrap = <
                 return ctx.current!
               },
               {
-                to: ctx => ctx.actorRef!,
+                to: ctx => ctx.childRef!,
               },
             ),
           ],

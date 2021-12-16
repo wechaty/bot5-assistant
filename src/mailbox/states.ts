@@ -11,19 +11,18 @@ const delivering = 'mailbox/dilivering'
 
 const idle = 'mailbox/idle'
 const busy = 'mailbox/busy'
+const responding = 'mailbox/responding'
 
 const resetting  = 'mailbox/resetting'
 const spawning = 'mailbox/spawning'
-const waiting = 'mailbox/waiting'
 
 export {
-  waiting,
-
   dispatching,
   delivering,
 
   idle,
   busy,
+  responding,
 
   resetting,
   spawning,

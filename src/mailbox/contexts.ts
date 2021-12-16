@@ -24,15 +24,31 @@ import {
 }
 
 interface Context {
-  actorRef : null | ActorRef<any>
+  childRef : null | ActorRef<any>
   current  : null | AnyEventObjectExt
   queue    : AnyEventObjectExt[]
 }
 
-const assignEnqueue = () => actions.assign<Context>({
+const condChildEvent = (ctx: Context, _: any, { _event }: any) => {
+  if (!_event.origin) {
+    return false
+  }
+  if (!ctx.childRef || !(ctx.childRef as any).sessionId) {
+    return false
+  }
+
+  return _event.origin === (ctx.childRef as any).sessionId
+}
+
+const assignEnqueue = actions.assign<Context>({
   queue: (ctx, e, { _event }) => {
-    console.info('[enqueu] _event:', _event)
-    const queue = [
+    if (condChildEvent(ctx, e, { _event })) {
+      console.info('Mailbox context.assignEnqueue skip child event:', _event)
+      return ctx.queue
+    }
+
+    console.info('Mailbox context.assignEnqueue _event:', _event)
+    return [
       ...ctx.queue,
       {
         ...e,
@@ -41,12 +57,10 @@ const assignEnqueue = () => actions.assign<Context>({
         },
       },
     ]
-    // process.exit(0)
-    return queue
   },
 }) as any
 
-const assignDequeue = () => actions.assign<Context>({
+const assignDequeue = actions.assign<Context>({
   current: ctx => {
     console.info('[dequeue] length:', ctx.queue.length)
 
@@ -65,7 +79,7 @@ const assignDequeue = () => actions.assign<Context>({
   },
 }) as any
 
-const condNonempty = () => (ctx: Context) => {
+const condNonempty = (ctx: Context) => {
   const result = ctx.queue.length > 0
   console.info('[nonempty]:' + result)
   return result
@@ -90,7 +104,7 @@ const respond = (event: EventObject) => actions.send(
  */
 const initialContext: () => Context = () => {
   const context: Context = {
-    actorRef : null,
+    childRef : null,
     current  : null,
     queue    : [],
   }
@@ -107,5 +121,6 @@ export {
   assignEnqueue,
   assignDequeue,
   condNonempty,
+  condChildEvent,
   respond,
 }
