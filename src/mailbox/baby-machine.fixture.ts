@@ -26,13 +26,13 @@ const types = {
 const events = {
   SLEEP : (ms: number)  => ({ type: types.SLEEP, ms }),
   // sleeping
-  DREAM : ()            => ({ type: types.DREAM     }),
-  CRY   : ()            => ({ type: types.CRY       }),
-  PEE   : ()            => ({ type: types.PEE       }),
+  DREAM : ()  => ({ type: types.DREAM }),
+  CRY   : ()  => ({ type: types.CRY   }),
+  PEE   : ()  => ({ type: types.PEE   }),
   // awake
-  PLAY  : ()            => ({ type: types.PLAY      }),
-  REST  : ()            => ({ type: types.REST       }),
-  EAT : ()            => ({ type: types.EAT      }),
+  PLAY : () => ({ type: types.PLAY  }),
+  REST : () => ({ type: types.REST  }),
+  EAT  : () => ({ type: types.EAT   }),
 }
 
 type BabyContext = { ms?: number }
@@ -46,10 +46,16 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
     [states.awake]: {
       entry: [
         actions.log('states.awake.entry', 'BabyMachine'),
-        actions.sendParent(mailbox.events.IDLE()),
+        actions.sendParent(mailbox.events.IDLE('BabyMachine.states.awake')),
         actions.sendParent(events.PLAY()),
       ],
       on: {
+        '*': {
+          actions: [
+            actions.log('states.awake.on.any', 'BabyMachine'),
+            actions.sendParent(mailbox.events.IDLE('BabyMachine.states.awake.on.*')),
+          ],
+        },
         [types.SLEEP]: {
           target: states.sleeping,
           actions: [

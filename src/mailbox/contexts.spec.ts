@@ -7,72 +7,65 @@ import {
 
 import * as contexts from './contexts.js'
 
-test('contexts.assignEnqueue()', async t => {
-  const CONTEXT: contexts.Context = {
-    childRef: null,
-    current: null,
-    queue: [],
-  }
-  const EVENT = {
+test('assignEnqueueMessage', async t => {
+  const CONTEXT = contexts.initialContext()
+  CONTEXT.currentEvent = {
     type: 'test-type',
-  }
-  const ORIGIN = 'test-origin'
-
-  const enqueueAssignAction = contexts.assignEnqueue()
-  t.equal(enqueueAssignAction.type, 'xstate.assign', 'should be in `assign` type')
-
-  const queue = enqueueAssignAction.assignment.queue(CONTEXT, EVENT, { _event: { origin: ORIGIN } })
-
-  t.same(queue, [{
-    ...EVENT,
     meta: {
-      origin: ORIGIN,
+      origin: 'test-origin',
     },
-  }], 'should enqueue event to context.queue')
+  }
+
+  t.equal(contexts.assignEnqueueMessage.type, 'xstate.assign', 'should be in `assign` type')
+
+  const messageQueue = contexts.assignEnqueueMessage.assignment.messageQueue(CONTEXT)
+  t.same(messageQueue, [CONTEXT.currentEvent], 'should enqueue event to context.queue')
 })
 
-test('contexts.assignDequeue()', async t => {
+test('assignDequeueMessage', async t => {
   const EVENT = {
     type: 'test-type',
-  }
-  const ORIGIN = 'test-origin'
-  const CONTEXT: contexts.Context = {
-    childRef: null,
-    current: null,
-    queue: [{
-      ...EVENT,
-      meta: {
-        origin: ORIGIN,
-      },
-    }],
-  }
-
-  const dequeueAssignaction = contexts.assignDequeue()
-  t.equal(dequeueAssignaction.type, 'xstate.assign', 'should be in `assign` type')
-
-  const current = dequeueAssignaction.assignment.current(CONTEXT, EVENT, { _event: { origin: ORIGIN } })
-
-  t.same(current, {
-    ...EVENT,
     meta: {
-      origin: ORIGIN,
+      origin: 'test-origin',
     },
-  }, 'should be dequeue-ed event')
-  t.same(CONTEXT.queue, [], 'should be empty after dequeue event')
+  }
+
+  const CONTEXT = contexts.initialContext()
+  CONTEXT.messageQueue = [EVENT]
+
+  t.equal(contexts.assignDequeueMessage.type, 'xstate.assign', 'should be in `assign` type')
+
+  t.same(CONTEXT.messageQueue, [EVENT], 'should be one EVENT before dequeue event')
+  const currentMessage = contexts.assignDequeueMessage.assignment.currentMessage(CONTEXT)
+  t.same(currentMessage, EVENT, 'should be dequeue-ed event')
+  t.same(CONTEXT.messageQueue, [], 'should be empty after dequeue event')
 })
 
-test('contexts.condNonempty()', async t => {
-  const EMPTY_CONTEXT: contexts.Context = {
-    childRef: null,
-    current: null,
-    queue: [],
-  }
-  const NONEMPTY_CONTEXT: contexts.Context = {
-    childRef: null,
-    current: null,
-    queue: [{} as any],
-  }
+test('condMessageQueueNonempty', async t => {
+  const EMPTY_CONTEXT = contexts.initialContext()
 
-  t.equal(contexts.condNonempty()(EMPTY_CONTEXT), false, 'should be false when queue is empty')
-  t.equal(contexts.condNonempty()(NONEMPTY_CONTEXT), true, 'should be false when queue is nonempty')
+  const NONEMPTY_CONTEXT = contexts.initialContext()
+  NONEMPTY_CONTEXT.messageQueue = [{} as any]
+
+  t.notOk(contexts.condMessageQueueNonempty(EMPTY_CONTEXT), 'should be false when queue is empty')
+  t.ok(contexts.condMessageQueueNonempty(NONEMPTY_CONTEXT), 'should be true when queue is nonempty')
+})
+
+test('condCurrentEventFromChild', async t => {
+  const SESSION_ID = 'session-id'
+
+  const context = contexts.initialContext()
+  context.currentEvent = {
+    meta: {
+      origin: SESSION_ID,
+    },
+  } as any
+  context.childRef = {
+    sessionId: SESSION_ID,
+  } as any
+
+  t.ok(contexts.condCurrentEventFromChild(context), 'should return true if the event origin is the child session id')
+
+  context.currentEvent!.meta.origin = undefined
+  t.notOk(contexts.condCurrentEventFromChild(context), 'should return false if the event origin is undefined')
 })

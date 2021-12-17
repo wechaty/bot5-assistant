@@ -16,6 +16,10 @@ const responding = 'mailbox/responding'
 const resetting  = 'mailbox/resetting'
 const spawning = 'mailbox/spawning'
 
+const incoming = 'mailbox/incoming'
+const outgoing = 'mailbox/outgoing'
+const routing = 'mailbox/routing'
+
 export {
   dispatching,
   delivering,
@@ -26,4 +30,8 @@ export {
 
   resetting,
   spawning,
+
+  incoming,
+  outgoing,
+  routing,
 }

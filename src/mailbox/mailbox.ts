@@ -33,6 +33,8 @@ import * as types     from './types.js'
 //     },
 //   }
 
+const nullActor = createMachine({})
+
 const wrap = <
   TEvent extends EventObject = AnyEventObject,
 >(
@@ -43,155 +45,167 @@ const wrap = <
     >,
   ) => createMachine<
     contexts.Context,
-    events.Event | TEvent,  // add child event types to mailbox event types
+    /**
+     * add child event types to mailbox event types
+     *
+     * Huan(202112) TODO: remove the `TEvent['type']` and just use `TEvent`
+     */
+    events.Event | { type: TEvent['type'] },
     Typestate<contexts.Context>
   >(
     {
       id: 'mailbox',
+      type: 'parallel',
       // context: factory call to make sure the contexts between separate machines is not the same
       context: () => ({
         ...contexts.initialContext(),
       }),
       initial: states.spawning,
-      on: {
-        /**
-         * Proxy EVENTs rules:
-         *  1. skip all EVENTs send from mailbox itself
-         *  2. enqueue all EVENTs which are not sent from child machine
-         *  3. mailbox.respond all EVENTs send from child machine
-         */
-        [types.DISPATCH]: undefined,
-        [types.RESET]: undefined,
-        [types.IDLE]: undefined,
-        '*': {
-          actions: [
-            contexts.assignEnqueue,
-            actions.send(
-              (ctx, e, { _event }) => {
-                if (_event.origin && _event.origin === ctx.childRef?.sessionId) {
-                  console.info('FOUND event from child:', _event.origin)
-                } else {
-                  console.info('FOUND event NOT from child:', _event.origin)
-                }
-                console.info('[on] *: current queue length:', ctx.queue.length)
-                console.info('mailbox.on.*.actions.send(DISPATCH) with _event:', JSON.stringify(_event))
-                return events.DISPATCH()
+      states: {
+        message: {
+          initial: states.idle,
+          states: {
+            [states.idle]: {
+              entry: [
+                actions.log('states.message.idle.entry', 'Mailbox'),
+              ],
+              on: {
+                [types.DISPATCH]: states.dispatching,
               },
-              {
-                to: (ctx, e, { _event }) => {
-                  return undefined as any
+            },
+            [states.dispatching]: {
+              entry: [
+                actions.log((_, e) => 'tates.message.dispatching.entry ' + (e as any).payload.reason, 'Mailbox'),
+              ],
+              always: [
+                { // new event in queue
+                  cond: contexts.condMessageQueueNonempty,
+                  actions: [
+                    contexts.assignDequeueMessage,
+                    actions.log('states.message.dispatching.always condMessageQueueNonempty (true)', 'Mailbox'),
+                  ],
+                  target: states.delivering,
+                },
+                {
+                  actions: actions.log('states.message.dispatching.always idle', 'Mailbox'),
+                  target: states.idle,
+                },
+              ],
+            },
+            [states.delivering]: {
+              entry: [
+                actions.log(ctx => 'states.message.delivering.entry ' + ctx.currentMessage?.type, 'Mailbox'),
+                actions.send(ctx => events.BUSY(ctx.currentMessage!.type)),
+              ],
+              always: states.idle,
+              exit: [
+                contexts.sendCurrentMessageToChild,
+              ],
+            },
+          },
+        },
+        child: {
+          initial: states.spawning,
+          states: {
+            [states.spawning]: {
+              entry: [
+                actions.log('states.child.spawning.entry', 'Mailbox'),
+                actions.assign({
+                  childRef : _ => spawn(childMachine),
+                  nullRef  : _ => spawn(nullActor),
+                }),
+              ],
+              always: states.idle,
+            },
+            [states.idle]: {
+              entry: [
+                actions.log('states.child.idle.entry', 'Mailbox'),
+                actions.send(events.DISPATCH(types.IDLE)),
+              ],
+              on: {
+                [types.BUSY]: states.busy,
+                [types.NOTIFY]: {
+                  target: states.busy,
+                  actions: [
+                    actions.send(_ => events.DISPATCH(types.NOTIFY)),
+                  ],
                 },
               },
-            ),
-          ],
-        },
-      },
-      states: {
-        [states.spawning]: {
-          entry: [
-            actions.assign({ childRef: _ => spawn(childMachine) }),
-            actions.log('states.spawning.entry', 'Mailbox'),
-          ],
-          always: states.idle,
-          exit: [
-            actions.log('states.spawning.exit', 'Mailbox'),
-          ],
-        },
-        [states.idle]: {
-          entry: actions.log('states.idle.entry', 'Mailbox'),
-          on: {
-            [types.DISPATCH]: states.dispatching,
-            [types.IDLE]: {
-              target: states.dispatching,
-              actions: [
-                actions.log((_, e, m) => `states.idle.on(IDLE) with event(${e.type}) from ${m._event.origin}`, 'Mailbox'),
-              ],
+            },
+            [states.busy]: {
+              // TODO: remove any
+              entry: actions.log((_, e) => 'states.child.busy.entry ' + (e as any).payload.reason, 'Mailbox'),
+              on: {
+                [types.IDLE]: states.idle,
+              },
             },
           },
         },
-        [states.busy]: {
-          on: {
-            [types.IDLE]: states.dispatching,
+        router: {
+          initial: states.idle,
+          states: {
+            [states.idle]: {
+              entry: [
+                actions.log('states.router.idle.entry', 'Mailbox'),
+              ],
+              on: {
+                '*': states.routing,
+              },
+            },
+            [states.routing]: {
+              entry: [
+                actions.log((_, __, { _event }) => 'states.router.routing.entry ' + JSON.stringify(_event), 'Mailbox'),
+                contexts.assignCurrentEvent,
+              ],
+              /**
+               * Proxy EVENTs rules:
+               *  1. skip all EVENTs send from mailbox itself
+               *  2. enqueue all EVENTs which are not sent from child machine
+               *  3. mailbox.respond all EVENTs send from child machine
+               */
+              always: [
+                /**
+                 * skip all EVENTs send from mailbox itself
+                 *
+                 * NOTICE: this should be placed as the first
+                 *  because the child might send IDLE which should not
+                 *    be put to `outgoing`
+                 */
+                {
+                  cond: events.condCurrentEventFromMailbox,
+                  target: states.idle,
+                },
+                {
+                  cond: contexts.condCurrentEventFromChild,
+                  target: states.outgoing,
+                },
+                {
+                  description: 'current event is sent from other actors (neither child nor mailbox)',
+                  target: states.incoming,
+                },
+              ],
+            },
+            [states.incoming]: {
+              entry: [
+                actions.log(ctx => 'states.router.incoming.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+                contexts.assignEnqueueMessage,
+              ],
+              always: states.idle,
+              exit: [
+                actions.log(_ => 'states.incoming.exit', 'Mailbox'),
+                actions.send(ctx => events.NOTIFY(ctx.currentEvent?.type)),
+              ],
+            },
+            [states.outgoing]: {
+              entry: [
+                actions.log(ctx => 'states.router.outgoing.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+                contexts.respond,
+              ],
+              always: states.idle,
+            },
           },
         },
-        [states.responding]: {
-          entry: [
-            actions.log((_, __, { _event }) => 'states.responding.entry ' + JSON.stringify(_event), 'Mailbox'),
-          ],
-          always: [
-            {
-              cond: contexts.condChildEvent,
-              actions: [
-                actions.send(
-                  (_, e, { _event }) => {
-                    console.info('Mailbox states.responding.entry', JSON.stringify(_event))
-                    return e
-                  },
-                  {
-                    to: ctx => ctx.current?.meta.origin!,
-                  },
-                ),
-              ],
-              target: states.busy,
-            },
-            {
-              target: states.busy,
-              actions: [
-                actions.log('states.responding.always.target states.busy (not child event)', 'Mailbox'),
-              ],
-            },
-          ],
-          exit: [
-            actions.log('states.responding.exit', 'Mailbox'),
-          ],
-        },
-        [states.dispatching]: {
-          entry: [
-            actions.log('states.dispatching.entry', 'Mailbox'),
-          ],
-          always: [
-            { // new event in queue
-              cond: contexts.condNonempty,
-              actions: [
-                contexts.assignDequeue,
-                actions.log('states.dispatching.always condNonempty()', 'Mailbox'),
-              ],
-              target: states.delivering,
-            },
-            {
-              actions: actions.log('states.dispatching.always default(queue is empty)', 'Mailbox'),
-              target: states.idle,
-            },
-          ],
-        },
-        [states.delivering]: {
-          entry: [
-            actions.log('states.delivering.entry', 'Mailbox'),
-            actions.send(
-              ctx => {
-                console.info('Mailbox states.delivering ctx.current:', ctx.current)
-                return ctx.current!
-              },
-              {
-                to: ctx => ctx.childRef!,
-              },
-            ),
-          ],
-          always: states.busy,
-          exit: [
-            actions.assign({
-              current: _ => {
-                console.info('Mailbox states.delivering.exit set ctx.current to null')
-                return null
-              },
-            }),
-          ],
-        },
       },
-    },
-    {
-      actions: {},
-      services: {},
     },
   )
 
