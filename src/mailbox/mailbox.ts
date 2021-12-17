@@ -9,16 +9,10 @@ import {
   createMachine,
   StateMachine,
   spawn,
-  ActorRef,
   AnyEventObject,
   EventObject,
-  StateSchema,
   Typestate,
 }                       from 'xstate'
-
-import {
-  registry, // FIXME: find a good way to get child by `session`
-}                     from 'xstate/lib/registry.js'
 
 import * as contexts  from './contexts.js'
 import * as events    from './events.js'
@@ -32,8 +26,6 @@ import * as types     from './types.js'
 //       actorRef: ActorRef<any>
 //     },
 //   }
-
-const nullActor = createMachine({})
 
 const wrap = <
   TEvent extends EventObject = AnyEventObject,
@@ -75,7 +67,7 @@ const wrap = <
             },
             [states.dispatching]: {
               entry: [
-                actions.log((_, e) => 'tates.message.dispatching.entry ' + (e as any).payload.reason, 'Mailbox'),
+                actions.log((_, e) => 'states.message.dispatching.entry ' + (e as any).payload.reason, 'Mailbox'),
               ],
               always: [
                 { // new event in queue
@@ -112,7 +104,6 @@ const wrap = <
                 actions.log('states.child.spawning.entry', 'Mailbox'),
                 actions.assign({
                   childRef : _ => spawn(childMachine),
-                  nullRef  : _ => spawn(nullActor),
                 }),
               ],
               always: states.idle,
@@ -172,11 +163,11 @@ const wrap = <
                  *    be put to `outgoing`
                  */
                 {
-                  cond: events.condCurrentEventFromMailbox,
+                  cond: ctx => events.condCurrentEventTypeIsMailbox(ctx),
                   target: states.idle,
                 },
                 {
-                  cond: contexts.condCurrentEventFromChild,
+                  cond: ctx => contexts.condCurrentEventOriginIsChild(ctx),
                   target: states.outgoing,
                 },
                 {
@@ -192,7 +183,7 @@ const wrap = <
               ],
               always: states.idle,
               exit: [
-                actions.log(_ => 'states.incoming.exit', 'Mailbox'),
+                actions.log(_ => 'states.router.incoming.exit', 'Mailbox'),
                 actions.send(ctx => events.NOTIFY(ctx.currentEvent?.type)),
               ],
             },

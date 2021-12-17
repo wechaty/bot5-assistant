@@ -1,3 +1,4 @@
+/* eslint-disable sort-keys */
 /**
  * XState Actors:
  *  @see https://xstate.js.org/docs/guides/actors.html#actor-api
@@ -41,10 +42,9 @@ interface Context {
    * The child actor
    */
   childRef : null | ActorRef<any>
-  nullRef : null | ActorRef<any>
 }
 
-const condCurrentEventFromChild = (ctx: Context) => {
+const condCurrentEventOriginIsChild = (ctx: Context) => {
   if (!ctx.currentEvent) {
     return false
   }
@@ -101,29 +101,43 @@ const condMessageQueueNonempty = (ctx: Context) => {
   return ctx.messageQueue.length > 0
 }
 
+const getOrigin = (ctx: Context) => {
+  console.info('### getOrigin:', JSON.stringify(ctx.currentMessage))
+  return (ctx.currentMessage && ctx.currentMessage[metaSymKey].origin) || undefined
+}
+const hasOrigin = (ctx: Context) => !!getOrigin(ctx)
+
 /**
  * Send the `currentEvent` as the repond to `currentMessage`
  */
-const respond = actions.send<Context, EventObject>(
-  ctx => unwrapEvent(ctx.currentEvent!),
+const respond = actions.choose([
+  /**
+   * 1. if has current message & origin, respond to the origin
+   */
   {
-    to: (ctx: Context) => {
-      console.info('contexts.respond currentEvent:', ctx.currentEvent)
-
-      const origin = ctx.currentMessage && ctx.currentMessage[metaSymKey].origin
-      if (!origin) {
-        /**
-         * If there's no origin, it means that we do not know where to reponsd this message
-         *  so send it to the null actor
-         */
-        return ctx.nullRef!
-      }
-
-      console.info('contexts.response to:', origin)
-      return origin
-    },
+    cond: hasOrigin,
+    actions: [
+      actions.log<Context, EventObject>('#### responsd: origin found, send to origin'),
+      actions.send<Context, EventObject>(
+        ctx => unwrapEvent(ctx.currentEvent!),
+        {
+          to: ctx => getOrigin(ctx)!,
+        },
+      ),
+    ],
   },
-)
+  /**
+   * 2. else send to null (drop)
+   */
+  {
+    actions: [
+      actions.log<Context, EventObject>(ctx => 'contexts.responsd send to parent: ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+      actions.sendParent<Context, EventObject>(
+        ctx => unwrapEvent(ctx.currentEvent!),
+      ),
+    ],
+  },
+])
 
 /**
  * use JSON.parse() to prevent the initial context from being changed
@@ -134,7 +148,6 @@ const initialContext: () => Context = () => {
     currentEvent   : null,
     currentMessage : null,
     messageQueue   : [],
-    nullRef        : null,
   }
   return JSON.parse(
     JSON.stringify(
@@ -161,7 +174,7 @@ export {
   assignEnqueueMessage,
   assignCurrentEvent,
   assignCurrentEventNull,
-  condCurrentEventFromChild,
+  condCurrentEventOriginIsChild,
   condMessageQueueNonempty,
   respond,
   sendCurrentMessageToChild,

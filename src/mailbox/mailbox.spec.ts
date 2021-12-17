@@ -8,6 +8,8 @@ import {
 
 import {
   interpret,
+  createMachine,
+  actions,
 }                   from 'xstate'
 
 import * as mailbox from './mailbox.js'
@@ -245,5 +247,124 @@ test('mailbox actor interpret smoke testing: 3 EVENTs with respond', async t => 
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after 3rd 10 ms')
 
   // interpreter.stop()
+  sandbox.restore()
+})
+
+test('mailbox proxy smoke testing', async t => {
+  const sandbox = sinon.createSandbox({
+    useFakeTimers: true,
+  })
+
+  const CHILD_ID = 'child'
+  const childActor = mailbox.wrap(child.machine)
+
+  const parentMachine = createMachine({
+    id: 'parent',
+    initial: 'testing',
+    invoke: {
+      id: CHILD_ID,
+      src: childActor,
+    },
+    on: {
+      '*': {
+        actions: actions.choose([
+          {
+            cond: (_, e) => Object.values(child.types).includes(e.type as any),
+            actions: [
+              actions.send((_, e) => e, { to: CHILD_ID }),
+            ],
+          },
+        ]),
+      },
+    },
+    states: {
+      testing: {},
+    },
+  })
+
+  const interpreter = interpret(parentMachine)
+
+  const eventList: string[] = []
+
+  interpreter.onTransition(s => {
+    eventList.push(s.event.type)
+
+    console.info('----- onTransition: -----')
+    console.info('  - states:', s.value)
+    console.info('  - event:', s.event.type)
+    console.info('----------------------------------------------')
+  })
+
+  interpreter.start()
+
+  t.same(eventList, [
+    'xstate.init',
+    child.types.PLAY,
+  ], 'should have initial event list')
+
+  eventList.length = 0
+  interpreter.send(child.events.SLEEP(10))
+  t.same(eventList, [
+    child.types.SLEEP,
+    child.types.EAT,
+    child.types.REST,
+    child.types.DREAM,
+  ], 'should fail to sleep')
+
+  eventList.length = 0
+  await sandbox.clock.tickAsync(10)
+  t.same(eventList, [
+    child.types.CRY,
+    child.types.PEE,
+    child.types.PLAY,
+  ], 'should wakeup')
+
+  eventList.length = 0
+  Array.from({ length: 3 }).forEach(_ =>
+    interpreter.send(child.events.SLEEP(10)),
+  )
+  t.same(eventList, [
+    child.types.SLEEP,
+    child.types.EAT,
+    child.types.REST,
+    child.types.DREAM,
+    child.types.SLEEP,
+    child.types.SLEEP,
+  ], 'should fail to sleep after 3 SLEEP events, with two more SLEEP event queued')
+
+  eventList.length = 0
+  await sandbox.clock.tickAsync(10)
+  t.same(eventList, [
+    child.types.CRY,
+    child.types.PEE,
+    child.types.PLAY,
+    child.types.EAT,
+    child.types.REST,
+    child.types.DREAM,
+  ], 'should wakeup after 10 ms ,and fail sleep again')
+
+  eventList.length = 0
+  await sandbox.clock.tickAsync(10)
+  t.same(eventList, [
+    child.types.CRY,
+    child.types.PEE,
+    child.types.PLAY,
+    child.types.EAT,
+    child.types.REST,
+    child.types.DREAM,
+  ], 'should wakeup after 10 ms ,and fail sleep again, twice')
+
+  eventList.length = 0
+  await sandbox.clock.tickAsync(10)
+  t.same(eventList, [
+    child.types.CRY,
+    child.types.PEE,
+    child.types.PLAY,
+  ], 'should wakeup another 10 ms, and no more SLEEP in the queue')
+
+  eventList.length = 0
+  await sandbox.clock.runAllAsync()
+  t.same(eventList, [], 'should be no more EVENT mores')
+
   sandbox.restore()
 })

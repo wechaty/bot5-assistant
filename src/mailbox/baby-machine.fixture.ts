@@ -40,7 +40,7 @@ type BabyEvent   = ReturnType<typeof events.SLEEP>
 
 const machine = createMachine<BabyContext, BabyEvent, any>({
   context: {},
-  id: 'child',
+  id: 'baby',
   initial: states.awake,
   states: {
     [states.awake]: {
@@ -50,29 +50,52 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
         actions.sendParent(events.PLAY()),
       ],
       on: {
+        /**
+         * Huan(202112):
+         *  always send parent a IDLE event if the child received a event that it does not care.
+         *
+         * This behavior is required for mailbox children, and it is very important because
+         *  the mailbox need to know whether the child is idle or not
+         *    by waiting a IDLE event feedback whenever it has sent an event to the child.
+         */
         '*': {
           actions: [
-            actions.log('states.awake.on.any', 'BabyMachine'),
-            actions.choose([
-              {
-                cond: (_, e) => ![
-                  ...Object.values(mailbox.types),
-                  ...Object.values(types),
-                ].includes(e.type as any),
-                actions: [
-                  actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
-                  actions.sendParent((_, e) => {
-                    console.info(JSON.stringify(e))
-                    return mailbox.events.IDLE('BabyMachine.states.awake.on.*')
-                  }),
-                ],
-              },
-              {
-                actions: [
-                  actions.log((_, e) => 'states.awake.on.any sendParent skipped for ' + JSON.stringify(e), 'BabyMachine'),
-                ],
-              },
-            ]),
+            actions.log((_, e) => 'states.awake.on.any event: ' + e.type, 'BabyMachine'),
+            actions.sendParent((_, e) => mailbox.events.IDLE(`BabyMachine.states.awake.on.any sendParent ${e.type}`)),
+            // actions.choose([
+            //   /**
+            //    * FIXME: can we always send IDLE?
+            //    * TODO: make it cleaner
+            //    */
+            //   /**
+            //    * 1. if the event is either a mailbox event or a child event,
+            //    *  then do not send it back to parent
+            //    */
+            //   {
+            //     cond: (_, e) => [
+            //       ...Object.values(mailbox.types),
+            //       ...Object.values(types),
+            //     ].includes(e.type as any),
+            //     actions: [
+            //       actions.log((_, e) => 'states.awake.on.any sendParent skipped for ' + JSON.stringify(e), 'BabyMachine'),
+            //       actions.sendParent((_, e) => mailbox.events.IDLE('BabyMachine.states.awake.on.* unrelated event: ' + JSON.stringify(e))),
+            //     ],
+            //   },
+            //   /**
+            //    * 2. if the event is nether a mailbox event nor a child event,
+            //    *  then send a IDLE event back to parent
+            //    *  to identify that the child is IDLE
+            //    */
+            //   {
+            //     actions: [
+            //       actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
+            //       actions.sendParent((_, e) => {
+            //         console.info(JSON.stringify(e))
+            //         return mailbox.events.IDLE('BabyMachine.states.awake.on.*')
+            //       }),
+            //     ],
+            //   },
+            // ]),
           ],
         },
         [types.SLEEP]: {

@@ -28,7 +28,7 @@ type Event =
   | ReturnType<typeof NOTIFY>
 
 // TODO: remove any
-const condCurrentEventFromMailbox = (ctx: contexts.Context) => {
+const condCurrentEventTypeIsMailbox = (ctx: contexts.Context) => {
   /**
    * Return `true` if there's no currentEvent at all
    *  to skip other logics to prevent error
@@ -47,7 +47,7 @@ const condCurrentEventFromMailbox = (ctx: contexts.Context) => {
 
 export {
   type Event,
-  condCurrentEventFromMailbox,
+  condCurrentEventTypeIsMailbox,
   DISPATCH,
   IDLE,
   BUSY,

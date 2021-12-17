@@ -11,7 +11,7 @@ test('assignEnqueueMessage', async t => {
   const CONTEXT = contexts.initialContext()
   CONTEXT.currentEvent = {
     type: 'test-type',
-    meta: {
+    [contexts.metaSymKey]: {
       origin: 'test-origin',
     },
   }
@@ -25,7 +25,7 @@ test('assignEnqueueMessage', async t => {
 test('assignDequeueMessage', async t => {
   const EVENT = {
     type: 'test-type',
-    meta: {
+    [contexts.metaSymKey]: {
       origin: 'test-origin',
     },
   }
@@ -51,7 +51,7 @@ test('condMessageQueueNonempty', async t => {
   t.ok(contexts.condMessageQueueNonempty(NONEMPTY_CONTEXT), 'should be true when queue is nonempty')
 })
 
-test('condCurrentEventFromChild', async t => {
+test('condCurrentEventOriginIsChild', async t => {
   const SESSION_ID = 'session-id'
 
   const context = contexts.initialContext()
@@ -64,8 +64,8 @@ test('condCurrentEventFromChild', async t => {
     sessionId: SESSION_ID,
   } as any
 
-  t.ok(contexts.condCurrentEventFromChild(context), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condCurrentEventOriginIsChild(context), 'should return true if the event origin is the child session id')
 
   context.currentEvent![contexts.metaSymKey].origin = undefined
-  t.notOk(contexts.condCurrentEventFromChild(context), 'should return false if the event origin is undefined')
+  t.notOk(contexts.condCurrentEventOriginIsChild(context), 'should return false if the event origin is undefined')
 })
