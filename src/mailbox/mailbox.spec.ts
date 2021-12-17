@@ -19,9 +19,10 @@ test('mailbox wrapped actor transition nextState smoke testing', async t => {
   // console.info('initialState:', actor.initialState)
 
   let nextState = actor.transition(actor.initialState, child.events.SLEEP(10))
+  console.info(nextState.actions)
   t.ok(nextState.actions.some(a => {
-    return a.type === 'xstate.send' && a['event'].type === mailbox.types.DISPATCH
-  }), 'should have triggered DISPATCH event by sending IDLE event')
+    return a.type === 'xstate.send' && a['event'].type === mailbox.types.NOTIFY
+  }), 'should have triggered NOTIFY event by sending IDLE event')
 
   nextState = actor.transition(nextState, child.events.SLEEP(10))
   t.equal(nextState.context.messageQueue.length, 2, 'should have 2 event in queue after sent two SLEEP event')
@@ -178,7 +179,7 @@ test('mailbox actor interpret smoke testing: 3 parallel EVENTs', async t => {
   sandbox.restore()
 })
 
-test.only('mailbox actor interpret smoke testing: 3 EVENTs with respond', async t => {
+test('mailbox actor interpret smoke testing: 3 EVENTs with respond', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })

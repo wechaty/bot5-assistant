@@ -53,7 +53,26 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
         '*': {
           actions: [
             actions.log('states.awake.on.any', 'BabyMachine'),
-            actions.sendParent(mailbox.events.IDLE('BabyMachine.states.awake.on.*')),
+            actions.choose([
+              {
+                cond: (_, e) => ![
+                  ...Object.values(mailbox.types),
+                  ...Object.values(types),
+                ].includes(e.type as any),
+                actions: [
+                  actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
+                  actions.sendParent((_, e) => {
+                    console.info(JSON.stringify(e))
+                    return mailbox.events.IDLE('BabyMachine.states.awake.on.*')
+                  }),
+                ],
+              },
+              {
+                actions: [
+                  actions.log((_, e) => 'states.awake.on.any sendParent skipped for ' + JSON.stringify(e), 'BabyMachine'),
+                ],
+              },
+            ]),
           ],
         },
         [types.SLEEP]: {

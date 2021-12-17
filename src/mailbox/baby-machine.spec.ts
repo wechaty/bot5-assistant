@@ -20,11 +20,13 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
     useFakeTimers: true,
   })
 
+  const CHILD_ID = 'child'
+
   const parentMachine = createMachine({
     id: 'parent',
     initial: 'testing',
     invoke: {
-      id: 'child',
+      id: CHILD_ID,
       src: baby.machine,
       autoForward: true,
     },
@@ -38,17 +40,17 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
   const eventList: string[] = []
   interpreter.onTransition(s => {
     eventList.push(s.event.type)
-    //
-    // console.info('onTransition: ')
-    // console.info('  - states:', s.value)
-    // console.info('  - event:', s.event.type)
-    // console.info()
+
+    console.info('onTransition: ')
+    console.info('  - states:', s.value)
+    console.info('  - event:', s.event.type)
+    console.info()
   })
 
   interpreter.start()
 
   const getChildSnapshot: () => StateFrom<typeof baby.machine> = () => interpreter.getSnapshot.call(
-    interpreter.getSnapshot().children['child'],
+    interpreter.getSnapshot().children[CHILD_ID],
   ) as any
 
   let snapshot = getChildSnapshot()

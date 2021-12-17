@@ -56,7 +56,7 @@ test('condCurrentEventFromChild', async t => {
 
   const context = contexts.initialContext()
   context.currentEvent = {
-    meta: {
+    [contexts.metaSymKey]: {
       origin: SESSION_ID,
     },
   } as any
@@ -66,6 +66,6 @@ test('condCurrentEventFromChild', async t => {
 
   t.ok(contexts.condCurrentEventFromChild(context), 'should return true if the event origin is the child session id')
 
-  context.currentEvent!.meta.origin = undefined
+  context.currentEvent![contexts.metaSymKey].origin = undefined
   t.notOk(contexts.condCurrentEventFromChild(context), 'should return false if the event origin is undefined')
 })

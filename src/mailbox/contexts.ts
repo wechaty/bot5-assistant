@@ -11,7 +11,7 @@ import {
   ActorRef,
 }                       from 'xstate'
 
-const meta = Symbol('meta')
+const metaSymKey = Symbol('meta')
 
 /**
  *
@@ -20,7 +20,7 @@ const meta = Symbol('meta')
  *
  */
  type AnyEventObjectExt = AnyEventObject & {
-  [meta]: {
+  [metaSymKey]: {
     origin: SCXML.Event<AnyEventObject>['origin']
   }
 }
@@ -53,7 +53,7 @@ const condCurrentEventFromChild = (ctx: Context) => {
     return false
   }
 
-  return ctx.currentEvent[meta].origin === (ctx.childRef as any).sessionId
+  return ctx.currentEvent[metaSymKey].origin === (ctx.childRef as any).sessionId
 }
 
 const assignEnqueueMessage = actions.assign<Context>({
@@ -79,7 +79,7 @@ const wrapEvent = (
   },
 ) => ({
   ...e,
-  [meta]: {
+  [metaSymKey]: {
     origin: _event.origin,
   },
 })
@@ -88,7 +88,7 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
   const event = {
     ...e,
   }
-  delete (event as any)[meta]
+  delete (event as any)[metaSymKey]
   return event
 }
 
@@ -110,7 +110,7 @@ const respond = actions.send<Context, EventObject>(
     to: (ctx: Context) => {
       console.info('contexts.respond currentEvent:', ctx.currentEvent)
 
-      const origin = ctx.currentMessage && ctx.currentMessage[meta].origin
+      const origin = ctx.currentMessage && ctx.currentMessage[metaSymKey].origin
       if (!origin) {
         /**
          * If there's no origin, it means that we do not know where to reponsd this message
@@ -155,6 +155,7 @@ const sendCurrentMessageToChild = actions.send<Context, any>(
 
 export {
   type Context,
+  metaSymKey,
   initialContext,
   assignDequeueMessage,
   assignEnqueueMessage,
