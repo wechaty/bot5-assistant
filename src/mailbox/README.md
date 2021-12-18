@@ -1,6 +1,6 @@
 ## Mailbox (Actor/XState)
 
-A XState wrapper to implement Mailbox from Actor Model.
+A XState wrapper to implement Mailbox of Actor Model.
 
 ![Actor Model: Mailbox](mailbox.png)
 
@@ -12,7 +12,7 @@ My actor will receive message from Wechaty, and send message to Wechaty.
 
 However, ... (describe the async & multi-user scanerio for the conversation turns)
 
-It turns our ... (describe that we need to make sure the incoming messages are queued when we not finished processing the last one)
+It turns out ... (describe that we need to make sure the incoming messages are queued when we not finished processing the last one)
 
 ## Actor Mailbox Concept
 
@@ -42,13 +42,14 @@ Initial version.
 
 Related issue discussions:
 
-- [[v5] Optimize mailbox statelyai/xstate#2870](https://github.com/statelyai/xstate/issues/2870)
+- [Actor model needs a Mailbox wrapper/concurrency-manager wechaty/bot5-assistant#4](https://github.com/wechaty/bot5-assistant/issues/4)
 - [Discord Actor Model discussion](https://discord.com/channels/795785288994652170/800812250306183178/917329930294009877)
 - [xstate-onentry-timing-bug.js](https://github.com/statelyai/xstate/issues/370#issuecomment-465954271)
+- [[v5] Optimize mailbox statelyai/xstate#2870](https://github.com/statelyai/xstate/issues/2870)
 
 ## Author
 
-[Huan LI](https://github.com/huan) ([李卓桓](http://linkedin.com/in/zixia)), Author of Wechaty, zixia@zixia.net
+[Huan LI](https://github.com/huan) ([李卓桓](http://linkedin.com/in/zixia)), Author of Wechaty, [Microsoft Regional Director](https://rd.microsoft.com/en-us/huan-li), zixia@zixia.net
 
 [![Profile of Huan LI (李卓桓) on StackOverflow](https://stackexchange.com/users/flair/265499.png)](https://stackexchange.com/users/265499)
 
