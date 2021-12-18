@@ -6,33 +6,33 @@ import {
 
 import * as mailbox from './mailbox.js'
 
-const states = {
-  awake    : 'baby/awake',
-  sleeping : 'baby/sleeping',
-} as const
+enum States {
+  awake    = 'baby/awake',
+  sleeping = 'baby/sleeping',
+}
 
-const types = {
-  SLEEP : 'baby/SLEEP',
+enum Types {
+  SLEEP = 'baby/SLEEP',
   // sleeping
-  DREAM : 'baby/DREAM',
-  CRY   : 'baby/CRY',
-  PEE   : 'baby/PEE',
+  DREAM = 'baby/DREAM',
+  CRY   = 'baby/CRY',
+  PEE   = 'baby/PEE',
   // awake
-  PLAY : 'baby/PLAY',
-  REST : 'baby/REST',
-  EAT  : 'baby/EAT',
-} as const
+  PLAY = 'baby/PLAY',
+  REST = 'baby/REST',
+  EAT  = 'baby/EAT',
+}
 
 const events = {
-  SLEEP : (ms: number)  => ({ type: types.SLEEP, ms }),
+  SLEEP : (ms: number)  => ({ type: Types.SLEEP, ms }),
   // sleeping
-  DREAM : ()  => ({ type: types.DREAM }),
-  CRY   : ()  => ({ type: types.CRY   }),
-  PEE   : ()  => ({ type: types.PEE   }),
+  DREAM : ()  => ({ type: Types.DREAM }),
+  CRY   : ()  => ({ type: Types.CRY   }),
+  PEE   : ()  => ({ type: Types.PEE   }),
   // awake
-  PLAY : () => ({ type: types.PLAY  }),
-  REST : () => ({ type: types.REST  }),
-  EAT  : () => ({ type: types.EAT   }),
+  PLAY : () => ({ type: Types.PLAY  }),
+  REST : () => ({ type: Types.REST  }),
+  EAT  : () => ({ type: Types.EAT   }),
 }
 
 type BabyContext = { ms?: number }
@@ -41,12 +41,12 @@ type BabyEvent   = ReturnType<typeof events.SLEEP>
 const machine = createMachine<BabyContext, BabyEvent, any>({
   context: {},
   id: 'baby',
-  initial: states.awake,
+  initial: States.awake,
   states: {
-    [states.awake]: {
+    [States.awake]: {
       entry: [
         actions.log('states.awake.entry', 'BabyMachine'),
-        actions.sendParent(mailbox.events.IDLE('BabyMachine.states.awake')),
+        actions.sendParent(mailbox.Events.IDLE('BabyMachine.states.awake')),
         actions.sendParent(events.PLAY()),
       ],
       on: {
@@ -60,46 +60,45 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
          */
         '*': {
           actions: [
-            actions.log((_, e) => 'states.awake.on.any event: ' + e.type, 'BabyMachine'),
-            actions.sendParent((_, e) => mailbox.events.IDLE(`BabyMachine.states.awake.on.any sendParent ${e.type}`)),
-            // actions.choose([
-            //   /**
-            //    * FIXME: can we always send IDLE?
-            //    * TODO: make it cleaner
-            //    */
-            //   /**
-            //    * 1. if the event is either a mailbox event or a child event,
-            //    *  then do not send it back to parent
-            //    */
-            //   {
-            //     cond: (_, e) => [
-            //       ...Object.values(mailbox.types),
-            //       ...Object.values(types),
-            //     ].includes(e.type as any),
-            //     actions: [
-            //       actions.log((_, e) => 'states.awake.on.any sendParent skipped for ' + JSON.stringify(e), 'BabyMachine'),
-            //       actions.sendParent((_, e) => mailbox.events.IDLE('BabyMachine.states.awake.on.* unrelated event: ' + JSON.stringify(e))),
-            //     ],
-            //   },
-            //   /**
-            //    * 2. if the event is nether a mailbox event nor a child event,
-            //    *  then send a IDLE event back to parent
-            //    *  to identify that the child is IDLE
-            //    */
-            //   {
-            //     actions: [
-            //       actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
-            //       actions.sendParent((_, e) => {
-            //         console.info(JSON.stringify(e))
-            //         return mailbox.events.IDLE('BabyMachine.states.awake.on.*')
-            //       }),
-            //     ],
-            //   },
-            // ]),
+            actions.log((_, __, { _event }) => 'states.awake.on.any event: ' + JSON.stringify(_event), 'BabyMachine'),
+            /**
+             * Huan(202112): child state machine should not send the event to parent
+             *  when the event might be sent from the chid machine to the parent machine.
+             *  to prevent deadloop
+             */
+            actions.choose([
+              /**
+               * 1. if the event is either a mailbox event or a child event,
+               *  then do not send it back to parent again, to prevent the deadloop
+               */
+              {
+                cond: (_, e) => [
+                  ...Object.values<string>(mailbox.Types),
+                  ...Object.values<string>(Types),
+                ].includes(e.type),
+                actions: [
+                  actions.log((_, e) => 'states.awake.on.any sendParent skipped for ' + JSON.stringify(e), 'BabyMachine'),
+                ],
+              },
+              /**
+               * 2. if the event is nether a mailbox event nor a child event,
+               *  then send a IDLE event back to parent
+               *  to identify that the child is IDLE
+               */
+              {
+                actions: [
+                  actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
+                  actions.sendParent((_, e) => {
+                    console.info(JSON.stringify(e))
+                    return mailbox.Events.IDLE('BabyMachine.states.awake.on.*')
+                  }),
+                ],
+              },
+            ]),
           ],
         },
-        [types.SLEEP]: {
-          target: states.sleeping,
+        [Types.SLEEP]: {
+          target: States.sleeping,
           actions: [
             actions.log((_, e) => `states.awake.on.sleep.actions ${JSON.stringify(e)}`, 'BabyMachine'),
             actions.sendParent(events.REST()),
@@ -108,10 +107,14 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
       },
       exit: [
         actions.log('states.awake.exit', 'BabyMachine'),
-        actions.sendParent(events.EAT()),
+        /**
+         * FIXME: Huan(202112): uncomment the below `sendParent` line
+         *  https://github.com/statelyai/xstate/issues/2880
+         */
+        // actions.sendParent(events.EAT()),
       ],
     },
-    [states.sleeping]: {
+    [States.sleeping]: {
       entry: [
         actions.log((_, e) => `states.sleeping.entry ${JSON.stringify(e)}`, 'BabyMachine'),
         actions.assign({ ms: (_, e) => e.ms }),
@@ -121,7 +124,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
         cryMs: {
           actions: actions.sendParent(events.CRY()),
         },
-        ms: states.awake,
+        ms: States.awake,
       },
       exit: [
         actions.log(_ => 'states.sleeping.exit', 'BabyMachine'),
@@ -148,6 +151,6 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
 export {
   events,
   machine,
-  states,
-  types,
+  States,
+  Types,
 }

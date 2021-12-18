@@ -15,17 +15,23 @@ import {
 }                       from 'xstate'
 
 import * as contexts  from './contexts.js'
-import * as events    from './events.js'
-import * as states    from './states.js'
-import * as types     from './types.js'
+import {
+  Events,
+  Event,
+  condCurrentEventTypeIsMailbox,
+}                                 from './events.js'
+import { States }    from './states.js'
+import { Types }     from './types.js'
 
 // type MailboxTypestate =
 //   | {
-//     value: typeof states.dispatching,
+//     value: typeof States.dispatching,
 //     context: contexts.Context & {
 //       actorRef: ActorRef<any>
 //     },
 //   }
+
+const nullMachine = createMachine({})
 
 const wrap = <
   TEvent extends EventObject = AnyEventObject,
@@ -42,7 +48,7 @@ const wrap = <
      *
      * Huan(202112) TODO: remove the `TEvent['type']` and just use `TEvent`
      */
-    events.Event | { type: TEvent['type'] },
+    Event | { type: TEvent['type'] },
     Typestate<contexts.Context>
   >(
     {
@@ -52,20 +58,20 @@ const wrap = <
       context: () => ({
         ...contexts.initialContext(),
       }),
-      initial: states.spawning,
+      initial: States.spawning,
       states: {
         message: {
-          initial: states.idle,
+          initial: States.idle,
           states: {
-            [states.idle]: {
+            [States.idle]: {
               entry: [
                 actions.log('states.message.idle.entry', 'Mailbox'),
               ],
               on: {
-                [types.DISPATCH]: states.dispatching,
+                [Types.DISPATCH]: States.dispatching,
               },
             },
-            [states.dispatching]: {
+            [States.dispatching]: {
               entry: [
                 actions.log((_, e) => 'states.message.dispatching.entry ' + (e as any).payload.reason, 'Mailbox'),
               ],
@@ -76,20 +82,20 @@ const wrap = <
                     contexts.assignDequeueMessage,
                     actions.log('states.message.dispatching.always condMessageQueueNonempty (true)', 'Mailbox'),
                   ],
-                  target: states.delivering,
+                  target: States.delivering,
                 },
                 {
                   actions: actions.log('states.message.dispatching.always idle', 'Mailbox'),
-                  target: states.idle,
+                  target: States.idle,
                 },
               ],
             },
-            [states.delivering]: {
+            [States.delivering]: {
               entry: [
                 actions.log(ctx => 'states.message.delivering.entry ' + ctx.currentMessage?.type, 'Mailbox'),
-                actions.send(ctx => events.BUSY(ctx.currentMessage!.type)),
+                actions.send(ctx => Events.BUSY(ctx.currentMessage!.type)),
               ],
-              always: states.idle,
+              always: States.idle,
               exit: [
                 contexts.sendCurrentMessageToChild,
               ],
@@ -97,53 +103,54 @@ const wrap = <
           },
         },
         child: {
-          initial: states.spawning,
+          initial: States.spawning,
           states: {
-            [states.spawning]: {
+            [States.spawning]: {
               entry: [
                 actions.log('states.child.spawning.entry', 'Mailbox'),
                 actions.assign({
                   childRef : _ => spawn(childMachine),
+                  nullRef  : _ => spawn(nullMachine),
                 }),
               ],
-              always: states.idle,
+              always: States.idle,
             },
-            [states.idle]: {
+            [States.idle]: {
               entry: [
                 actions.log('states.child.idle.entry', 'Mailbox'),
-                actions.send(events.DISPATCH(types.IDLE)),
+                actions.send(Events.DISPATCH(Types.IDLE)),
               ],
               on: {
-                [types.BUSY]: states.busy,
-                [types.NOTIFY]: {
-                  target: states.busy,
+                [Types.BUSY]: States.busy,
+                [Types.NOTIFY]: {
+                  target: States.busy,
                   actions: [
-                    actions.send(_ => events.DISPATCH(types.NOTIFY)),
+                    actions.send(_ => Events.DISPATCH(Types.NOTIFY)),
                   ],
                 },
               },
             },
-            [states.busy]: {
+            [States.busy]: {
               // TODO: remove any
               entry: actions.log((_, e) => 'states.child.busy.entry ' + (e as any).payload.reason, 'Mailbox'),
               on: {
-                [types.IDLE]: states.idle,
+                [Types.IDLE]: States.idle,
               },
             },
           },
         },
         router: {
-          initial: states.idle,
+          initial: States.idle,
           states: {
-            [states.idle]: {
+            [States.idle]: {
               entry: [
                 actions.log('states.router.idle.entry', 'Mailbox'),
               ],
               on: {
-                '*': states.routing,
+                '*': States.routing,
               },
             },
-            [states.routing]: {
+            [States.routing]: {
               entry: [
                 actions.log((_, __, { _event }) => 'states.router.routing.entry ' + JSON.stringify(_event), 'Mailbox'),
                 contexts.assignCurrentEvent,
@@ -163,36 +170,36 @@ const wrap = <
                  *    be put to `outgoing`
                  */
                 {
-                  cond: ctx => events.condCurrentEventTypeIsMailbox(ctx),
-                  target: states.idle,
+                  cond: ctx => condCurrentEventTypeIsMailbox(ctx),
+                  target: States.idle,
                 },
                 {
                   cond: ctx => contexts.condCurrentEventOriginIsChild(ctx),
-                  target: states.outgoing,
+                  target: States.outgoing,
                 },
                 {
                   description: 'current event is sent from other actors (neither child nor mailbox)',
-                  target: states.incoming,
+                  target: States.incoming,
                 },
               ],
             },
-            [states.incoming]: {
+            [States.incoming]: {
               entry: [
                 actions.log(ctx => 'states.router.incoming.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
                 contexts.assignEnqueueMessage,
               ],
-              always: states.idle,
+              always: States.idle,
               exit: [
                 actions.log(_ => 'states.router.incoming.exit', 'Mailbox'),
-                actions.send(ctx => events.NOTIFY(ctx.currentEvent?.type)),
+                actions.send(ctx => Events.NOTIFY(ctx.currentEvent?.type)),
               ],
             },
-            [states.outgoing]: {
+            [States.outgoing]: {
               entry: [
                 actions.log(ctx => 'states.router.outgoing.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
                 contexts.respond,
               ],
-              always: states.idle,
+              always: States.idle,
             },
           },
         },
@@ -202,8 +209,8 @@ const wrap = <
 
 export {
   wrap,
-  types,
-  events,
-  states,
-  contexts,
+  Types,
+  Events,
+  States,
+  // contexts,
 }

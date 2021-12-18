@@ -15,7 +15,7 @@ import {
 import * as baby from './baby-machine.fixture.js'
 import * as mailbox from './mailbox.js'
 
-test('babyMachine smoke testing with sleeping under mock clock', async t => {
+test.only('babyMachine smoke testing with sleeping under mock clock', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -54,62 +54,62 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
   ) as any
 
   let snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.awake, 'babyMachine initial state should be awake')
+  t.equal(snapshot.value, baby.States.awake, 'babyMachine initial state should be awake')
   t.same(eventList, [
     'xstate.init',
-    mailbox.types.IDLE,
-    baby.types.PLAY,
+    mailbox.Types.IDLE,
+    baby.Types.PLAY,
   ], 'should have initial event list')
 
   eventList.length = 0
   interpreter.send(baby.events.SLEEP(10))
   snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.sleeping, 'babyMachine state should be sleeping')
+  t.equal(snapshot.value, baby.States.sleeping, 'babyMachine state should be sleeping')
   t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10')
   t.same(eventList, [
-    baby.types.SLEEP,
-    baby.types.EAT,
-    baby.types.REST,
-    baby.types.DREAM,
+    baby.Types.SLEEP,
+    baby.Types.EAT,
+    baby.Types.REST,
+    baby.Types.DREAM,
   ], 'should have event list')
 
   eventList.length = 0
   interpreter.send(baby.events.SLEEP(100000))
   snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.sleeping, 'babyMachine state should be sleeping')
+  t.equal(snapshot.value, baby.States.sleeping, 'babyMachine state should be sleeping')
   t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped)')
   t.same(eventList, [
-    baby.types.SLEEP,
+    baby.Types.SLEEP,
   ], 'should no more response when sleeping')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(4)
   snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.sleeping, 'babyMachine state should be sleeping after 1st 4 ms')
+  t.equal(snapshot.value, baby.States.sleeping, 'babyMachine state should be sleeping after 1st 4 ms')
   t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 1st 4 ms')
   t.same(eventList, [], 'should no more response after 1st 4 ms')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(4)
   snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.sleeping, 'babyMachine state should be sleeping after 2nd 4 ms')
+  t.equal(snapshot.value, baby.States.sleeping, 'babyMachine state should be sleeping after 2nd 4 ms')
   t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 2nd 4 ms')
   t.same(eventList, [
-    baby.types.CRY,
+    baby.Types.CRY,
   ], 'should cry in middle night (after 2nd 4 ms)')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(2)
   snapshot = getChildSnapshot()
-  t.equal(snapshot.value, baby.states.awake, 'babyMachine state should be awake after sleep')
+  t.equal(snapshot.value, baby.States.awake, 'babyMachine state should be awake after sleep')
   t.equal(snapshot.context.ms, undefined, 'babyMachine context.ms should be cleared after sleep')
   t.same(eventList, [
-    baby.types.PEE,
-    mailbox.types.IDLE,
-    baby.types.PLAY,
+    baby.Types.PEE,
+    mailbox.Types.IDLE,
+    baby.Types.PLAY,
   ], 'should pee after night and start paly in the morning, with idle event (after sleep)')
 
-  console.info(eventList)
+  // console.info(eventList)
   /**
    * Huan(202112) xstate bug:
    *  interpreter.stop() will stop parent first,

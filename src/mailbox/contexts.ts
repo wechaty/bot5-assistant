@@ -42,6 +42,7 @@ interface Context {
    * The child actor
    */
   childRef : null | ActorRef<any>
+  nullRef  : null | ActorRef<any>
 }
 
 const condCurrentEventOriginIsChild = (ctx: Context) => {
@@ -117,9 +118,14 @@ const respond = actions.choose([
   {
     cond: hasOrigin,
     actions: [
-      actions.log<Context, EventObject>('#### responsd: origin found, send to origin'),
+      actions.log<Context, EventObject>(ctx => '#### responsd: origin found, send to origin: ' + getOrigin(ctx)),
       actions.send<Context, EventObject>(
-        ctx => unwrapEvent(ctx.currentEvent!),
+        ctx => {
+          console.info('HUAN respond before:', ctx.currentEvent)
+          const e = unwrapEvent(ctx.currentEvent!)
+          console.info('HUAN respond after:', e)
+          return e
+        },
         {
           to: ctx => getOrigin(ctx)!,
         },
@@ -131,10 +137,7 @@ const respond = actions.choose([
    */
   {
     actions: [
-      actions.log<Context, EventObject>(ctx => 'contexts.responsd send to parent: ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
-      actions.sendParent<Context, EventObject>(
-        ctx => unwrapEvent(ctx.currentEvent!),
-      ),
+      actions.log<Context, EventObject>(ctx => 'contexts.responsd drop message: ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
     ],
   },
 ])
@@ -148,6 +151,7 @@ const initialContext: () => Context = () => {
     currentEvent   : null,
     currentMessage : null,
     messageQueue   : [],
+    nullRef        : null,
   }
   return JSON.parse(
     JSON.stringify(

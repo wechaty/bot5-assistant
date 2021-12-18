@@ -1,13 +1,11 @@
-const BUSY     = 'mailbox/BUSY'
-const DISPATCH = 'mailbox/DISPATCH'
-const IDLE     = 'mailbox/IDLE'
-const NOTIFY   = 'mailbox/NOTIFY'
-const RESET    = 'mailbox/RESET'
+enum Types {
+  BUSY     = 'mailbox/BUSY',
+  DISPATCH = 'mailbox/DISPATCH',
+  IDLE     = 'mailbox/IDLE',
+  NOTIFY   = 'mailbox/NOTIFY',
+  RESET    = 'mailbox/RESET',
+}
 
 export {
-  BUSY,
-  DISPATCH,
-  IDLE,
-  NOTIFY,
-  RESET,
+  Types,
 }
