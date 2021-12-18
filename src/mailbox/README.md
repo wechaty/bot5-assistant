@@ -2,6 +2,8 @@
 
 A XState wrapper to implement Mailbox from Actor Model.
 
+![Actor Model: Mailbox](mailbox.png)
+
 ## Motivation
 
 I'm building assistant chatbot for Wechaty community, and I want to use actor model based on XState to implement it.
