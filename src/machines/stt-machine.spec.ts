@@ -10,6 +10,7 @@ import {
   forwardTo,
   interpret,
   createMachine,
+  actions,
   // spawn,
 }                   from 'xstate'
 import * as WECHATY from 'wechaty'
@@ -20,15 +21,23 @@ import {
 import {
   filter,
   map,
+  tap,
 }                   from 'rxjs/operators'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import {
+  FileBox,
+  FileBoxInterface,
+}                         from 'file-box'
 
 import {
-  sttModel,
+  Events,
+  Types,
+}                 from '../schemas/mod.js'
+import {
+  sttActor,
   sttMachine,
 }                     from './stt-machine.js'
-import { FileBox, FileBoxInterface } from 'file-box'
 
 const getFixtures = () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -87,7 +96,7 @@ const parentMachineTest = createMachine({
   invoke: {
     id: 'stt',
     onDone: 'done',
-    src: sttMachine,
+    src: sttActor,
   },
   states: {
     done: {
@@ -95,13 +104,13 @@ const parentMachineTest = createMachine({
     },
     working: {
       on: {
-        MESSAGE: {
+        [Types.MESSAGE]: {
           actions: forwardTo('stt'),
         },
-        TEXT: {
+        [Types.TEXT]: {
           actions: 'saveText',
         },
-        STOP: {
+        [Types.STOP]: {
           target: 'done',
         },
       },
@@ -109,15 +118,13 @@ const parentMachineTest = createMachine({
   },
 }, {
   actions: {
-    saveText: sttModel.assign({ text: (_, event) => event.text }, 'TEXT') as any,
+    saveText: actions.assign({ text: (_, event) => (event as ReturnType<typeof Events.TEXT>).payload.text }),
   },
 })
 
 test('stt machine initialState', async t => {
   const INITIAL_STATE = {
-    lastOrigin : undefined,
-    message    : undefined,
-    text       : undefined,
+    message: null,
   }
   t.equal(sttMachine.initialState.value, 'idle', 'should be initial state idle')
   t.equal(sttMachine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
@@ -125,7 +132,6 @@ test('stt machine initialState', async t => {
 })
 
 test('stt machine process audio message', async t => {
-
   const fixtures = getFixtures()
 
   let machineDoneCallback = () => {}
@@ -139,34 +145,36 @@ test('stt machine process audio message', async t => {
   // interpreter.subscribe(s => console.info('state:', s.value))
 
   const textEventFuture = firstValueFrom(from(interpreter).pipe(
-    filter(state => state.event.type === 'TEXT'),
-    map(state => state.event.text),
+    tap(s => console.info('Transition to', s.value)),
+    tap(s => console.info('Received event', s.event.type)),
+    filter(state => state.event.type === Types.TEXT),
+    map(state => (state.event as ReturnType<typeof Events.TEXT>).payload.text),
   ))
 
   // interpreter.subscribe(s => console.info('event:', s.event))
 
   interpreter.send(
-    sttModel.events.MESSAGE(fixtures.AUDIO_MESSAGE),
+    Events.MESSAGE(fixtures.AUDIO_MESSAGE),
   )
 
   let snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
+  t.equal(snapshot.event.type, Types.MESSAGE, 'should be MESSAGE event')
   t.equal(snapshot.context.text, undefined, 'should be initial context')
 
   await textEventFuture
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working')
-  t.equal(snapshot.event.type, 'TEXT', 'should be TEXT event')
-  t.equal(snapshot.event.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
+  t.equal(snapshot.event.type, Types.TEXT, 'should be TEXT event')
+  t.equal((snapshot.event as ReturnType<typeof Events.TEXT>).payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
   t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
 
-  interpreter.send('STOP')
+  interpreter.send(Types.STOP)
 
   await machineDoneFuture
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'done', 'should be done')
-  t.equal(snapshot.event.type, 'STOP', 'should be STOP event')
+  t.equal(snapshot.event.type, Types.STOP, 'should be STOP event')
 
   interpreter.stop()
 })
@@ -179,20 +187,20 @@ test('stt machine process non-audio message (text)', async t => {
   // interpreter.subscribe(s => console.info('event:', s.event))
 
   interpreter.send(
-    sttModel.events.MESSAGE(fixtures.TEXT_MESSAGE),
+    Events.MESSAGE(fixtures.TEXT_MESSAGE),
   )
 
   let snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'NO_AUDIO', 'should be NO_AUDIO event')
+  t.equal(snapshot.event.type, Types.NO_AUDIO, 'should be NO_AUDIO event')
 
   interpreter.send(
-    sttModel.events.MESSAGE(fixtures.IMAGE_MESSAGE),
+    Events.MESSAGE(fixtures.IMAGE_MESSAGE),
   )
 
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working state')
-  t.equal(snapshot.event.type, 'NO_AUDIO', 'should be NO_AUDIO event')
+  t.equal(snapshot.event.type, Types.NO_AUDIO, 'should be NO_AUDIO event')
 
   interpreter.stop()
 })

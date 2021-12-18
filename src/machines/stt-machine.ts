@@ -1,39 +1,46 @@
 /* eslint-disable sort-keys */
-import { createModel }  from 'xstate/lib/model.js'
+import {
+  createMachine,
+  actions,
+}                   from 'xstate'
 
 import type { Message } from 'wechaty'
 
+import * as Mailbox from '../mailbox/mod.js'
+
 import { stt } from '../stt.js'
+
 import {
-  // ContextLastOrigin,
-  respondLastOrigin,
-}                       from './respond-last-origin.js'
+  Events,
+  Types,
+}             from '../schemas/mod.js'
 
-import * as events from './events.js'
+type Event =
+| ReturnType<typeof Events.MESSAGE>
+| ReturnType<typeof Events.NO_AUDIO>
+| ReturnType<typeof Events.TEXT>
 
-const sttModel = createModel(
-  {
-    lastOrigin : undefined as undefined | string,
-    message    : undefined as undefined | Message,
-    text       : undefined as undefined | string,
-  },
-  {
-    events: {
-      MESSAGE  : events.payloads.MESSAGE,
-      NO_AUDIO : events.payloads.NO_AUDIO,
-      TEXT     : events.payloads.TEXT,
-    },
-  },
-)
+interface Context {
+  message: null | Message
+}
 
-const sttMachine = sttModel.createMachine(
+const sttMachine = createMachine<Context, Event>(
   {
     initial: 'idle',
+    context: {
+      message: null,
+    },
     states: {
       idle: {
+        entry: [
+          actions.sendParent(Mailbox.Events.IDLE('stt idle')),
+        ],
         on: {
-          MESSAGE: {
-            actions: 'saveMessage',
+          [Types.MESSAGE]: {
+            actions: [
+              actions.log((_, e) => 'stt idle on MESSAGE ' + JSON.stringify(e)),
+              'saveMessage',
+            ],
             target: 'selecting',
           },
         },
@@ -45,7 +52,10 @@ const sttMachine = sttModel.createMachine(
             target: 'recognizingAudio',
           },
           {
-            actions: 'sendNoAudio',
+            actions: [
+              actions.log('states.selecting.always.text'),
+              actions.sendParent(Events.NO_AUDIO()),
+            ],
             target: 'idle',
           },
         ],
@@ -54,38 +64,29 @@ const sttMachine = sttModel.createMachine(
         invoke: {
           src: 'stt',
           onDone: {
-            target: 'recognized',
+            target: 'idle',
             actions: [
-              'saveText',
+              actions.sendParent((_, e) => {
+                // console.info('stt result', e.data)
+                return Events.TEXT(e.data)
+              }),
+            ],
+          },
+          onError: {
+            target: 'idle',
+            actions: [
+              actions.escalate((_, e) => Events.ERROR(e.data)),
             ],
           },
         },
-      },
-      recognized: {
-        entry: 'sendText',
-        always: 'idle',
-        exit: 'clearAll',
       },
     },
   },
   {
     actions: {
-      sendText    : respondLastOrigin(ctx => sttModel.events.TEXT(ctx.text || '')) as any,
-      sendNoAudio : respondLastOrigin(sttModel.events.NO_AUDIO()) as any,
-      //
-      saveMessage: sttModel.assign({
-        message:  (_, e) => e.message,
-        lastOrigin: (_, __, { _event }) => _event.origin,
-      }, 'MESSAGE') as any,
-      saveText: sttModel.assign({
-        text: (_, e)  => (e as any).data,
-      }) as any,
-      //
-      clearAll: sttModel.assign({
-        lastOrigin : undefined,
-        message     : undefined,
-        text        : undefined,
-      }) as any,
+      saveMessage: actions.assign({
+        message:  (_, e) => (e as ReturnType<typeof Events.MESSAGE>).payload.message,
+      }),
     },
     services: {
       stt: async context => context.message && stt(await context.message.toFileBox()),
@@ -96,7 +97,9 @@ const sttMachine = sttModel.createMachine(
   },
 )
 
+const sttActor = Mailbox.actor(sttMachine)
+
 export {
-  sttModel,
+  sttActor,
   sttMachine,
 }
