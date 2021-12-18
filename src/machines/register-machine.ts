@@ -1,38 +1,40 @@
 /* eslint-disable sort-keys */
-import { createModel }  from 'xstate/lib/model.js'
+import {
+  createMachine,
+  actions,
+}                 from 'xstate'
 
-import type { Message, Contact } from 'wechaty'
+import type {
+  Message,
+  Contact,
+}                 from 'wechaty'
 
-import * as events from './events.js'
+import * as Mailbox from '../mailbox/mod.js'
+import {
+  Events,
+  States,
+  Types,
+}                 from '../schemas/mod.js'
 
-/**
- *
- * Huan(202112): The Actor Model here need to be improved.
- *  @see https://github.com/wechaty/bot5-assistant/issues/4
- *
- */
-const registerModel = createModel(
-  {
-    message: undefined as undefined | Message,
-    members    : [] as Contact[],
-    chairs     : [] as Contact[],
-  },
-  {
-    events: {
-      MESSAGE: events.payloads.MESSAGE,
-      MENTIONS: events.payloads.MENTIONS,
-      NO_MENTION: events.payloads.NO_MENTION,
-    },
-  },
-)
+interface Context {
+  message: null | Message
+  members: Contact[]
+  chairs: Contact[]
+}
 
-// type Model   = typeof registerModel
-// type Context = ContextFrom<Model>
-// type Event   = EventFrom<Model>
+type Event =
+  | ReturnType<typeof Events.MESSAGE>
+  | ReturnType<typeof Events.MENTIONS>
+  | ReturnType<typeof Events.NO_MENTION>
 
-const registerMachine = registerModel.createMachine(
+const registerMachine = createMachine<Context, Event>(
   {
     initial: 'start',
+    context: {
+      message: null,
+      members: [],
+      chairs: [],
+    },
     states: {
       start: {
         entry: ['introduceSession'],
@@ -42,7 +44,7 @@ const registerMachine = registerModel.createMachine(
       },
       registering: {
         on: {
-          MESSAGE: {
+          [Types.MESSAGE]: {
             actions: 'saveMessage',
             target: 'mentioning',
           },
@@ -72,10 +74,10 @@ const registerMachine = registerModel.createMachine(
   },
   {
     actions: {
-      saveMessage: registerModel.assign({
-        message:  (_, e) => e.message,
-      }, 'MESSAGE') as any,
-      saveMentions: registerModel.assign({
+      saveMessage: actions.assign({
+        message:  (_, e) => (e as ReturnType<typeof Events.MESSAGE>).payload.message,
+      }) as any,
+      saveMentions: actions.assign({
         members: (_, e)  => (e as any).data as Contact[],
       }) as any,
       announceRegisteredMembers: ctx => ctx.message?.room()?.say('Registered members: ', ...ctx.members),
@@ -94,7 +96,9 @@ const registerMachine = registerModel.createMachine(
   },
 )
 
+const registerActor = Mailbox.actor(registerMachine)
+
 export {
-  registerModel,
   registerMachine,
+  registerActor,
 }

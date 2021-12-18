@@ -16,12 +16,18 @@ import {
   Subject,
 }                   from 'rxjs'
 
-import {
-  registerMachine,
-  registerModel,
-}                   from './register-machine.js'
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
+
+import {
+  Events,
+  Types,
+}                 from '../schemas/mod.js'
+
+import {
+  registerMachine,
+  registerActor,
+}                   from './register-machine.js'
 
 test('register machine', async t => {
   const done$ = new Subject()
@@ -32,8 +38,8 @@ test('register machine', async t => {
   const doneFuture = firstValueFrom(done$)
 
   interpreter.subscribe(s => {
-    // console.info('state:', s.value)
-    // console.info('event:', s.event.type)
+    console.info('Transition to', s.value)
+    console.info('Receiving event', s.event.type)
   })
 
   let snapshot = interpreter.getSnapshot()
@@ -64,14 +70,14 @@ test('register machine', async t => {
     mary.say('register').to(meetingRoom)
 
     interpreter.send(
-      registerModel.events.MESSAGE(
+      Events.MESSAGE(
         await messageFutureNoMention,
       ),
     )
 
     snapshot = interpreter.getSnapshot()
     t.equal(snapshot.value, 'mentioning', 'should be mentioning state')
-    t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
+    t.equal(snapshot.event.type, Types.MESSAGE, 'should be MESSAGE event')
     t.same(snapshot.context.members, [], 'should have empty mentioned id list before onDone')
 
     await new Promise(setImmediate)
@@ -87,14 +93,14 @@ test('register machine', async t => {
     mary.say('register', MENTION_LIST).to(meetingRoom)
 
     interpreter.send(
-      registerModel.events.MESSAGE(
+      Events.MESSAGE(
         await messageFutureMentions,
       ),
     )
 
     snapshot = interpreter.getSnapshot()
     t.equal(snapshot.value, 'mentioning', 'should be mentioning state')
-    t.equal(snapshot.event.type, 'MESSAGE', 'should be MESSAGE event')
+    t.equal(snapshot.event.type, Types.MESSAGE, 'should be MESSAGE event')
     t.same(snapshot.context.members, [], 'should have empty mentioned id list before onDone')
 
     await doneFuture
