@@ -33,7 +33,7 @@ import { Types }     from './types.js'
 
 const nullMachine = createMachine({})
 
-const wrap = <
+const actor = <
   TEvent extends EventObject = AnyEventObject,
 >(
     childMachine: StateMachine<
@@ -208,9 +208,5 @@ const wrap = <
   )
 
 export {
-  wrap,
-  Types,
-  Events,
-  States,
-  // contexts,
+  actor,
 }

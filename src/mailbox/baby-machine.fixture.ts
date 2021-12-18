@@ -4,7 +4,8 @@ import {
   actions,
 }                   from 'xstate'
 
-import * as mailbox from './mailbox.js'
+import { Types as MailboxTypes } from './types.js'
+import { Events as MailboxEvents } from './events.js'
 
 enum States {
   awake    = 'baby/awake',
@@ -46,7 +47,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
     [States.awake]: {
       entry: [
         actions.log('states.awake.entry', 'BabyMachine'),
-        actions.sendParent(mailbox.Events.IDLE('BabyMachine.states.awake')),
+        actions.sendParent(MailboxEvents.IDLE('BabyMachine.states.awake')),
         actions.sendParent(events.PLAY()),
       ],
       on: {
@@ -73,7 +74,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
                */
               {
                 cond: (_, e) => [
-                  ...Object.values<string>(mailbox.Types),
+                  ...Object.values<string>(MailboxTypes),
                   ...Object.values<string>(Types),
                 ].includes(e.type),
                 actions: [
@@ -90,7 +91,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
                   actions.log((_, e) => 'states.awake.on.any sendParent ' + JSON.stringify(e), 'BabyMachine'),
                   actions.sendParent((_, e) => {
                     console.info(JSON.stringify(e))
-                    return mailbox.Events.IDLE('BabyMachine.states.awake.on.*')
+                    return MailboxEvents.IDLE('BabyMachine.states.awake.on.*')
                   }),
                 ],
               },

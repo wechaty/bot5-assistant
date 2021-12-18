@@ -1,18 +1,15 @@
 import {
   createAction,
 }                 from 'typesafe-actions'
-import type {
-  EventObject,
-}                 from 'xstate'
 
-import { Types }  from './types.js'
+import { Types }          from './types.js'
 import type * as contexts from './contexts.js'
 
 const payloadDispatch = (reason?: string) => ({ reason })
-const payloadIdle  = (reason?: string) => ({ reason })
-const payloadBusy  = (reason?: string) => ({ reason })
-const payloadReset = () => ({})
-const payloadNotify = (reason?: string) => ({ reason })
+const payloadIdle     = (reason?: string) => ({ reason })
+const payloadBusy     = (reason?: string) => ({ reason })
+const payloadReset    = () => ({})
+const payloadNotify   = (reason?: string) => ({ reason })
 
 const Events = {
   BUSY     : createAction(Types.BUSY, payloadBusy)(),

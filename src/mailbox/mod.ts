@@ -1,14 +1,12 @@
 import {
   actor,
 }           from './mailbox.js'
-
-import * as events  from './events.js'
-import * as states  from './states.js'
-import * as types   from './types.js'
+// import { States } from './states.js'
+import { Types } from './types.js'
+import { Events } from './events.js'
 
 export {
   actor,
-  events,
-  types,
-  states,
+  Types,
+  Events,
 }
