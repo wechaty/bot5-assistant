@@ -6,6 +6,9 @@ enum Types {
   RESET    = 'mailbox/RESET',
 }
 
+const isMailboxType = (type?: null | string): boolean => Object.values<string>(Types).includes(type || '')
+
 export {
   Types,
+  isMailboxType,
 }

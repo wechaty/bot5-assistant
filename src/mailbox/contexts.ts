@@ -103,7 +103,11 @@ const condMessageQueueNonempty = (ctx: Context) => {
 }
 
 const getOrigin = (ctx: Context) => {
-  console.info('### getOrigin:', JSON.stringify(ctx.currentMessage))
+  // console.info('### getOrigin:', JSON.stringify(ctx.currentMessage))
+  console.info('### getOrigin:',
+    ctx.currentMessage?.type,
+    ctx.currentMessage && ctx.currentMessage[metaSymKey].origin,
+  )
   return (ctx.currentMessage && ctx.currentMessage[metaSymKey].origin) || undefined
 }
 const hasOrigin = (ctx: Context) => !!getOrigin(ctx)
@@ -137,7 +141,7 @@ const respond = actions.choose([
    */
   {
     actions: [
-      actions.log<Context, EventObject>(ctx => 'contexts.responsd drop message: ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+      actions.log<Context, EventObject>(ctx => 'contexts.responsd drop message: ' + ctx.currentEvent.type, 'Mailbox'),
     ],
   },
 ])

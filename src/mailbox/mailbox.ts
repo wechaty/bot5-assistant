@@ -18,10 +18,12 @@ import * as contexts  from './contexts.js'
 import {
   Events,
   Event,
-  condCurrentEventTypeIsMailbox,
 }                                 from './events.js'
 import { States }    from './states.js'
-import { Types }     from './types.js'
+import {
+  Types,
+  isMailboxType,
+}                     from './types.js'
 
 // type MailboxTypestate =
 //   | {
@@ -33,7 +35,7 @@ import { Types }     from './types.js'
 
 const nullMachine = createMachine({})
 
-const actor = <
+const address = <
   TEvent extends EventObject = AnyEventObject,
 >(
     childMachine: StateMachine<
@@ -152,7 +154,7 @@ const actor = <
             },
             [States.routing]: {
               entry: [
-                actions.log((_, __, { _event }) => 'states.router.routing.entry ' + JSON.stringify(_event), 'Mailbox'),
+                actions.log((_, __, { _event }) => 'states.router.routing.entry ' + _event.type, 'Mailbox'),
                 contexts.assignCurrentEvent,
               ],
               /**
@@ -170,7 +172,7 @@ const actor = <
                  *    be put to `outgoing`
                  */
                 {
-                  cond: ctx => condCurrentEventTypeIsMailbox(ctx),
+                  cond: ctx => isMailboxType(ctx.currentEvent?.type),
                   target: States.idle,
                 },
                 {
@@ -185,7 +187,7 @@ const actor = <
             },
             [States.incoming]: {
               entry: [
-                actions.log(ctx => 'states.router.incoming.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+                actions.log(ctx => 'states.router.incoming.entry ' + ctx.currentEvent.type, 'Mailbox'),
                 contexts.assignEnqueueMessage,
               ],
               always: States.idle,
@@ -196,7 +198,7 @@ const actor = <
             },
             [States.outgoing]: {
               entry: [
-                actions.log(ctx => 'states.router.outgoing.entry ' + JSON.stringify(ctx.currentEvent), 'Mailbox'),
+                actions.log(ctx => 'states.router.outgoing.entry ' + ctx.currentEvent.type, 'Mailbox'),
                 contexts.respond,
               ],
               always: States.idle,
@@ -208,5 +210,5 @@ const actor = <
   )
 
 export {
-  actor,
+  address,
 }

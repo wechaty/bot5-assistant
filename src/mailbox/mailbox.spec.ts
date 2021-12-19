@@ -13,14 +13,14 @@ import {
   StateValue,
 }                   from 'xstate'
 
-import { actor } from './mailbox.js'
-import { Types } from './types.js'
-import { States } from './states.js'
+import { address }  from './mailbox.js'
+import { Types }    from './types.js'
+import { States }   from './states.js'
 
 import * as child   from './baby-machine.fixture.js'
 
-test('mailbox actor wrapper transition nextState smoke testing', async t => {
-  const mailbox = actor(child.machine)
+test('mailbox address wrapper transition nextState smoke testing', async t => {
+  const mailbox = address(child.machine)
 
   // console.info('initialState:', actor.initialState)
 
@@ -35,12 +35,12 @@ test('mailbox actor wrapper transition nextState smoke testing', async t => {
   t.same(nextState.context.messageQueue.map(c => c.type), new Array(2).fill(child.Types.SLEEP), 'should be both sleep event')
 })
 
-test('mailbox actor interpret smoke testing: 1 event', async t => {
+test('mailbox address interpret smoke testing: 1 event', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailbox = actor(child.machine)
+  const mailbox = address(child.machine)
   const interpreter = interpret(mailbox)
 
   interpreter
@@ -92,12 +92,12 @@ test('mailbox actor interpret smoke testing: 1 event', async t => {
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after sleep')
 })
 
-test('mailbox actor interpret smoke testing: 3 parallel EVENTs', async t => {
+test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailbox = actor(child.machine)
+  const mailbox = address(child.machine)
   const interpreter = interpret(mailbox)
 
   // console.info('initialState:', actor.initialState)
@@ -185,12 +185,12 @@ test('mailbox actor interpret smoke testing: 3 parallel EVENTs', async t => {
   sandbox.restore()
 })
 
-test('mailbox actor interpret smoke testing: 3 EVENTs with respond', async t => {
+test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailbox = actor(child.machine)
+  const mailbox = address(child.machine)
   const interpreter = interpret(mailbox)
 
   // console.info('initialState:', actor.initialState)
@@ -254,13 +254,13 @@ test('mailbox actor interpret smoke testing: 3 EVENTs with respond', async t => 
   sandbox.restore()
 })
 
-test('mailbox proxy smoke testing', async t => {
+test('mailbox address proxy smoke testing', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const CHILD_ID = 'child'
-  const childActor = actor(child.machine)
+  const childActor = address(child.machine)
 
   enum ParentStates {
     testing = 'testing',

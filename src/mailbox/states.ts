@@ -1,5 +1,12 @@
 enum States {
   /**
+   * Idle Time – Definition, Causes, And How To Reduce It
+   *  @see https://limblecmms.com/blog/idle-time/
+   */
+  idle = 'mailbox/idle',
+  busy = 'mailbox/busy',
+
+  /**
    * Dispatch v.s. Deliver
    *  - dispatch: internally preparation
    *  - deliver: externally shipping
@@ -9,8 +16,6 @@ enum States {
   dispatching = 'mailbox/dispatching',
   delivering  = 'mailbox/dilivering',
 
-  idle       = 'mailbox/idle',
-  busy       = 'mailbox/busy',
   responding = 'mailbox/responding',
 
   resetting = 'mailbox/resetting',
