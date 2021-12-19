@@ -20,6 +20,12 @@ const textToIntents = async (text: string): Promise<Intent[]> => {
     intentList.push(Intent.Stop)
   }
 
+  if (/^都可能/i.test(text)) {
+    intentList.push(Intent.Start)
+    intentList.push(Intent.Stop)
+    intentList.push(Intent.Unknown)
+  }
+
   return intentList
 }
 
