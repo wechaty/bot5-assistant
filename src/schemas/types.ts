@@ -1,65 +1,49 @@
-const MESSAGE = 'bot5-assistant/MESSAGE'
-const ROOM = 'bot5-assistant/ROOM'
+enum Types {
+  MESSAGE = 'bot5-assistant/MESSAGE',
+  ROOM = 'bot5-assistant/ROOM',
 
-const NO_AUDIO = 'bot5-assistant/NO_AUDIO'
-const TEXT = 'bot5-assisstant/TEXT'
+  CONTACTS = 'bot5-assistant/CONTACTS',
+  ADMINS = 'bot5-assistant/ADMINS',
 
-const MENTIONS = 'bot5-assistant/MENTIONS'
-const NO_MENTION = 'bot5-assistant/NO_MENTION'
+  NO_AUDIO = 'bot5-assistant/NO_AUDIO',
+  TEXT = 'bot5-assisstant/TEXT',
 
-const ATTENDEES = 'bot5-assistant/ATTENDEES'
-const NEXT = 'bot5-assistant/NEXT'
+  MENTIONS = 'bot5-assistant/MENTIONS',
+  NO_MENTION = 'bot5-assistant/NO_MENTION',
 
-const START = 'bot5-assistant/START'
-const STOP = 'bot5-assistant/STOP'
+  NEXT = 'bot5-assistant/NEXT',
 
-const SAY = 'bot5-assistant/SAY'
-const RESET = 'bot5-assistant/RESET'
+  START = 'bot5-assistant/START',
+  STOP = 'bot5-assistant/STOP',
 
-const WAKEUP = 'bot5-assistant/WAKEUP'
-const ERROR = 'bot5-assistant/ERROR'
+  SAY = 'bot5-assistant/SAY',
+  RESET = 'bot5-assistant/RESET',
 
-/**
+  WAKEUP = 'bot5-assistant/WAKEUP',
+  ERROR = 'bot5-assistant/ERROR',
+  CHECK = 'bot5-assistant/CHECK',
+
+  FEEDBACK = 'bot5-assistant/FEEDBACK',
+
+  /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
- */
-const FINISH = 'bot5-assistant/FINISH'
-const COMPLETE = 'bot5-assistant/COMPLETE'
+   */
+  FINISH = 'bot5-assistant/FINISH',
+  COMPLETE = 'bot5-assistant/COMPLETE',
 
-/**
- * Abort v.s. Cancel
+  /**
+   * Abort v.s. Cancel
  *  @see https://stackoverflow.com/a/9838022/1123955
- */
-const ABORT = 'bot5-assistant/ABORT'
-const CANCEL = 'bot5-assistant/CANCEL'
+   */
+  ABORT = 'bot5-assistant/ABORT',
+  CANCEL = 'bot5-assistant/CANCEL',
 
-const WECHATY = 'bot5-assistant/WECHATY'
+  WECHATY = 'bot5-assistant/WECHATY',
+
+  DELIVER = 'bot5-assistant/DELIVER',
+}
 
 export {
-  MESSAGE,
-  ROOM,
-  ATTENDEES,
-  NEXT,
-
-  START,
-  STOP,
-
-  SAY,
-
-  TEXT,
-  NO_AUDIO,
-
-  MENTIONS,
-  NO_MENTION,
-
-  ERROR,
-  ABORT,
-  CANCEL,
-  RESET,
-  WAKEUP,
-
-  FINISH,
-  COMPLETE,
-
-  WECHATY,
+  Types,
 }

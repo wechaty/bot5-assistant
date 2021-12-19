@@ -1,61 +1,63 @@
-const idle = 'bot5-assitant/idle'
-const listening = 'bot5-assitant/listening'
-const thinking = 'bot5-assitant/thinking'
-const feedbacking = 'bot5-assitant/feedbacking'
-const feedbacked = 'bot5-assitant/feedbacked'
-const checking = 'bot5-assitant/checking'
-const validating = 'bot5-assitant/validating'
+enum States {
+  /**
+   * Idle Time – Definition, Causes, And How To Reduce It
+   *  @see https://limblecmms.com/blog/idle-time/
+   */
+  idle = 'bot5-assitant/idle',
+  busy = 'bot5-assisstant/busy',
 
-const active = 'bot5-assitant/active'
-const inactive = 'bot5-assitant/inactive'
+  unknown = 'bot5-assisstant/unknown',
 
-/**
- * Complete v.s. Finish
- *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
- */
-const completed = 'bot5-assitant/completed'
-const finished = 'bot5-assitant/finished'
+  listening = 'bot5-assitant/listening',
+  thinking = 'bot5-assitant/thinking',
+  feedbacking = 'bot5-assitant/feedbacking',
+  feedbacked = 'bot5-assitant/feedbacked',
+  checking = 'bot5-assitant/checking',
+  validating = 'bot5-assitant/validating',
 
-/**
- * Abort v.s. Cancel
- *  @see https://stackoverflow.com/a/9838022/1123955
- */
-const aborting = 'bot5-assitant/aborted'
-const canceled = 'bot5-assitant/canceled'
+  /**
+   * Complete v.s. Finish
+   *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+   */
+  completed  = 'bot5-assitant/completed',
+  completing = 'bot5-assitant/completing',
+  finished   = 'bot5-assitant/finished',
+  finishing  = 'bot5-assitant/finishing',
 
-/**
- * Which one is better: errored v.s. failed?
- *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
- */
-const errored = 'bot5-assitant/errored'
-const failed = 'bot5-assitant/failed'
+  /**
+   * Abort v.s. Cancel
+   *  @see https://stackoverflow.com/a/9838022/1123955
+   */
+  aborting = 'bot5-assitant/aborted',
+  canceled = 'bot5-assitant/canceled',
 
-const resetting = 'bot5-assitant/resetting'
+  /**
+   * Which one is better: errored v.s. failed?
+   *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
+   */
+  errored = 'bot5-assitant/errored',
+  failed = 'bot5-assitant/failed',
 
-const recognizing = 'bot5-assistant/recognizing'
-const processing = 'bot5-assistant/processing'
+  initializing  = 'bot5-assitant/initializing',
+  starting  = 'bot5-assitant/starting',
+  stopping  = 'bot5-assitant/stopping',
+
+  resetting = 'bot5-assitant/resetting',
+
+  active = 'bot5-assitant/active',
+  inactive = 'bot5-assitant/inactive',
+
+  recognizing = 'bot5-assistant/recognizing',
+  recognized = 'bot5-assistant/recognized',
+
+  processing = 'bot5-assistant/processing',
+  delivering = 'bot5-assistant/delivering',
+
+  mentioning = 'bot5-assistant/mentioning',
+  registering = 'bot5-assistant/registering',
+  registered = 'bot5-assistant/registered',
+}
 
 export {
-  active,
-  inactive,
-  resetting,
-
-  aborting,
-  canceled,
-  errored,
-  failed,
-
-  checking,
-  completed,
-  finished,
-  idle,
-  listening,
-  thinking,
-
-  feedbacking,
-  feedbacked,
-
-  validating,
-  recognizing,
-  processing,
+  States,
 }

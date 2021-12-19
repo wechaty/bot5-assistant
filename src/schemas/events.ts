@@ -12,7 +12,7 @@ import type {
   Wechaty,
 }               from 'wechaty'
 
-import * as types from './types.js'
+import { Types } from './types.js'
 
 // type RemoveType<T extends (...args: any[]) => {}> = (...args: Parameters<T>) => Omit<ReturnType<T>, 'type'>
 // type RemoveAllType<T extends {
@@ -21,10 +21,12 @@ import * as types from './types.js'
 //   [K in keyof T]: RemoveType<T[K]>
 // }
 
-const payloadAttendees = (attendees: Contact[]) => ({ attendees })
 const payloadMentions  = (mentions: Contact[]) => ({ mentions })
 const payloadMessage   = (message: Message) => ({ message })
+
 const payloadRoom      = (room: Room) => ({ room })
+const payloadContacts  = (contacts: Contact[]) => ({ contacts })
+
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[]) => ({ conversation, mentions, text })
 const payloadWechaty  = (wechaty: Wechaty) => ({ wechaty })
@@ -35,91 +37,79 @@ const payloadCancel    = (reason: string) => ({ reason })
 const payloadError     = (error: string) => ({ error })
 const payloadData      = (data: any) => ({ data })
 
+const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
+
 const payloadEmpty     = () => ({})
 
-const ATTENDEES  = createAction(types.ATTENDEES, payloadAttendees)()
-const MENTIONS   = createAction(types.MENTIONS, payloadMentions)()
-const MESSAGE    = createAction(types.MESSAGE, payloadMessage)()
-const NEXT       = createAction(types.NEXT, payloadEmpty)()
-const NO_AUDIO   = createAction(types.NO_AUDIO, payloadEmpty)()
-const NO_MENTION = createAction(types.NO_MENTION, payloadEmpty)()
-const ROOM       = createAction(types.ROOM, payloadRoom)()
+const Events = {
+  MENTIONS   : createAction(Types.MENTIONS, payloadMentions)(),
+  MESSAGE    : createAction(Types.MESSAGE, payloadMessage)(),
+  NEXT       : createAction(Types.NEXT, payloadEmpty)(),
+  NO_AUDIO   : createAction(Types.NO_AUDIO, payloadEmpty)(),
+  NO_MENTION : createAction(Types.NO_MENTION, payloadEmpty)(),
 
-const START      = createAction(types.START, payloadEmpty)()
-const STOP       = createAction(types.STOP, payloadEmpty)()
+  ROOM       : createAction(Types.ROOM, payloadRoom)(),
+  CONTACTS   : createAction(Types.CONTACTS, payloadContacts)(),
+  ADMINS     : createAction(Types.ADMINS, payloadContacts)(),
 
-const TEXT       = createAction(types.TEXT, payloadText)()
-const SAY        = createAction(types.SAY, payloadSay)()
+  START      : createAction(Types.START, payloadEmpty)(),
+  STOP       : createAction(Types.STOP, payloadEmpty)(),
 
-const CANCEL = createAction(types.CANCEL, payloadCancel)()
-const ABORT = createAction(types.ABORT, payloadAbort)()
-const ERROR = createAction(types.ERROR, payloadError)()
-const RESET = createAction(types.RESET, payloadReset)()
+  TEXT       : createAction(Types.TEXT, payloadText)(),
+  SAY        : createAction(Types.SAY, payloadSay)(),
 
-const WAKEUP = createAction(types.WAKEUP, payloadEmpty)()
+  FEEDBACK   : createAction(Types.FEEDBACK, payloadFeedback)(),
 
-const WECHATY = createAction(types.WECHATY, payloadWechaty)()
+  CANCEL : createAction(Types.CANCEL, payloadCancel)(),
+  ABORT : createAction(Types.ABORT, payloadAbort)(),
+  ERROR : createAction(Types.ERROR, payloadError)(),
+  RESET : createAction(Types.RESET, payloadReset)(),
 
-/**
- * Complete v.s. Finish
- *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
- */
-const FINISH = createAction(types.FINISH, payloadData)()
-const COMPLETE = createAction(types.COMPLETE, payloadData)()
+  WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
+  CHECK  : createAction(Types.CHECK, payloadEmpty)(),
 
-const payloads = {
-  ATTENDEES  : payloadAttendees,
-  MENTIONS   : payloadMentions,
-  MESSAGE    : payloadMessage,
-  NEXT       : payloadEmpty,
-  NO_AUDIO   : payloadEmpty,
-  NO_MENTION : payloadEmpty,
+  WECHATY : createAction(Types.WECHATY, payloadWechaty)(),
 
-  RESET: payloadEmpty,
-  ABORTED: payloadAbort,
-  CANCEL :payloadCancel,
-  ERROR  :payloadError,
+  /**
+   * Complete v.s. Finish
+   *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+   */
+  FINISH : createAction(Types.FINISH, payloadData)(),
+  COMPLETE : createAction(Types.COMPLETE, payloadData)(),
+} as const
 
-  ROOM       : payloadRoom,
-  SAY        : payloadSay,
+type Event = ReturnType<typeof Events[keyof typeof Events]>
 
-  START      : payloadEmpty,
-  STOP: payloadEmpty,
+// const payloads = {
+//   ATTENDEES  : payloadAttendees,
+//   MENTIONS   : payloadMentions,
+//   MESSAGE    : payloadMessage,
+//   NEXT       : payloadEmpty,
+//   NO_AUDIO   : payloadEmpty,
+//   NO_MENTION : payloadEmpty,
 
-  TEXT       : payloadText,
-  WAKEUP : payloadEmpty,
+//   RESET: payloadEmpty,
+//   ABORTED: payloadAbort,
+//   CANCEL :payloadCancel,
+//   ERROR  :payloadError,
 
-  COMPLETE: payloadData,
-  FINISH: payloadData,
+//   ROOM       : payloadRoom,
+//   SAY        : payloadSay,
 
-  WECHATY: payloadWechaty,
-}
+//   START      : payloadEmpty,
+//   STOP: payloadEmpty,
+
+//   TEXT       : payloadText,
+//   WAKEUP : payloadEmpty,
+//   CHECK: payloadEmpty,
+
+//   COMPLETE: payloadData,
+//   FINISH: payloadData,
+
+//   WECHATY: payloadWechaty,
+// } as const
 
 export {
-  payloads,
-  ATTENDEES,
-  MENTIONS,
-  ROOM,
-  MESSAGE,
-  NEXT,
-  NO_AUDIO,
-  NO_MENTION,
-
-  ABORT,
-  CANCEL,
-  RESET,
-  ERROR,
-
-  SAY,
-
-  START,
-  STOP,
-
-  TEXT,
-  WAKEUP,
-
-  COMPLETE,
-  FINISH,
-
-  WECHATY,
+  Events,
+  type Event,
 }
