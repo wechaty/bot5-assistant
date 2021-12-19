@@ -4,267 +4,205 @@ import {
   createMachine,
 }                       from 'xstate'
 
-import {
-  type Message,
-  type Contact,
-  type Room,
-  types as WechatyTypes,
+import type {
+  Message,
+  Contact,
+  Room,
 }                       from 'wechaty'
 
-import { stt } from '../stt.js'
-
 import {
-  events,
-  states,
-  types,
-}           from '../schemas/mod.js'
+  Events,
+  States,
+  Types,
+}                   from '../schemas/mod.js'
+import * as Mailbox from '../mailbox/mod.js'
 
-/**
- *
- * Huan(202112): The Actor Model here need to be improved.
- *  @see https://github.com/wechaty/bot5-assistant/issues/4
- *
- */
-type Task = {
-  origin?: string
-  message: Message
-}
+import { messageToText }  from '../to-text/mod.js'
 
 type Context = {
-  currentTask : null | Task
-  tasks       : Task[]
-  // -------
-  attendees   : Contact[]
-  feedback    : null | string
-  feedbacks   : { [id: string]: string }
-  room        : null | Room,
+  admins    : Contact[]
+  //
+  contacts  : Contact[]
+  room?      : Room,
+  //
+  message?   : Message,
+  feedback?  : string
+  feedbacks : { [id: string]: string }
 }
 
-/**
- * Huan(202112): The Typestate feature is for state.matches(...),
- *    and not yet for within the state machine.
- *    That's something we're going to work on for V5.
- *  @see https://github.com/statelyai/xstate/issues/1138#issuecomment-615435171
- */
-type Typestate =
-  | {
-    value: typeof states.feedbacked,
-    context: Context & {
-      feedback: string,
-      message: Message,
-    },
-  }
-  | {
-    value: typeof states.idle,
-    context: Context & {
-      feedback: null,
-      message: null,
-    },
-  }
-  | {
-    value: typeof states.feedbacking,
-    context: Context & {
-      feedback: null,
-      message: Message,
-    },
-  }
-
 type Event =
-  | ReturnType<typeof events.MESSAGE>
-  | ReturnType<typeof events.ATTENDEES>
-  | ReturnType<typeof events.ROOM>
-  | ReturnType<typeof events.START>
-  | ReturnType<typeof events.STOP>
-  | ReturnType<typeof events.ABORT>
-  | ReturnType<typeof events.RESET>
-  | ReturnType<typeof events.WAKEUP>
+  | ReturnType<typeof Events.MESSAGE>
+  | ReturnType<typeof Events.CONTACTS>
+  | ReturnType<typeof Events.ROOM>
+  | ReturnType<typeof Events.START>
+  | ReturnType<typeof Events.STOP>
+  | ReturnType<typeof Events.ABORT>
+  | ReturnType<typeof Events.RESET>
+  | ReturnType<typeof Events.ADMINS>
 
-const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
-const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
+// const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
+// const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
 
-const nextAttendee = (ctx: Context) => ctx.attendees.filter(c => !Object.keys(ctx.feedbacks).includes(c.id))[0]
+const nextAttendee = (ctx: Context) =>
+  ctx.contacts.filter(c =>
+    !Object.keys(ctx.feedbacks).includes(c.id),
+  )[0]
 
-const initialContext = {
-  currentTask : null,
-  tasks       : [],
-  // -------
-  attendees   : [],
-  feedback    : null,
-  feedbacks   : {},
-  room        : null,
-} as Context
+const initialContext = () => {
+  const context: Context = {
+    admins    : [],
+    //
+    contacts  : [],
+    room      : undefined,
+    //
+    message   : undefined,
+    feedback  : undefined,
+    feedbacks : {},
+  }
+  return JSON.parse(JSON.stringify(context)) as typeof context
+}
 
-const feedbackActor = createMachine<Context, Event, Typestate>(
+const feedbackMachine = createMachine<Context, Event>(
   {
-    context: initialContext,
-    initial: states.inactive,
-    on: {
-      [types.RESET]: states.resetting,
-      [types.MESSAGE]: {
-        actions: [
-          actions.assign({
-            tasks: (ctx, e, { _event }) => [
-              ...ctx.tasks,
-              {
-                message: e.payload.message,
-                origin:  _event.origin,
-              },
-            ],
-          }),
-          actions.send(events.WAKEUP()),
+    context: initialContext(),
+    initial: States.initializing,
+    states: {
+      [States.initializing]: {
+        always: States.starting,
+      },
+      [States.starting]: {
+        always: States.checking,
+      },
+      [States.checking]: {
+        entry: actions.log('states.checking.entry', 'FeedbackMachine'),
+        always: [
+          { // everyone feedback-ed
+            cond: ctx => ctx.contacts.length > 0 && Object.keys(ctx.feedbacks).length >= ctx.contacts.length,
+            actions: actions.log(ctx => `states.checking.always contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, 'FeedbackMachine'),
+            target: States.feedbacked,
+          },
+          {
+            target: States.idle,
+            actions: actions.log(ctx => `states.checking.always default contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, 'FeedbackMachine'),
+          },
         ],
       },
-      [types.ATTENDEES]: {
-        actions: actions.assign({
-          attendees: (_, e)  => e.payload.attendees,
-        }),
-      },
-      [types.ROOM]: {
-        actions: actions.assign({
-          room: (_, e) => e.payload.room,
-        }),
-      },
-    },
-    states: {
-      [states.inactive]: {
+      [States.idle]: {
+        entry: [
+          Mailbox.Actions.sendParentIdle('feedbackMachine'),
+        ],
         on: {
-          [types.START]: {
-            target: states.validating,
+          [Types.CONTACTS]: {
+            actions: [
+              actions.log('states.idle.on.CONTACTS', 'FeedbackMachine'),
+              actions.assign({
+                contacts: (ctx, e)  => [
+                  ...ctx.contacts,
+                  ...e.payload.contacts,
+                ],
+              }),
+            ],
           },
-          // forbidden WAKEUP transition with `inactive` state
-          [types.WAKEUP]: undefined,
+          [Types.ROOM]: {
+            actions: [
+              actions.log('states.idle.on.ROOM', 'FeedbackMachine'),
+              actions.assign({
+                room: (_, e) => e.payload.room,
+              }),
+            ],
+          },
+          [Types.ADMINS]: {
+            actions: [
+              actions.log('states.idle.on.ADMINS', 'FeedbackMachine'),
+              actions.assign({
+                admins: (ctx, e) => [
+                  ...ctx.admins,
+                  ...e.payload.contacts,
+                ],
+              }),
+            ],
+          },
+          [Types.RESET]: {
+            actions: [
+              actions.log('states.idle.on.RESET', 'FeedbackMachine'),
+              actions.assign(_ => initialContext()),
+            ],
+            target: States.initializing,
+          },
+          [Types.MESSAGE]: {
+            actions: [
+              actions.log('states.idle.on.MESSAGE', 'FeedbackMachine'),
+              actions.assign({
+                message: (_, e) => e.payload.message,
+              }),
+            ],
+            target: States.recognizing,
+          },
         },
       },
-      [states.validating]: {
+      [States.recognizing]: {
+        entry: actions.log('states.recognizing.entry', 'FeedbackMachine'),
+        invoke: {
+          src: (ctx) => messageToText(ctx.message),
+          onDone: {
+            actions: actions.assign({
+              feedback: (_, e) => e.data,
+            }),
+            target: States.recognized,
+          },
+          onError: {
+            actions: [
+              actions.assign({ feedback: _ => undefined }),
+              actions.log((_, e) => 'states.feedbacking invoke error: ' + e.data, 'FeedbackMachine'),
+            ],
+            target: States.unknown,
+          },
+        },
+      },
+      [States.unknown]: {
+        entry: [
+          actions.log('states.unknown.entry', 'FeedbackMachine'),
+        ],
+        always: States.checking,
+      },
+      [States.recognized]: {
+        entry: [
+          actions.log((ctx, _) => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, 'FeedbackMachine'),
+          actions.log((ctx, _) => `states.recognized.entry next feedbacker ${nextAttendee(ctx)}`, 'FeedbackMachine'),
+        ],
         always: [
           {
-            cond: ctx => !(ctx.room && ctx.attendees.length),
-            target: states.aborting,
+            cond: ctx => !ctx.feedback,
+            target: States.unknown,
           },
-          states.active,
-        ],
-      },
-      [states.aborting]: {
-        // FIXME: respond here will only work as expected with xstate@5
-        entry: actions.respond(_ => events.ABORT('[feedback] aborted')),
-        type: 'final',
-      },
-      [states.resetting]: {
-        entry: actions.assign(initialContext),
-        always: states.inactive,
-      },
-      [states.completed]: {
-        type: 'final',
-        data: (_, e) => (e as any).data,
-      },
-      [states.active]: {
-        onDone: states.completed,
-        on: {
-          [types.STOP]: {
-            target: states.inactive,
+          {
             actions: [
-              actions.send(events.RESET('stop')),
-            ],
-          },
-        },
-        initial: states.checking,
-        states: {
-          [states.idle]: {
-            on: {
-              [types.WAKEUP]: states.checking,
-            },
-          },
-          [states.checking]: {
-            always: [
-              { // everyone feedback-ed
-                cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.attendees.length,
-                target: states.finished,
-              },
-              { // new message in queue
-                cond: ctx => ctx.tasks.length > 0,
-                actions: actions.assign({
-                  currentTask: ctx => ctx.tasks.shift()!,
-                }),
-                target: states.feedbacking,
-              },
-              states.idle,
-            ],
-          },
-          [states.feedbacking]: {
-            always: [
-              {
-                cond: ctx => isText(ctx.currentTask!.message),
-                actions: [
-                  actions.assign({
-                    feedback: ctx => ctx.currentTask!.message.text(),
-                  }),
-                ],
-                target: states.feedbacked,
-              },
-              {
-                target: states.recognizing,
-                cond: ctx => isAudio(ctx.currentTask!.message),
-              },
-              {
-                target: states.idle,
-                actions: [actions.log('[feedback] feedbacking: no text or audio')],
-              },
-            ],
-          },
-          [states.recognizing]: {
-            invoke: {
-              src: async ctx => {
-                // console.info('enter')
-                const fileBox = await ctx.currentTask!.message.toFileBox()
-                const text = await stt(fileBox)
-                // console.info('text:', text)
-                return text
-              },
-              onDone: {
-                target: states.feedbacked,
-                actions: [
-                  actions.assign({
-                    feedback: (_, e) => e.data ?? 'NO STT RESULT',
-                  }),
-                ],
-              },
-              onError: {
-                target: states.idle,
-                actions: actions.log('[feedback] stt error'),
-              },
-            },
-          },
-          [states.feedbacked]: {
-            entry: [
-              actions.log((ctx, _) => `[feedback] ${ctx.currentTask!.message.talker()} feedback: ${ctx.feedback}`),
-              actions.log((ctx, _) => `[feedback] next: ${nextAttendee(ctx)}`),
+              actions.log(ctx => `states.recognized.always exist feedback: "${ctx.feedback}" from ${ctx.message!.talker().id}`, 'FeedbackMachine'),
               actions.assign({
                 feedbacks: ctx => ({
                   ...ctx.feedbacks,
-                  [ctx.currentTask!.message.talker().id]: ctx.feedback || 'NO feedback',
+                  [ctx.message!.talker().id]: ctx.feedback!,
                 }),
               }),
             ],
-            always: states.checking,
+            target: States.checking,
           },
-          [states.finished]: {
-            type: 'final',
-            entry: [
-              actions.log('[feedback] finished'),
-              // actions.send(ctx => events.FINISH(ctx.feedbacks)),
-            ],
-            data: ctx => ctx.feedbacks,
-          },
-        },
+        ],
+      },
+      [States.feedbacked]: {
+        entry: [
+          actions.log('states.feedbacked', 'FeedbackMachine'),
+          actions.sendParent(ctx => Events.FEEDBACK(ctx.feedbacks)),
+        ],
+        always: States.idle,
       },
     },
   },
-  {
-    actions: {},
-    services: {},
-  },
 )
+
+const feedbackActor = Mailbox.address(feedbackMachine)
 
 export {
   feedbackActor,
+  feedbackMachine,
 }

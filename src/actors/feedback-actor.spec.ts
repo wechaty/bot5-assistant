@@ -7,13 +7,14 @@ import {
 }                   from 'tstest'
 
 import {
+  AnyEventObject,
   interpret,
+  createMachine,
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
 import {
-  lastValueFrom,
-  Subject,
+  firstValueFrom,
   from,
 }                   from 'rxjs'
 import {
@@ -22,39 +23,19 @@ import {
 }                   from 'rxjs/operators'
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
-import {
-  FileBox,
-  FileBoxInterface,
-}                   from 'file-box'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 import {
-  events,
-  states,
-  types,
+  Events,
+  States,
+  Types,
 }           from '../schemas/mod.js'
 
 import {
+  feedbackMachine,
   feedbackActor,
 }                   from './feedback-actor.js'
 
-const getAudioFixture = async () => {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-  const EXPECTED_TEXT = '大可乐两个，统一冰红茶三箱。'
-  const base64 = await FileBox.fromFile(path.join(
-    __dirname,
-    '../../tests/fixtures/sample.sil',
-  )).toBase64()
-
-  const FILE_BOX = FileBox.fromBase64(base64, 'sample.sil') as FileBoxInterface
-
-  return {
-    fileBox: FILE_BOX,
-    text: EXPECTED_TEXT,
-  }
-}
+import { audioFixtures } from '../to-text/mod.js'
 
 const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
   const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
@@ -62,21 +43,31 @@ const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => 
   return future
 }
 
-test('register machine', async t => {
-  const interpreter = interpret(feedbackActor)
+test('feedbackMachine smoke testing', async t => {
+  const CHILD_ID = 'child-id'
+  const testMachine = createMachine({
+    invoke: {
+      id: CHILD_ID,
+      src: feedbackMachine,
+    },
+  })
+
+  const testInterpreter = interpret(testMachine)
     .start()
 
-  interpreter.subscribe(s => {
+  const childRef = testInterpreter.children.get(CHILD_ID)!
+
+  const eventList: AnyEventObject[] = []
+  childRef.subscribe(s => {
+    eventList.push(s.event)
     console.info('[new transition]')
     console.info('  state ->', s.value)
     console.info('  event ->', s.event.type)
   })
 
-  // const doneFuture = lastValueFrom(from(interpreter))
-
-  let snapshot = interpreter.getSnapshot()
-  t.equal(snapshot.value, states.inactive, 'should be inactive state after initial')
-  t.same(snapshot.context.attendees, [], 'should be empty attendee list')
+  let snapshot = childRef.getSnapshot()
+  t.equal(snapshot.value, States.idle, 'should be idle state after initial')
+  t.same(snapshot.context.contacts, [], 'should be empty attendee list')
 
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
@@ -107,7 +98,7 @@ test('register machine', async t => {
       throw new Error('no meeting room')
     }
 
-    const AUDIO_FIXTURE = await getAudioFixture()
+    const SILK = audioFixtures.silk
 
     const FIXTURES = {
       room: MEETING_ROOM,
@@ -115,96 +106,110 @@ test('register machine', async t => {
       feedbacks: {
         mary: 'im mary',
         mike: 'im mike',
-        player: AUDIO_FIXTURE.text,
+        player: SILK.text,
         bot: 'im bot',
       },
     }
 
-    let msg: WECHATY.Message
-
-    interpreter.send(
-      events.START(),
+    /**
+     * Send CONTACTS event
+     */
+    eventList.length = 0
+    childRef.send(
+      Events.CONTACTS(FIXTURES.members),
+    )
+    t.same(
+      eventList.map(e => e.type),
+      [Types.CONTACTS],
+      'should get CONTACT event',
     )
 
-    snapshot = interpreter.getSnapshot()
+    snapshot = childRef.getSnapshot()
     // console.info(snapshot.history)
-    t.equal(snapshot.event.type, types.START, 'should get START event')
-    t.equal(snapshot.value, states.aborting, 'should be state aborted if no meeting room & attendees set')
+    t.equal(snapshot.event.type, Types.CONTACTS, 'should get CONTACTS event')
+    t.equal(snapshot.value, States.idle, 'should be state idle')
 
-    interpreter.start()
-
-    interpreter.send([
-      events.RESET('test'),
-      events.ATTENDEES(MEMBER_LIST),
-      events.ROOM(MEETING_ROOM),
-      events.START(),
+    /**
+     * Send ROOM event
+     */
+    eventList.length = 0
+    childRef.send([
+      Events.ROOM(MEETING_ROOM),
     ])
-    snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.event.type, types.START, 'should get START event after reset')
-    t.same(snapshot.value, {
-      [states.active]: states.idle,
-    }, 'should be state active.idle if meeting room & attendees has been set')
-    t.equal(snapshot.context.attendees.length, MEMBER_LIST.length, `should have ${MEMBER_LIST.length} attendees`)
-    t.equal(snapshot.context.room, MEETING_ROOM, 'should have meeting room set')
+    snapshot = childRef.getSnapshot()
+    t.equal(snapshot.event.type, Types.ROOM, 'should get ROOM event')
+    t.same(snapshot.value, States.idle, 'should be state idle')
 
-    msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom))
-    interpreter.send([
-      events.MESSAGE(msg),
+    /**
+     * Send MESSAGE event
+     */
+    const maryMsg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom))
+    eventList.length = 0
+    childRef.send([
+      Events.MESSAGE(maryMsg),
     ])
-    snapshot = interpreter.getSnapshot()
+    snapshot = childRef.getSnapshot()
     // console.info((snapshot.event.payload as any).message)
-    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
-    t.same(snapshot.value, {
-      [states.active]: states.idle,
-    }, 'should be back to state idle after received a text message')
-    t.equal(snapshot.context.feedback, FIXTURES.feedbacks.mary, 'should have feedback set')
+    t.equal(snapshot.event.type, Types.MESSAGE, 'should get MESSAGE event')
+    t.same(snapshot.value, States.recognizing, 'should be back to state recognizing after received a text message')
+
+    await new Promise(setImmediate)
+    snapshot = childRef.getSnapshot()
     t.same(snapshot.context.feedbacks, { [mary.id]: FIXTURES.feedbacks.mary }, 'should have feedback from mary')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 1, 'should have 1 feedback so far')
 
-    const feedbackMsgs = [
-      await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
-      await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)),
-    ]
+    const mikeMsg = await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
 
     // console.info(feedbackMsgs)
-    interpreter.send(
-      feedbackMsgs.map(events.MESSAGE),
-      // events.MESSAGE(feedbackMsgs[1]),
+    childRef.send(
+      Events.MESSAGE(mikeMsg),
     )
-    snapshot = interpreter.getSnapshot()
+    await new Promise(setImmediate)
+    snapshot = childRef.getSnapshot()
     // console.info((snapshot.event.payload as any).message)
-    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
-    t.same(snapshot.value, {
-      [states.active]: states.idle,
-    }, 'should be back to state active.idle after received a text message')
+    t.same(
+      snapshot.value,
+      States.idle,
+      'should be back to state active.idle after received a text message',
+    )
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.mike, 'should get mike feedback')
     t.same(snapshot.context.feedbacks, {
       [mary.id]: FIXTURES.feedbacks.mary,
-      [mocker.bot.id]: FIXTURES.feedbacks.bot,
       [mike.id]: FIXTURES.feedbacks.mike,
-    }, 'should have feedback from 3 users')
+    }, 'should have feedback from 2 users')
+    t.equal(Object.keys(snapshot.context.feedbacks).length, 2, 'should have 2 feedback so far')
+
+    const botMsg = await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom))
+    childRef.send(
+      Events.MESSAGE(botMsg),
+    )
+    await new Promise(setImmediate)
+    snapshot = childRef.getSnapshot()
+    t.same(snapshot.context.feedbacks, {
+      [mary.id]: FIXTURES.feedbacks.mary,
+      [mike.id]: FIXTURES.feedbacks.mike,
+      [mocker.bot.id]: FIXTURES.feedbacks.bot,
+    }, 'should have feedback from 3 users including bot')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 3, 'should have 3 feedback so far')
 
-    msg = await listenMessage(() => mocker.player.say(AUDIO_FIXTURE.fileBox).to(mockMeetingRoom))
+    const playerMsg = await listenMessage(() => mocker.player.say(SILK.fileBox).to(mockMeetingRoom))
     // console.info('msg', msg)
-    interpreter.send(
-      events.MESSAGE(msg),
+    childRef.send(
+      Events.MESSAGE(playerMsg),
     )
-    snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.event.type, types.WAKEUP, 'should get WAKEUP event')
-    t.same(snapshot.value, {
-      [states.active]: states.recognizing,
-    }, 'should in state stt after received audio message')
+    snapshot = childRef.getSnapshot()
+    t.equal(snapshot.event.type, Types.MESSAGE, 'should get MESSAGE event')
+    t.equal(snapshot.value, States.recognizing, 'should in state stt after received audio message')
 
-    await lastValueFrom(
-      from(interpreter).pipe(
-        // tap(x => console.info('tap state:', x.value)),
-        // tap(x => console.info('tap event:', x.event.type)),
-        filter(s => s.value === states.completed),
+    await firstValueFrom(
+      from(childRef as any).pipe(
+        // tap((x: any) => console.info('tap state:', x.value)),
+        // tap((x: any) => console.info('tap event:', x.event.type)),
+        filter((s: any) => s.value === States.idle),
       ),
     )
-    snapshot = interpreter.getSnapshot()
-    t.equal(snapshot.value, states.completed, 'should in state completed after resolve stt message')
+    snapshot = childRef.getSnapshot()
+    t.equal(snapshot.value, States.idle, 'should in state idle after resolve stt message')
     t.equal(snapshot.context.feedback, FIXTURES.feedbacks.player, 'should get player feedback')
     t.same(snapshot.context.feedbacks, {
       [mary.id]          : FIXTURES.feedbacks.mary,
@@ -213,6 +218,118 @@ test('register machine', async t => {
       [mocker.player.id] : FIXTURES.feedbacks.player,
     }, 'should have feedback from all users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
+  }
+
+  testInterpreter.stop()
+})
+
+test.only('feedbackActor smoke testing', async t => {
+  const interpreter = interpret(feedbackActor)
+    .start()
+
+  const eventList: AnyEventObject[] = []
+  interpreter.subscribe(s => {
+    eventList.push(s.event)
+    console.info('[new transition]')
+    console.info('  state ->', s.value)
+    console.info('  event ->', s.event.type)
+  })
+
+  interpreter.machine.start()
+
+  console.info('XXX', interpreter.machine.context)
+  interpreter.machine.context.childRef?.subscribe(s => {
+    console.info('[childRef]')
+    console.info('  state ->', s.value)
+    console.info('  event ->', s.event.type)
+  })
+
+  for await (const WECHATY_FIXTURES of createFixture()) {
+    const {
+      mocker,
+      wechaty,
+    }           = WECHATY_FIXTURES
+
+    const listenMessage = awaitMessageWechaty(wechaty.wechaty)
+
+    const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
+
+    const MEMBER_ID_LIST = [
+      mary.id,
+      mike.id,
+      mocker.bot.id,
+      mocker.player.id,
+    ]
+    const mockMeetingRoom = mocker.mocker.createRoom({
+      memberIdList: MEMBER_ID_LIST,
+    })
+
+    const MEMBER_LIST = (await Promise.all(
+      MEMBER_ID_LIST.map(id => wechaty.wechaty.Contact.find({ id })),
+    )).filter(Boolean) as WECHATY.Contact[]
+
+    const MEETING_ROOM = await wechaty.wechaty.Room.find({ id: mockMeetingRoom.id })
+    if (!MEETING_ROOM) {
+      throw new Error('no meeting room')
+    }
+
+    const SILK = audioFixtures.silk
+
+    const FIXTURES = {
+      room: MEETING_ROOM,
+      members: MEMBER_LIST,
+      feedbacks: {
+        mary: 'im mary',
+        mike: 'im mike',
+        player: SILK.text,
+        bot: 'im bot',
+      },
+    }
+
+    /**
+     * Send initial message to start the feedback
+     */
+    interpreter.send([
+      Events.CONTACTS(MEMBER_LIST),
+      Events.ROOM(MEETING_ROOM),
+    ])
+    interpreter.send([
+      Events.ROOM(MEETING_ROOM),
+      Events.CONTACTS(MEMBER_LIST),
+    ])
+    await new Promise(setImmediate)
+
+    /**
+     * Send MESSAGE event
+     */
+    const msgs = [
+      await listenMessage(() => mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom)),
+      await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)),
+      await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
+      await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom)),
+    ]
+    // console.info(msgs)
+    interpreter.send(msgs.map(
+      Events.MESSAGE,
+    ))
+    await new Promise(setImmediate)
+
+    // await firstValueFrom(
+    //   from(interpreter).pipe(
+    //     tap(x => console.info('tap event:', x.event.type)),
+    //     filter(s => s.value === States.idle),
+    //   ),
+    // )
+    // await new Promise(resolve => setTimeout(resolve, 1000))
+    // console.info(eventList)
+    // t.same(eventList, [], 'event list')
+    // t.same(snapshot.context.feedbacks, {
+    //   [mary.id]          : FIXTURES.feedbacks.mary,
+    //   [mocker.bot.id]    : FIXTURES.feedbacks.bot,
+    //   [mike.id]          : FIXTURES.feedbacks.mike,
+    //   [mocker.player.id] : FIXTURES.feedbacks.player,
+    // }, 'should have feedback from all users')
+    // t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
   }
 
   interpreter.stop()

@@ -1,10 +1,10 @@
-import { registerMachine } from './register-machine.js'
+import { registerMachine } from './register-actor.js'
 import { mentionMachine } from './mention-machine.js'
-import { feedbackActor } from './feedback-actor.js'
+import { feedbackMachine } from './feedback-actor.js'
 import { wechatyActor } from './wechaty-actor.js'
 
 const feedback = {
-  actor: feedbackActor,
+  actor: feedbackMachine,
   id: 'feedback',
 }
 

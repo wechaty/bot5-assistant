@@ -13,10 +13,6 @@ import {
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
-import {
-  firstValueFrom,
-  Subject,
-}                   from 'rxjs'
 
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
@@ -197,7 +193,7 @@ test('registerActor smoke testing', async t => {
     // console.info('Receiving event', s.event.type)
   })
 
-  let snapshot = interpreter.getSnapshot()
+  let snapshot
 
   for await (const fixtures of createFixture()) {
     const {
@@ -271,7 +267,6 @@ test('registerActor smoke testing', async t => {
       ),
     )
     await idleFuture
-    snapshot = interpreter.getSnapshot()
     t.same(eventList.map(e => e.type), [
       Types.CONTACTS,
       Mailbox.Types.IDLE,
