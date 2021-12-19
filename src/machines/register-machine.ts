@@ -18,7 +18,7 @@ import {
 
 interface Context {
   message: null | Message
-  members: Contact[]
+  contacts: Contact[]
   chairs: Contact[]
 }
 
@@ -26,71 +26,71 @@ type Event =
   | ReturnType<typeof Events.MESSAGE>
   | ReturnType<typeof Events.MENTIONS>
   | ReturnType<typeof Events.NO_MENTION>
+  | ReturnType<typeof Events.RESET>
 
 const registerMachine = createMachine<Context, Event>(
   {
-    initial: 'start',
+    initial: States.initializing,
     context: {
       message: null,
-      members: [],
+      contacts: [],
       chairs: [],
     },
     states: {
-      start: {
-        entry: ['introduceSession'],
-        always: {
-          target: 'registering',
-        },
+      [States.initializing]: {
+        always: States.starting,
       },
-      registering: {
+      [States.starting]: {
+        entry: ctx => ctx.message?.room()?.say('Register all members by mention them in one messsage.', ...ctx.chairs),
+        always: States.idle,
+      },
+      [States.idle]: {
+        entry: [
+          Mailbox.Actions.sendParentIdle('register machine'),
+        ],
         on: {
           [Types.MESSAGE]: {
-            actions: 'saveMessage',
-            target: 'mentioning',
+            actions: actions.assign({ message:  (_, e) => e.payload.message }),
+            target: States.checking,
+          },
+          [Types.RESET]: {
+            actions: actions.assign({ contacts: _ => [] }),
+            target: States.initializing,
           },
         },
       },
-      mentioning: {
+      [States.checking]: {
         invoke: {
-          src: 'getMentions',
+          src: ctx => ctx.message!.mentionList(),
           onDone: {
-            target: 'finish',
-            actions: [
-              'saveMentions',
-            ],
+            target: States.registered,
+            actions: actions.assign({
+              contacts: (ctx, e)  => [
+                ...ctx.contacts,
+                ...e.data,
+              ],
+            }),
           },
           onError: {
-            target: 'start',
-            actions: ['introduceMention'],
+            target: States.busy,
+            actions: ctx => ctx.message?.room()?.say('Please mention someone to register.'),
           },
         },
       },
-      finish: {
-        entry: ['announceRegisteredMembers'],
-        type: 'final',
-        data: ctx => ctx.members,
+      [States.busy]: {
+        entry: actions.log('Register machine is busy.', 'RegistrMachine'),
+        on: {
+          [Types.MESSAGE]: {
+            actions: actions.assign({ message:  (_, e) => e.payload.message }),
+            target: States.checking,
+          },
+        },
       },
-    },
-  },
-  {
-    actions: {
-      saveMessage: actions.assign({
-        message:  (_, e) => (e as ReturnType<typeof Events.MESSAGE>).payload.message,
-      }) as any,
-      saveMentions: actions.assign({
-        members: (_, e)  => (e as any).data as Contact[],
-      }) as any,
-      announceRegisteredMembers: ctx => ctx.message?.room()?.say('Registered members: ', ...ctx.members),
-      introduceMention: ctx => ctx.message?.room()?.say('Please mention someone to register.'),
-      introduceSession: ctx => ctx.message?.room()?.say('Register all members by mention them in one messsage.', ...ctx.chairs),
-    },
-    services: {
-      getMentions: async context => {
-        const mentionList = context.message && await context.message.mentionList()
-        if (!mentionList || mentionList.length <= 0) {
-          throw new Error('NO_MENTION')
-        }
-        return mentionList
+      [States.registered]: {
+        entry: [
+          actions.sendParent(ctx => Events.CONTACTS(ctx.contacts)),
+        ],
+        always: States.idle,
       },
     },
   },
