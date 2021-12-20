@@ -58,7 +58,9 @@ const dingMachine = createMachine<{ i: null | number }>({
 })
 
 test('XState actor problem: async tasks running with concurrency', async t => {
-  const MESSAGE_CONCURRENCY_NUM = 100
+  const rangeList       = [...Array(100).keys()]
+  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
+  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
 
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
@@ -79,26 +81,20 @@ test('XState actor problem: async tasks running with concurrency', async t => {
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      eventList.push(s.event)
+      if (s.event.type === 'DONG') {
+        eventList.push(s.event)
+      }
       // console.info('Received event', s.event)
       // console.info('Transition to', s.value)
     })
     .start()
 
-  interpreter.send(
-    [...Array(MESSAGE_CONCURRENCY_NUM).keys()].map(i =>
-      ({ type: 'DING', i }),
-    ),
-  )
+  interpreter.send(DING_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
-  t.same(
-    eventList
-      .filter(e => e.type === 'DONG')
-      .map(e => (e as any).i),
-    [0],
-    'should only received the first DING event: others have been discarded',
+  t.equal(eventList.length, 1, 'should only received one DONG event')
+  t.same(eventList[0], DONG_EVENT_LIST[0], 'should only received the first DING event: others have been discarded',
   )
 
   interpreter.stop()
@@ -106,7 +102,9 @@ test('XState actor problem: async tasks running with concurrency', async t => {
 })
 
 test('Mailbox.address (actor): enforce process messages one by one', async t => {
-  const MESSAGE_CONCURRENCY_NUM = 100
+  const rangeList       = [...Array(100).keys()]
+  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
+  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
 
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
@@ -119,36 +117,31 @@ test('Mailbox.address (actor): enforce process messages one by one', async t => 
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      eventList.push(s.event)
+      if (s.event.type === 'DONG') {
+        eventList.push(s.event)
+      }
       // console.info('Received event', s.event)
       // console.info('Transition to', s.value)
     })
     .start()
 
-  interpreter.send(
-    [...Array(MESSAGE_CONCURRENCY_NUM).keys()].map(i =>
-      ({ type: 'DING', i }),
-    ),
-  )
+  interpreter.send(DING_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
 
-  t.same(
-    eventList
-      .filter(e => e.type === 'DONG')
-      .map(e => (e as any).i),
-    [...Array(MESSAGE_CONCURRENCY_NUM).keys()],
-    'should reply all the DING events',
-  )
+  t.same(eventList, DONG_EVENT_LIST, 'should reply all the DING events')
 
   interpreter.stop()
   sandbox.restore()
 })
 
 test('Mailbox.address as an event proxy', async t => {
-  const MESSAGE_CONCURRENCY_NUM = 10
-  const MAILBOX_CHILD_ID        = 'mailbox-child-id'
+  const rangeList       = [...Array(100).keys()]
+  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
+  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
+
+  const MAILBOX_CHILD_ID = 'mailbox-child-id'
 
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
@@ -183,28 +176,20 @@ test('Mailbox.address as an event proxy', async t => {
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      eventList.push(s.event)
+      if (s.event.type === 'DONG') {
+        eventList.push(s.event)
+      }
       console.info('Received event', s.event)
       console.info('Transition to', s.value)
     })
     .start()
 
-  interpreter.send(
-    [...Array(MESSAGE_CONCURRENCY_NUM).keys()].map(i =>
-      ({ type: 'DING', i }),
-    ),
-  )
+  interpreter.send(DING_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
 
-  t.same(
-    eventList
-      .filter(e => e.type === 'DONG')
-      .map(e => (e as any).i),
-    [...Array(MESSAGE_CONCURRENCY_NUM).keys()],
-    'should reply all the DING events',
-  )
+  t.same(eventList, DONG_EVENT_LIST, 'should reply all the DING events')
 
   interpreter.stop()
   sandbox.restore()
