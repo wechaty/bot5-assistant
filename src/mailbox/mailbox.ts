@@ -116,6 +116,9 @@ const address = <
                 }),
               ],
               always: States.idle,
+              exit: [
+                actions.log(ctx => 'states.child.spawning.exit ctx.childRef:' + !!ctx.childRef, 'Mailbox'),
+              ],
             },
             [States.idle]: {
               entry: [
@@ -146,7 +149,7 @@ const address = <
           states: {
             [States.idle]: {
               entry: [
-                actions.log('states.router.idle.entry', 'Mailbox'),
+                actions.log((_, e) => 'states.router.idle.entry ' + e.type, 'Mailbox'),
               ],
               on: {
                 '*': States.routing,
@@ -154,7 +157,7 @@ const address = <
             },
             [States.routing]: {
               entry: [
-                actions.log((_, __, { _event }) => 'states.router.routing.entry ' + _event.type, 'Mailbox'),
+                actions.log((_, e) => 'states.router.routing.entry ' + e.type, 'Mailbox'),
                 contexts.assignCurrentEvent,
               ],
               /**
@@ -173,14 +176,17 @@ const address = <
                  */
                 {
                   cond: ctx => isMailboxType(ctx.currentEvent?.type),
+                  actions: actions.log('states.router.routing.always isMailboxType (true)', 'Mailbox'),
                   target: States.idle,
                 },
                 {
                   cond: ctx => contexts.condCurrentEventOriginIsChild(ctx),
+                  actions: actions.log('states.router.routing.always condCurrentEventOriginIsChild (true)', 'Mailbox'),
                   target: States.outgoing,
                 },
                 {
                   description: 'current event is sent from other actors (neither child nor mailbox)',
+                  actions: actions.log('states.router.routing.always current event is sent from other actors', 'Mailbox'),
                   target: States.incoming,
                 },
               ],
