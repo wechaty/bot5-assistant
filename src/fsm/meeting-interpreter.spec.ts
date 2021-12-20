@@ -17,12 +17,12 @@ test('Bot5MeetingFsm smoke testing', async t => {
   for await (const fixture of createFixture()) {
     // const sandbox = sinon.createSandbox()
     const interpreter = getInterpreter(fixture.wechaty.wechaty)
-    t.ok(interpreter.state.matches(states.IDLE), 'should be idle')
+    t.ok(interpreter.state.matches(states.idle), 'should be idle')
 
     t.ok(interpreter.state.can(events.START), 'should can START')
 
     interpreter.send(events.START)
-    t.ok(interpreter.state.matches(states.MEETING), 'should be in meeting state')
+    t.ok(interpreter.state.matches(states.meeting), 'should be in meeting state')
 
     t.notOk(interpreter.state.can(events.START), 'should can not START again in meeting')
   }

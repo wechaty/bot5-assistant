@@ -16,9 +16,9 @@ import {
 }             from '../schemas/mod.js'
 
 type Event =
-| ReturnType<typeof Events.MESSAGE>
-| ReturnType<typeof Events.NO_AUDIO>
-| ReturnType<typeof Events.TEXT>
+  | ReturnType<typeof Events.MESSAGE>
+  | ReturnType<typeof Events.NO_AUDIO>
+  | ReturnType<typeof Events.TEXT>
 
 interface Context {
   message: null | Message

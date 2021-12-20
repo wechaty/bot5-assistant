@@ -53,27 +53,10 @@ Related issue discussions:
 
 Great thanks to [@alxhotel](https://github.com/alxhotel) who owned the great NPM module name [mailbox](https://www.npmjs.com/package/mailbox) and kindly transfered it to me for this new module, thank you very much [Alex](https://twitter.com/alxhotel)!
 
-```text
-Alex(Dec 20 Mon 11:47 PM): Hi Huan, nice to meet you :) Glad to see a serial entrepreneur contributing to OSS Red heart I've added you as a maintainer! Feel free to remove me once you make sure you have control of the package. Looking forward to see what you are building :)
-
-Cheers,
-Alex
-
--------
-
-Huan(Dec 18 Sat 8:56 PM): Hello Alex, my name is Huan, I'm a node.js developer and author of a 10k+ stars chatbot SDK Wechaty, here's my GitHub https://github.com/huan and NPM https://npmjs.com/~zixia
-
-Recently I'm building a chatbot on top of the XState & Actor model, it turns out that a Mailbox pattern should be followed, and I have worked on it in the past few days.
-
-Now I want to publish the mailbox related code to NPM and found that you owned the great `mailbox` name and it seems to have not been used anymore.
-
-So may I ask you to kindly transfer this name to me, if you have no plan to use it anymore? It will be terrific to have this precious name mailbox as the NPM module name.
-
-Looking forward to your reply, thank you very much!
-
-Best,
-Huan
-```
+> Hi Huan, nice to meet you :) Glad to see a serial entrepreneur contributing to OSS Red heart I've added you as a maintainer! Feel free to remove me once you make sure you have control of the package. Looking forward to see what you are building :)
+>
+> Cheers,  
+> Alex (Dec 20 Mon 11:47 PM)
 
 ## Author
 

@@ -32,15 +32,15 @@ interface MeetingStateSchema {
 }
 
 const statesX = {
-  [states.IDLE]: {
+  [states.idle]: {
     on: {
-      [events.START]: states.MEETING,
+      [events.START]: states.meeting,
     },
   },
-  [states.MEETING]: {
+  [states.meeting]: {
     on: {
-      [events.CANCEL]: states.IDLE,
-      [events.FINISH]: states.IDLE,
+      [events.CANCEL]: states.idle,
+      [events.FINISH]: states.idle,
     },
   },
 } as const
@@ -54,7 +54,7 @@ const config: (wechaty: Wechaty) => MachineConfig<
     wechaty,
   },
   id: 'meeting-machine',
-  initial: states.IDLE,
+  initial: states.idle,
   states: statesX,
 } as const)
 
