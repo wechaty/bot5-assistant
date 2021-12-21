@@ -24,14 +24,7 @@ import {
   Types,
   isMailboxType,
 }                     from './types.js'
-
-// type MailboxTypestate =
-//   | {
-//     value: typeof States.dispatching,
-//     context: contexts.Context & {
-//       actorRef: ActorRef<any>
-//     },
-//   }
+import { validate } from './validate.js'
 
 const nullMachine = createMachine({})
 
@@ -43,7 +36,7 @@ const address = <
       any,
       TEvent
     >,
-  ) => createMachine<
+  ) => validate(childMachine) && createMachine<
     contexts.Context,
     /**
      * add child event types to mailbox event types
@@ -157,7 +150,7 @@ const address = <
             },
             [States.routing]: {
               entry: [
-                actions.log((_, e) => 'states.router.routing.entry ' + e.type, 'Mailbox'),
+                actions.log((_, e, { _event }) => 'states.router.routing.entry ' + e.type + '@' + _event.origin, 'Mailbox'),
                 contexts.assignCurrentEvent,
               ],
               /**
@@ -193,7 +186,7 @@ const address = <
             },
             [States.incoming]: {
               entry: [
-                actions.log(ctx => 'states.router.incoming.entry ' + ctx.currentEvent.type, 'Mailbox'),
+                actions.log(ctx => 'states.router.incoming.entry ' + ctx.currentEvent?.type + '@' + contexts.getOrigin(ctx), 'Mailbox'),
                 contexts.assignEnqueueMessage,
               ],
               always: States.idle,
@@ -204,7 +197,7 @@ const address = <
             },
             [States.outgoing]: {
               entry: [
-                actions.log(ctx => 'states.router.outgoing.entry ' + ctx.currentEvent.type, 'Mailbox'),
+                actions.log(ctx => 'states.router.outgoing.entry ' + ctx.currentEvent?.type + '@' + contexts.getOrigin(ctx), 'Mailbox'),
                 contexts.respond,
               ],
               always: States.idle,

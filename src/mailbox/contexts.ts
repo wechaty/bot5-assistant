@@ -10,6 +10,7 @@ import {
   SCXML,
   EventObject,
   ActorRef,
+  ExprWithMeta,
 }                       from 'xstate'
 
 const metaSymKey = Symbol('meta')
@@ -20,11 +21,12 @@ const metaSymKey = Symbol('meta')
  *  @see https://github.com/wechaty/bot5-assistant/issues/4
  *
  */
- type AnyEventObjectExt = AnyEventObject & {
+interface AnyEventObjectMeta {
   [metaSymKey]: {
     origin: SCXML.Event<AnyEventObject>['origin']
   }
 }
+type AnyEventObjectExt = AnyEventObject & AnyEventObjectMeta
 
 interface Context {
   /**
@@ -54,7 +56,7 @@ const condCurrentEventOriginIsChild = (ctx: Context) => {
     return false
   }
 
-  return ctx.currentEvent[metaSymKey].origin === (ctx.childRef as any).sessionId
+  return getOrigin(ctx) === (ctx.childRef as any).sessionId
 }
 
 const assignEnqueueMessage = actions.assign<Context>({
@@ -72,13 +74,7 @@ const assignCurrentEventNull = actions.assign<Context>({
   currentEvent: _ => null,
 }) as any
 
-const wrapEvent = (
-  _: Context,
-  e: EventObject,
-  { _event }: {
-    _event: SCXML.Event<AnyEventObject>,
-  },
-) => ({
+const wrapEvent: ExprWithMeta<Context, EventObject, AnyEventObjectExt> = (_, e, { _event }) => ({
   ...e,
   [metaSymKey]: {
     origin: _event.origin,
@@ -104,12 +100,22 @@ const condMessageQueueNonempty = (ctx: Context) => {
 
 const getOrigin = (ctx: Context) => {
   // console.info('### getOrigin:', JSON.stringify(ctx.currentMessage))
-  console.info('### getOrigin:',
-    ctx.currentMessage?.type,
-    ctx.currentMessage && ctx.currentMessage[metaSymKey].origin,
+  const message = ctx.currentMessage
+  if (!message) {
+    return undefined
+  }
+
+  console.info('Mailbox contexts.getOrigin:',
+    [
+      message.type,
+      '@',
+      message[metaSymKey].origin,
+    ].join(''),
   )
-  return (ctx.currentMessage && ctx.currentMessage[metaSymKey].origin) || undefined
+
+  return message[metaSymKey].origin
 }
+
 const hasOrigin = (ctx: Context) => !!getOrigin(ctx)
 
 /**
@@ -141,7 +147,10 @@ const respond = actions.choose([
    */
   {
     actions: [
-      actions.log<Context, EventObject>(ctx => 'contexts.responsd drop message: ' + ctx.currentEvent.type, 'Mailbox'),
+      actions.log<Context, EventObject>(
+        ctx => 'contexts.responsd default drop event ' + (ctx.currentEvent?.type || 'NO_CURRENT_EVENT') + '@' + getOrigin(ctx),
+        'Mailbox',
+      ),
     ],
   },
 ])
@@ -166,7 +175,7 @@ const initialContext: () => Context = () => {
 
 const sendCurrentMessageToChild = actions.send<Context, any>(
   ctx => {
-    console.info('sendCurrentMessageToChild:', JSON.stringify(ctx.currentMessage))
+    console.info('sendCurrentMessageToChild:', ctx.currentMessage?.type)
     return ctx.currentMessage!
   },
   {
@@ -186,4 +195,5 @@ export {
   condMessageQueueNonempty,
   respond,
   sendCurrentMessageToChild,
+  getOrigin,
 }

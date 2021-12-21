@@ -41,6 +41,7 @@ const machine = createMachine<Context, Event>({
         Mailbox.Actions.sendParentIdle('ding-dong'),
       ],
       on: {
+        '*': States.idle,
         [Types.DING]: {
           target: States.busy,
           actions: actions.assign({

@@ -28,6 +28,15 @@ Messages are sent asynchronously to an actor, that needs to store them somewhere
 
 > &mdash; [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/)
 
+## Usage
+
+### XState Machine
+
+1. Must `sendParent(Mailbox.Actions.sendParentIdle('machine-name'))` when it's ready to receive message (in `states.idle` for example)
+1. All events that received in `states.idle` must make a `external` trancition by adding a `target` entry, so that the `staes.idle` state will be entered again, which will emit the `sendParent(Mailbox.Actions.sendParentIdle('machine-name'))` to let the Mailbox.address know it's ready to receive message.
+
+Learn more from [validate.ts source code](validate.ts)
+
 ## Resources
 
 - [XState Actors](https://xstate.js.org/docs/guides/actors.html#actor-api)

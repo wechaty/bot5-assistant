@@ -139,8 +139,8 @@ test('parentMachine with invoke.src=Mailbox.address (proxy events)', async t => 
       if (s.event.type === DingDong.Types.DONG) {
         eventList.push(s.event)
       }
-      console.info('Received event', s.event)
-      console.info('Transition to', s.value)
+      // console.info('Received event', s.event)
+      // console.info('Transition to', s.value)
     })
     .start()
 
