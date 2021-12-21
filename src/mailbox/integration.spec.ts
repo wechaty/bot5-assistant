@@ -15,60 +15,25 @@ import {
 }                   from 'xstate'
 
 import * as Mailbox from './mod.js'
+import * as DingDong from './ding-dong-machine.fixture.js'
 
-const MAX_DELAY_MS = 10
+const ITEM_NUMBERS = [...Array(10).keys()]
 
-const dingMachine = createMachine<{ i: null | number }>({
-  initial: 'idle',
-  context: {
-    i: null,
-  },
-  states: {
-    idle: {
-      entry: [
-        Mailbox.Actions.sendParentIdle('ding-dong'),
-      ],
-      on: {
-        DING: {
-          target: 'busy',
-          actions: actions.assign({
-            i: (_, e) => {
-              // console.info('received i: ', (e as any).i)
-              return (e as any).i
-            },
-          }),
-        },
-      },
-    },
-    busy: {
-      after: {
-        randomMs: {
-          actions: [
-            actions.sendParent(ctx => ({ type: 'DONG', i: ctx.i })),
-          ],
-          target: 'idle',
-        },
-      },
-    },
-  },
-}, {
-  delays: {
-    randomMs: _ => Math.floor(Math.random() * MAX_DELAY_MS),
-  },
-})
+const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
+  DingDong.Events.DING(i),
+)
+const DONG_EVENT_LIST = ITEM_NUMBERS.map(i =>
+  DingDong.Events.DONG(i),
+)
 
-test('XState actor problem: async tasks running with concurrency', async t => {
-  const rangeList       = [...Array(100).keys()]
-  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
-  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
-
+test('XState machine problem: async tasks running with concurrency', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const containerMachine = createMachine({
     invoke: {
-      src: dingMachine,
+      src: DingDong.machine,
       autoForward: true,
     },
     states: {},
@@ -81,7 +46,7 @@ test('XState actor problem: async tasks running with concurrency', async t => {
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      if (s.event.type === 'DONG') {
+      if (s.event.type === DingDong.Types.DONG) {
         eventList.push(s.event)
       }
       // console.info('Received event', s.event)
@@ -93,31 +58,27 @@ test('XState actor problem: async tasks running with concurrency', async t => {
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
-  t.equal(eventList.length, 1, 'should only received one DONG event')
-  t.same(eventList[0], DONG_EVENT_LIST[0], 'should only received the first DING event: others have been discarded',
+  t.equal(eventList.length, 1, `should only reply 1 DONG event to total ${DING_EVENT_LIST.length} DING events`)
+  t.same(eventList[0], DONG_EVENT_LIST[0], 'should reply to the first event',
   )
 
   interpreter.stop()
   sandbox.restore()
 })
 
-test('Mailbox.address (actor): enforce process messages one by one', async t => {
-  const rangeList       = [...Array(100).keys()]
-  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
-  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
-
+test('Mailbox.address(machine) as an actor should enforce process messages one by one', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const interpreter = interpret(
-    Mailbox.address(dingMachine),
+    Mailbox.address(DingDong.machine),
   )
 
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      if (s.event.type === 'DONG') {
+      if (s.event.type === DingDong.Types.DONG) {
         eventList.push(s.event)
       }
       // console.info('Received event', s.event)
@@ -128,20 +89,16 @@ test('Mailbox.address (actor): enforce process messages one by one', async t => 
   interpreter.send(DING_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
-  // eventList.forEach(e => console.info(e))
+  // eventList.forEach`(e => console.info(e))
 
-  t.same(eventList, DONG_EVENT_LIST, 'should reply all the DING events')
+  t.same(eventList, DONG_EVENT_LIST, `should reply total ${DONG_EVENT_LIST.length} DONG events to ${DING_EVENT_LIST.length} DING events`)
 
   interpreter.stop()
   sandbox.restore()
 })
 
-test('Mailbox.address as an event proxy', async t => {
-  const rangeList       = [...Array(100).keys()]
-  const DING_EVENT_LIST = rangeList.map(i => ({ type: 'DING', i }))
-  const DONG_EVENT_LIST = rangeList.map(i => ({ type: 'DONG', i }))
-
-  const MAILBOX_CHILD_ID = 'mailbox-child-id'
+test('parentMachine with invoke.src=Mailbox.address (proxy events)', async t => {
+  const CHILD_ID = 'mailbox-child-id'
 
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
@@ -149,8 +106,8 @@ test('Mailbox.address as an event proxy', async t => {
 
   const parentMachine = createMachine({
     invoke: {
-      id: MAILBOX_CHILD_ID,
-      src: Mailbox.address(dingMachine),
+      id: CHILD_ID,
+      src: Mailbox.address(DingDong.machine),
       /**
        * Huan(202112): autoForward event will not set `origin` to the forwarder.
        *  think it like a SNAT/DNAT in iptables?
@@ -161,8 +118,11 @@ test('Mailbox.address as an event proxy', async t => {
     states: {
       testing: {
         on: {
-          DING: {
-            actions: actions.send((_, e) => e, { to: MAILBOX_CHILD_ID }),
+          [DingDong.Types.DING]: {
+            actions: actions.send(
+              (_, e) => e,
+              { to: CHILD_ID },
+            ),
           },
         },
       },
@@ -176,7 +136,7 @@ test('Mailbox.address as an event proxy', async t => {
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      if (s.event.type === 'DONG') {
+      if (s.event.type === DingDong.Types.DONG) {
         eventList.push(s.event)
       }
       console.info('Received event', s.event)
@@ -184,12 +144,12 @@ test('Mailbox.address as an event proxy', async t => {
     })
     .start()
 
-  interpreter.send(DING_EVENT_LIST)
+  DING_EVENT_LIST.forEach(e => interpreter.send(e))
 
   await sandbox.clock.runAllAsync()
-  // eventList.forEach(e => console.info(e))
 
-  t.same(eventList, DONG_EVENT_LIST, 'should reply all the DING events')
+  // t.equal(eventList.length, DONG_EVENT_LIST.length, 'should received enough DONG events')
+  t.same(eventList, DONG_EVENT_LIST, 'should get replied DONG events from every DING events')
 
   interpreter.stop()
   sandbox.restore()

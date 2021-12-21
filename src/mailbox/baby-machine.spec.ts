@@ -12,10 +12,10 @@ import {
   StateFrom,
 }                   from 'xstate'
 
-import * as baby from './baby-machine.fixture.js'
-import * as mailbox from './mailbox.js'
+import * as baby    from './baby-machine.fixture.js'
+import * as Mailbox from './mod.js'
 
-test.only('babyMachine smoke testing with sleeping under mock clock', async t => {
+test('babyMachine smoke testing with sleeping under mock clock', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -57,7 +57,7 @@ test.only('babyMachine smoke testing with sleeping under mock clock', async t =>
   t.equal(snapshot.value, baby.States.awake, 'babyMachine initial state should be awake')
   t.same(eventList, [
     'xstate.init',
-    mailbox.Types.IDLE,
+    Mailbox.Types.IDLE,
     baby.Types.PLAY,
   ], 'should have initial event list')
 
@@ -105,7 +105,7 @@ test.only('babyMachine smoke testing with sleeping under mock clock', async t =>
   t.equal(snapshot.context.ms, undefined, 'babyMachine context.ms should be cleared after sleep')
   t.same(eventList, [
     baby.Types.PEE,
-    mailbox.Types.IDLE,
+    Mailbox.Types.IDLE,
     baby.Types.PLAY,
   ], 'should pee after night and start paly in the morning, with idle event (after sleep)')
 
