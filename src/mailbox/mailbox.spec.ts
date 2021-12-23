@@ -17,30 +17,30 @@ import { address }  from './mailbox.js'
 import { Types }    from './types.js'
 import { States }   from './states.js'
 
-import * as child   from './baby-machine.fixture.js'
+import * as Baby   from './baby-machine.fixture.js'
 
-test('mailbox address wrapper transition nextState smoke testing', async t => {
-  const mailbox = address(child.machine)
+test('Mailbox.address() transition nextState smoke testing', async t => {
+  const mailbox = address(Baby.machine)
 
   // console.info('initialState:', actor.initialState)
 
-  let nextState = mailbox.transition(mailbox.initialState, child.events.SLEEP(10))
-  console.info(nextState.actions)
+  let nextState = mailbox.transition(mailbox.initialState, Baby.events.SLEEP(10))
+  // console.info(nextState.actions)
   t.ok(nextState.actions.some(a => {
     return a.type === 'xstate.send' && a['event'].type === Types.NOTIFY
   }), 'should have triggered NOTIFY event by sending IDLE event')
 
-  nextState = mailbox.transition(nextState, child.events.SLEEP(10))
+  nextState = mailbox.transition(nextState, Baby.events.SLEEP(10))
   t.equal(nextState.context.messageQueue.length, 2, 'should have 2 event in queue after sent two SLEEP event')
-  t.same(nextState.context.messageQueue.map(c => c.type), new Array(2).fill(child.Types.SLEEP), 'should be both sleep event')
+  t.same(nextState.context.messageQueue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
 })
 
-test('mailbox address interpret smoke testing: 1 event', async t => {
+test.only('Mailbox.address interpret smoke testing: 1 event', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailbox = address(child.machine)
+  const mailbox = address(Baby.machine)
   const interpreter = interpret(mailbox)
 
   interpreter
@@ -52,44 +52,47 @@ test('mailbox address interpret smoke testing: 1 event', async t => {
     })
     .start()
 
-  let snapshot = interpreter.getSnapshot()
-  // console.info('snapshot:', snapshot)
-  t.same(snapshot.value, {
-    router  : States.idle,
-    message : States.idle,
-    child   : States.idle,
-  }, 'should stay at idle state after start')
-  t.equal(snapshot.event.type, Types.DISPATCH, 'should received DISPATCH event aftrer child sent IDLE')
+  // let snapshot = interpreter.getSnapshot()
+  // // console.info('snapshot:', snapshot)
+  // t.same(snapshot.value, {
+  //   router  : States.idle,
+  //   message : States.idle,
+  //   child   : States.idle,
+  // }, 'should stay at idle state after start')
+  // t.equal(snapshot.event.type, Types.DISPATCH, 'should received DISPATCH event aftrer child sent IDLE')
 
-  interpreter.send(child.events.SLEEP(10))
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
-    router  : States.idle,
-    message : States.idle,
-    child   : States.busy,
-  }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should receive event child.Types.DREAM after received the 1st EVENT sleep')
-  t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
+  // interpreter.send(Baby.events.SLEEP(10))
+  // snapshot = interpreter.getSnapshot()
+  // t.same(snapshot.value, {
+  //   router  : States.idle,
+  //   message : States.idle,
+  //   child   : States.busy,
+  // }, 'should be state.busy after received the 1st EVENT sleep')
+  // t.equal(snapshot.event.type, Baby.Types.DREAM, 'should receive event child.Types.DREAM after received the 1st EVENT sleep')
+  // t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
 
-  await sandbox.clock.tickAsync(9)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
-    router  : States.idle,
-    message : States.idle,
-    child   : States.busy,
-  }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.event.type, child.Types.CRY, 'should receive event child.Types.CRY after before wakeup')
-  t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue before wakeup')
+  // await sandbox.clock.tickAsync(9)
+  // snapshot = interpreter.getSnapshot()
+  // t.same(snapshot.value, {
+  //   router  : States.idle,
+  //   message : States.idle,
+  //   child   : States.busy,
+  // }, 'should be state.busy after received the 1st EVENT sleep')
+  // t.equal(snapshot.event.type, Baby.Types.CRY, 'should receive event child.Types.CRY after before wakeup')
+  // t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue before wakeup')
 
-  await sandbox.clock.tickAsync(1)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
-    router  : States.idle,
-    message : States.idle,
-    child   : States.idle,
-  }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.event.type, child.Types.PLAY, 'should receive event child.Types.PLAY after sleep')
-  t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after sleep')
+  // await sandbox.clock.tickAsync(1)
+  // snapshot = interpreter.getSnapshot()
+  // t.same(snapshot.value, {
+  //   router  : States.idle,
+  //   message : States.idle,
+  //   child   : States.idle,
+  // }, 'should be state.busy after received the 1st EVENT sleep')
+  // t.equal(snapshot.event.type, Baby.Types.PLAY, 'should receive event child.Types.PLAY after sleep')
+  // t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after sleep')
+
+  interpreter.stop()
+  sandbox.restore()
 })
 
 test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
@@ -97,7 +100,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     useFakeTimers: true,
   })
 
-  const mailbox = address(child.machine)
+  const mailbox = address(Baby.machine)
   const interpreter = interpret(mailbox)
 
   // console.info('initialState:', actor.initialState)
@@ -112,17 +115,17 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
 
   let snapshot
 
-  interpreter.send(child.events.SLEEP(10))
+  interpreter.send(Baby.events.SLEEP(10))
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value,  {
     router  : States.idle,
     message : States.idle,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should send event child.Types.DREAM after received the 1st EVENT sleep')
+  t.equal(snapshot.event.type, Baby.Types.DREAM, 'should send event child.Types.DREAM after received the 1st EVENT sleep')
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
 
-  interpreter.send(child.events.SLEEP(20))
+  interpreter.send(Baby.events.SLEEP(20))
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.idle,
@@ -132,7 +135,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   t.equal(snapshot.event.type, Types.NOTIFY, 'should trigger mailbox.events.NOTIFY after received the 2nd EVENT sleep')
   t.equal(snapshot.context.messageQueue.length, 1, 'should have 1 event in queue after received the 2nd EVENT sleep')
 
-  interpreter.send(child.events.SLEEP(30))
+  interpreter.send(Baby.events.SLEEP(30))
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.idle,
@@ -152,7 +155,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     message : States.idle,
     child   : States.busy,
   }, 'should be state.busy after 10 ms')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should right enter 2nd SLEEP after 10 ms')
+  t.equal(snapshot.event.type, Baby.Types.DREAM, 'should right enter 2nd SLEEP after 10 ms')
   t.equal(snapshot.context.messageQueue.length, 1, 'should have 1 event in queue after 10 ms')
 
   /**
@@ -165,7 +168,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     message : States.idle,
     child   : States.busy,
   }, 'should be state.busyafter another 20 ms')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should right enter 3rd SLEEP after another 20 ms')
+  t.equal(snapshot.event.type, Baby.Types.DREAM, 'should right enter 3rd SLEEP after another 20 ms')
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after another 20 ms')
 
   /**
@@ -178,7 +181,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     message : States.idle,
     child   : States.idle,
   }, 'should be state.idle after another 30 ms')
-  t.equal(snapshot.event.type, child.Types.PLAY, 'should wakeup because there is no more SLEEP events after another 30 ms')
+  t.equal(snapshot.event.type, Baby.Types.PLAY, 'should wakeup because there is no more SLEEP events after another 30 ms')
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after another 30 ms')
 
   // interpreter.stop()
@@ -190,7 +193,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     useFakeTimers: true,
   })
 
-  const mailbox = address(child.machine)
+  const mailbox = address(Baby.machine)
   const interpreter = interpret(mailbox)
 
   // console.info('initialState:', actor.initialState)
@@ -207,7 +210,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
 
   Array.from({ length: 3 }).forEach(_ => {
     console.info('EVENT: sleep sending...')
-    interpreter.send(child.events.SLEEP(10))
+    interpreter.send(Baby.events.SLEEP(10))
     console.info('EVENT: sleep sending... done')
   })
 
@@ -227,7 +230,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     message : States.idle,
     child   : States.busy,
   }, 'should be state.busy after 1st 10 ms')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should enter next SLEEP(DREAM) after 1st 10 ms')
+  t.equal(snapshot.event.type, Baby.Types.DREAM, 'should enter next SLEEP(DREAM) after 1st 10 ms')
   t.equal(snapshot.context.messageQueue.length, 1, 'should have 1 event in queue after 1st 10 ms')
 
   await sandbox.clock.tickAsync(10)
@@ -237,7 +240,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     message : States.idle,
     child   : States.busy,
   }, 'should be state.busy after 2nd 10 ms')
-  t.equal(snapshot.event.type, child.Types.DREAM, 'should enter next SLEEP(DREAM) after 2nd 10 ms')
+  t.equal(snapshot.event.type, Baby.Types.DREAM, 'should enter next SLEEP(DREAM) after 2nd 10 ms')
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after 2nd 10 ms')
 
   await sandbox.clock.tickAsync(10)
@@ -247,7 +250,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     message : States.idle,
     child   : States.idle,
   }, 'should be state.idle after 3rd 10 ms')
-  t.equal(snapshot.event.type, child.Types.PLAY, 'should receive event child.events.PLAY after 3rd 10 ms')
+  t.equal(snapshot.event.type, Baby.Types.PLAY, 'should receive event child.events.PLAY after 3rd 10 ms')
   t.equal(snapshot.context.messageQueue.length, 0, 'should have 0 event in queue after 3rd 10 ms')
 
   // interpreter.stop()
@@ -260,7 +263,7 @@ test('mailbox address proxy smoke testing', async t => {
   })
 
   const CHILD_ID = 'child'
-  const childActor = address(child.machine)
+  const childActor = address(Baby.machine)
 
   enum ParentStates {
     testing = 'testing',
@@ -281,7 +284,7 @@ test('mailbox address proxy smoke testing', async t => {
         on: {
           [ParentTypes.SLEEP]: {
             actions: [
-              actions.send(child.events.SLEEP(10), { to: CHILD_ID }),
+              actions.send(Baby.events.SLEEP(10), { to: CHILD_ID }),
             ],
           },
         },
@@ -320,8 +323,8 @@ test('mailbox address proxy smoke testing', async t => {
   interpreter.send(ParentTypes.SLEEP)
   t.same(eventList, [
     ParentTypes.SLEEP,
-    child.Types.REST,
-    child.Types.DREAM,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
   ], 'should fall to sleep with events')
   t.same(transitionList,
     new Array(3).fill(ParentStates.testing),
@@ -332,9 +335,9 @@ test('mailbox address proxy smoke testing', async t => {
   transitionList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    child.Types.CRY,
-    child.Types.PEE,
-    child.Types.PLAY,
+    Baby.Types.CRY,
+    Baby.Types.PEE,
+    Baby.Types.PLAY,
   ], 'should wakeup')
   t.same(transitionList,
     new Array(3).fill(ParentStates.testing),
@@ -348,8 +351,8 @@ test('mailbox address proxy smoke testing', async t => {
   )
   t.same(eventList, [
     ParentTypes.SLEEP,
-    child.Types.REST,
-    child.Types.DREAM,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
     ParentTypes.SLEEP,
     ParentTypes.SLEEP,
   ], 'should fall to sleep after 3 SLEEP events, with two more SLEEP event queued')
@@ -357,29 +360,29 @@ test('mailbox address proxy smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    child.Types.CRY,
-    child.Types.PEE,
-    child.Types.PLAY,
-    child.Types.REST,
-    child.Types.DREAM,
+    Baby.Types.CRY,
+    Baby.Types.PEE,
+    Baby.Types.PLAY,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
   ], 'should wakeup after 10 ms ,and fail sleep again')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    child.Types.CRY,
-    child.Types.PEE,
-    child.Types.PLAY,
-    child.Types.REST,
-    child.Types.DREAM,
+    Baby.Types.CRY,
+    Baby.Types.PEE,
+    Baby.Types.PLAY,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
   ], 'should wakeup after 10 ms ,and fail sleep again, twice')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    child.Types.CRY,
-    child.Types.PEE,
-    child.Types.PLAY,
+    Baby.Types.CRY,
+    Baby.Types.PEE,
+    Baby.Types.PLAY,
   ], 'should wakeup another 10 ms, and no more SLEEP in the queue')
 
   eventList.length = 0

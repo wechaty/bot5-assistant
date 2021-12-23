@@ -8,7 +8,7 @@ import {
   Interpreter,
 }                   from 'xstate'
 
-import { IS_PRODUCTION } from './config.js'
+import { IS_DEVELOPMENT } from './config.js'
 
 import * as Mailbox from './mod.js'
 
@@ -43,7 +43,7 @@ function validateInitializing (
  * Response each event with IDLE event
  *  one event will get one IDLE event back
  */
-function validateIdleForOneEvent (
+function validateIdleForOneUnknownEvent (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
@@ -56,14 +56,18 @@ function validateIdleForOneEvent (
     .map(e => e.type)
     .filter(t => t === Mailbox.Types.IDLE)
   const EXPECTED_IDLE_EVENTS = [Mailbox.Types.IDLE]
-  assert.deepEqual(actualIdleEvents, EXPECTED_IDLE_EVENTS, 'should send one IDLE event to parent when it has finished process one event')
+  assert.deepEqual(
+    actualIdleEvents,
+    EXPECTED_IDLE_EVENTS,
+    'Mailbox need the child machine to respond IDLE event to parent immediately whenever it has received an unknown event',
+  )
 }
 
 /**
  * Response each event with IDLE event
  *  ten events will get ten IDLE events back
  */
-function validateIdleForTenEvent (
+function validateIdleForTenUnknownEvent (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
@@ -95,8 +99,8 @@ function validateIdle (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
-  validateIdleForOneEvent(interpreter, eventList)
-  validateIdleForTenEvent(interpreter, eventList)
+  validateIdleForOneUnknownEvent(interpreter, eventList)
+  validateIdleForTenUnknownEvent(interpreter, eventList)
 }
 
 function container (machine: StateMachine<any, any, any>) {
@@ -150,33 +154,38 @@ function validateSkipMailboxEvents (
  * Failure: will throw an error
  */
 function validate (machine: StateMachine<any, any, any>): boolean {
-  if (IS_PRODUCTION) {
+  if (!IS_DEVELOPMENT) {
     return true
   }
 
-  /**
-   * invoke the machine within a parent machine
-   */
-  const parentMachine = container(machine)
+  try {
+    /**
+     * invoke the machine within a parent machine
+     */
+    const parentMachine = container(machine)
 
-  /**
-   * validate the machine initializing events
-   */
-  const [interpreter, eventList] = validateInitializing(parentMachine)
+    /**
+     * validate the machine initializing events
+     */
+    const [interpreter, eventList] = validateInitializing(parentMachine)
 
-  /**
-   * validate the machine idle events
-   */
-  validateIdle(interpreter, eventList)
+    /**
+     * validate the machine idle events
+     */
+    validateIdle(interpreter, eventList)
 
-  /**
-   * child machine should not reply any Mailbox.Events.* events
-   */
-  validateSkipMailboxEvents(interpreter, eventList)
+    /**
+     * child machine should not reply any Mailbox.Events.* events
+     */
+    validateSkipMailboxEvents(interpreter, eventList)
 
-  interpreter.stop()
+    interpreter.stop()
 
-  return true
+    return true
+  } catch (e) {
+    console.error(e)
+    return false
+  }
 }
 
 export {

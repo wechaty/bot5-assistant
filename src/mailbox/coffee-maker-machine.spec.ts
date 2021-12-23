@@ -12,10 +12,12 @@ import {
   interpret,
 }                   from 'xstate'
 
-import * as DingDong from './ding-dong-machine.fixture.js'
+import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 import * as Mailbox from './mod.js'
 
-test('DingDong.machine one DING event', async t => {
+test('CoffeeMaker.machine smoke testing', async t => {
+  const CUSTOMER = 'John'
+
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -27,11 +29,15 @@ test('DingDong.machine one DING event', async t => {
     initial: 'testing',
     invoke: {
       id: CHILD_ID,
-      src: DingDong.machine,
-      autoForward: true,
+      src: CoffeeMaker.machine,
+      // autoForward: true,
     },
     states: {
-      testing: {},
+      testing: {
+        on: {
+          '*': { actions: Mailbox.Actions.sendChildProxy(CHILD_ID) },
+        },
+      },
     },
   })
 
@@ -48,15 +54,15 @@ test('DingDong.machine one DING event', async t => {
   })
 
   interpreter.start()
-  interpreter.send(DingDong.Events.DING(1))
+  interpreter.send(CoffeeMaker.Events.MAKE_ME_COFFEE(CUSTOMER))
   t.same(
     eventList.map(e => e.type),
     [
       'xstate.init',
       Mailbox.Types.IDLE,
-      DingDong.Types.DING,
+      CoffeeMaker.Types.MAKE_ME_COFFEE,
     ],
-    'should have received init/IDLE/DING events after initializing',
+    'should have received init/IDLE/MAKE_ME_COFFEE events after initializing',
   )
 
   eventList.length = 0
@@ -64,11 +70,10 @@ test('DingDong.machine one DING event', async t => {
   t.same(
     eventList,
     [
-      DingDong.Events.DONG(1),
-      Mailbox.Events.IDLE('ding-dong'),
-      Mailbox.Events.IDLE('ding-dong'),
+      CoffeeMaker.Events.COFFEE(CUSTOMER),
+      Mailbox.Events.IDLE('coffee-maker'),
     ],
-    'should have received DONG/IDLE events after runAllAsync',
+    'should have received COFFEE/IDLE events after runAllAsync',
   )
 
   interpreter.stop()
@@ -76,14 +81,22 @@ test('DingDong.machine one DING event', async t => {
   sandbox.restore()
 })
 
-test('XState machine problem: only be able to process the first message when receiving multiple events at the same time', async t => {
+test('XState machine will lost incoming messages(events) when receiving multiple messages at the same time', async t => {
+  const ITEM_NUMBERS = [...Array(10).keys()]
+  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)),
+  )
+  const COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    CoffeeMaker.Events.COFFEE(String(i)),
+  )
+
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const containerMachine = createMachine({
     invoke: {
-      src: DingDong.machine,
+      src: CoffeeMaker.machine,
       autoForward: true,
     },
     states: {},
@@ -96,7 +109,7 @@ test('XState machine problem: only be able to process the first message when rec
   const eventList: AnyEventObject[] = []
   interpreter
     .onTransition(s => {
-      if (s.event.type === DingDong.Types.DONG) {
+      if (s.event.type === CoffeeMaker.Types.COFFEE) {
         eventList.push(s.event)
       }
       // console.info('Received event', s.event)
@@ -104,15 +117,13 @@ test('XState machine problem: only be able to process the first message when rec
     })
     .start()
 
-  interpreter.send([
-    DingDong.Events.DING(0),
-    DingDong.Events.DING(1),
-  ])
+  interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
-  t.equal(eventList.length, 1, 'should only has replied one DONG event')
-  t.same(eventList[0], DingDong.Events.DONG(0), 'should reply to the first event',)
+  t.equal(eventList.length, 1, `should only get 1 COFFEE event no matter how many MAKE_ME_COFFEE events we sent (at the same time, total: ${MAKE_ME_COFFEE_EVENT_LIST.length})`)
+  t.same(eventList[0], COFFEE_EVENT_LIST[0], 'should only the first event get replied',
+  )
 
   interpreter.stop()
   sandbox.restore()

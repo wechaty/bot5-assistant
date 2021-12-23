@@ -24,6 +24,9 @@ enum States {
   incoming = 'mailbox/incoming',
   outgoing = 'mailbox/outgoing',
   routing = 'mailbox/routing',
+
+  // Dead Letter
+  deadLetter = 'mailbox/deadLetter',
 }
 
 export {

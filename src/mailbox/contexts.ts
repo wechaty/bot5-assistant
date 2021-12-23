@@ -11,7 +11,7 @@ import {
   EventObject,
   ActorRef,
   ExprWithMeta,
-}                       from 'xstate'
+}                   from 'xstate'
 
 const metaSymKey = Symbol('meta')
 
@@ -44,7 +44,6 @@ interface Context {
    * The child actor
    */
   childRef : null | ActorRef<any>
-  nullRef  : null | ActorRef<any>
 }
 
 const condCurrentEventOriginIsChild = (ctx: Context) => {
@@ -70,16 +69,17 @@ const assignDequeueMessage = actions.assign<Context>({
   currentMessage: ctx => ctx.messageQueue.shift()!,
 }) as any
 
-const assignCurrentEventNull = actions.assign<Context>({
-  currentEvent: _ => null,
-}) as any
-
-const wrapEvent: ExprWithMeta<Context, EventObject, AnyEventObjectExt> = (_, e, { _event }) => ({
-  ...e,
-  [metaSymKey]: {
-    origin: _event.origin,
-  },
-})
+const wrapEvent: ExprWithMeta<Context, EventObject, AnyEventObjectExt> = (_, e, { _event }) => {
+  console.info('wrapEvent:', e.type, _event.origin)
+  const event = ({
+    ...e,
+    [metaSymKey]: {
+      origin: _event.origin,
+    },
+  })
+  console.info('wrapEvent:', event)
+  return event
+}
 
 const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
   const event = {
@@ -91,6 +91,10 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
 
 const assignCurrentEvent = actions.assign<Context>({
   currentEvent: wrapEvent,
+}) as any
+
+const assignCurrentEventNull = actions.assign<Context>({
+  currentEvent: _ => null,
 }) as any
 
 const condMessageQueueNonempty = (ctx: Context) => {
@@ -105,15 +109,13 @@ const getOrigin = (ctx: Context) => {
     return undefined
   }
 
-  console.info('Mailbox contexts.getOrigin:',
-    [
-      message.type,
-      '@',
-      message[metaSymKey].origin,
-    ].join(''),
-  )
+  const origin = message[metaSymKey].origin
 
-  return message[metaSymKey].origin
+  console.info('Mailbox contexts.getOrigin message:', message)
+
+  console.info('Mailbox contexts.getOrigin ' + message.type + '@' + (origin || ''))
+
+  return origin
 }
 
 const hasOrigin = (ctx: Context) => !!getOrigin(ctx)
@@ -164,7 +166,6 @@ const initialContext: () => Context = () => {
     currentEvent   : null,
     currentMessage : null,
     messageQueue   : [],
-    nullRef        : null,
   }
   return JSON.parse(
     JSON.stringify(
@@ -175,7 +176,7 @@ const initialContext: () => Context = () => {
 
 const sendCurrentMessageToChild = actions.send<Context, any>(
   ctx => {
-    console.info('sendCurrentMessageToChild:', ctx.currentMessage?.type)
+    console.info('Mailbox contexts.sendCurrentMessageToChild ' + ctx.currentMessage?.type + '@' + getOrigin(ctx))
     return ctx.currentMessage!
   },
   {
@@ -185,8 +186,8 @@ const sendCurrentMessageToChild = actions.send<Context, any>(
 
 export {
   type Context,
-  metaSymKey,
   initialContext,
+  metaSymKey,
   assignDequeueMessage,
   assignEnqueueMessage,
   assignCurrentEvent,

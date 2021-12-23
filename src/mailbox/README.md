@@ -4,6 +4,16 @@ A XState wrapper to implement Mailbox of Actor Model.
 
 ![Actor Model: Mailbox](mailbox.png)
 
+> Mailboxes are one of the fundamental parts of the actor model. Through the mailbox mechanism, actors can decouple the reception of a message from its elaboration.
+> 
+> 1. An actor is an object that carries out its actions in response to communications it receives.
+> 1. A mailbox is nothing more than the data structure that holds messages.
+> 
+> &mdash; <https://www.baeldung.com/scala/typed-mailboxes>
+
+> if you send 3 messages to the same actor, it will just execute one at a time.  
+> &mdash; [The actor model in 10 minutes - Actors have mailboxes](https://www.brianstorti.com/the-actor-model/)
+
 ## Motivation
 
 I'm building assistant chatbot for Wechaty community, and I want to use actor model based on XState to implement it.
@@ -13,6 +23,79 @@ My actor will receive message from Wechaty, and send message to Wechaty.
 However, ... (describe the async & multi-user scanerio for the conversation turns)
 
 It turns out ... (describe that we need to make sure the incoming messages are queued when we not finished processing the last one)
+
+> Thread-safe code only manipulates shared data structures in a manner that ensures that all threads behave properly and fulfill their design specifications without unintended interaction.
+
+- [Wikipedia: Thread Safety](https://en.wikipedia.org/wiki/Thread_safety)
+
+## The Problem
+
+A navie state machine is a mailbox actor with `capacity=0`, which means it will causing `Dead Letter` problem when it has not finished one message but another new one comes.
+
+Assume we are a coffee maker, and we need 3 three steps to make a coffee:
+
+1. get a cup
+1. fill coffee to the cup
+1. deliver a cup of coffee to our customer
+
+We only can make one cup of coffee at a time, which means when we are making coffee, we can not accept new coffee request.
+
+The state machine of coffee maker is:
+
+[![coffee maker machine](https://stately.ai/registry/machines/5bd10d92-3d39-49b5-ad0d-13a8a0a43891.png)](https://stately.ai/viz/5bd10d92-3d39-49b5-ad0d-13a8a0a43891)
+
+Here's the source code of coffee maker:
+
+```ts
+const machine = createMachine<Context, Event>({
+  context: {
+    customer: null,
+  },
+  initial: States.idle,
+  states: {
+    [States.idle]: {
+      entry: Mailbox.Actions.receive('coffee-maker'),
+      on: {
+        [Types.MAKE_ME_COFFEE]: {
+          target: States.gettingCup,
+          actions: actions.assign((_, e) => ({ customer: e.customer })),
+        },
+        '*': States.idle,
+      },
+    },
+    [States.gettingCup]: {
+      after: {
+        10: States.fillingCoffee,
+      },
+    },
+    [States.fillingCoffee]: {
+      after: {
+        10: States.delivering,
+      },
+    },
+    [States.delivering]: {
+      entry: actions.sendParent(ctx => Events.COFFEE(ctx.customer || 'NO CUSTOMER')),
+      after: {
+        10: States.idle,
+      },
+      exit: actions.assign({ customer: _ => null }),
+    },
+  },
+})
+```
+
+If there's a new customer come in, and he/she want coffee, we can get a cup then fill coffee to the cup then delive a cup of coffee to our customer. Everything is fine as far as we know.
+
+However, two customer come in, and they talk to us at the same time and each customer want a cup of coffee. After we received the first request(event/message), we are starting to get cup and can not listen to another request anymore, which will result an event (the second one) lost (a Dead Letter).
+
+## The Solution
+
+[Mailbox](https://www.npmjs.com/package/mailbox) for rescue.
+
+Mailbox is a NPM module written in TypeScript based on the XState finite state machine to strict follow the actor model's principle:
+
+```ts
+```
 
 ## Actor Mailbox Concept
 
@@ -28,6 +111,12 @@ Messages are sent asynchronously to an actor, that needs to store them somewhere
 
 > &mdash; [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/)
 
+an actor is started it will keep running, processing messages from its inbox and won’t stop unless you stop it. It will maintain its state through out and only the actor has access to this state. This is unlike your traditional asynchronous programming, such as using Future in Scala or promises in javascript where once the call has finished its state between calls is not maintained and the call has finished.
+
+Once an actor receives a message, it adds the message to its mailbox. You can think of the mailbox as queue where the actor picks up the next message it needs to process. Actors process one message at a time. The actor patterns specification does say that the order of messages received is not guaranteed, but different implementations of the actor pattern do offer choices on mailbox type which do offer options on how messages received are prioritized for processing.
+
+> &mdash; [Introduction to the Actor Model](https://www.softinio.com/post/introduction-to-the-actor-model/)
+
 ## Usage
 
 ### XState Machine
@@ -37,9 +126,71 @@ Messages are sent asynchronously to an actor, that needs to store them somewhere
 
 Learn more from [validate.ts source code](validate.ts)
 
+### Dead Letter
+
+Whenever a message fails to be written into an actor mailbox, the actor system redirects it to a synthetic actor called /deadLetters. The delivery guarantees of dead letter messages are the same as any other message in the system. So, it’s better not to trust so much in such messages. The main purpose of dead letters is debugging.
+
+```ts
+mailboxAddress.onEvent(event => {
+  if (event.type === Mailbox.Types.DeadLetter) {
+    console.error('DeadLetter:', event.payload)
+  }
+})  
+```
+
+Related reading:
+
+- [Proto.Actor - Dead Letters](https://proto.actor/docs/deadletter/)
+
+### Bounded vs. Unbounded
+
+The mailbox is unbounded by default, which means it doesn’t reject any delivered message. Besides, there’s no back pressure mechanism implemented in the actor system. Hence, if the number of incoming messages is far bigger than the actor’s execution pace, the system will quickly run out of memory.
+
+As we said, unbounded mailboxes grow indefinitely, consuming all the available memory if the messages’ producers are far quicker than the consumers. Hence, we use this kind of mailbox only for trivial use cases.
+
+On the other side, bounded mailboxes retain only a fixed number of messages. The actor system will discard all of the messages arriving at the actor when the mailbox is full. This way, we can avoid running out of memory.
+
+As we did a moment ago, we can configure the mailbox’s size directly using the Mailbox.bounded factory method. Or, better, we can specify it through the configuration properties file:
+
+```ts
+const mailboxAddress = Mailboxe.address(machine, { 
+  capacity: 100,
+})
+```
+
+The example above is a clear example where bounded mailboxes shine. We are not afraid of losing some messages if the counterpart maintains the system up and running.
+
+A new question should arise: Where do the discarded messages go? Are they just thrown away? Fortunately, the actor system lets us retrieve information about discarded messages through the mechanism of dead letters — we’ll soon learn more about how this works.
+
+> Credit: <https://www.baeldung.com/scala/typed-mailboxes#1-bounded-vs-unbounded>
+
+## Actor Patterns
+
+### The Tell Pattern
+
+> Tell, Don’t Ask!
+
+It’s often said that we must “tell an actor and not ask something“. The reason for this is that the tell pattern represents the fully asynchronous way for two actors to communicate.
+
+The tell pattern is entirely asynchronous. After the message is sent, it’s impossible to know if the message was received or if the process succeeded or failed.
+
+To use the Tell Pattern, an actor must retrieve an actor reference to the actor it wants to send the message to.
+
+> See also: [Akka Interaction Patterns: The Tell Pattern](https://www.baeldung.com/scala/akka-tell-pattern)
+
+### The Ask Pattern
+
+> Request-Response
+
+The Ask Pattern allows us to implement the interactions that need to associate a request to precisely one response. So, it’s different from the more straightforward adapted response pattern because we can now associate a response with its request.
+
+The Mailbox implementes the Ask Pattern by default. It will response to the original actor sender when there's any response events from the child actor.
+
 ## Resources
 
 - [XState Actors](https://xstate.js.org/docs/guides/actors.html#actor-api)
+- [Typed Mailboxes in Scala, @Riccardo Cardin, Feb 23, 2021](https://www.baeldung.com/scala/typed-mailboxes)
+- [Proto.Actor - Mailboxes](https://proto.actor/docs/mailboxes/)
 
 ## History
 

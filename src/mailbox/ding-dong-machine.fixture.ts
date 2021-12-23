@@ -17,9 +17,9 @@ enum Types {
 }
 
 const Events = {
-  DING : (i: number) => ({ type: Types.DING, i }),
-  DONG : (i: number) => ({ type: Types.DONG, i }),
-}
+  DING : (i: number) => ({ type: Types.DING, i }) as const,
+  DONG : (i: number) => ({ type: Types.DONG, i }) as const,
+} as const
 
 interface Context {
   i: number,
@@ -38,7 +38,7 @@ const machine = createMachine<Context, Event>({
   states: {
     [States.idle]: {
       entry: [
-        Mailbox.Actions.sendParentIdle('ding-dong'),
+        Mailbox.Actions.receive('ding-dong'),
       ],
       on: {
         '*': States.idle,

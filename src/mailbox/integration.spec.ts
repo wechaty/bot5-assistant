@@ -16,57 +16,18 @@ import {
 
 import * as Mailbox from './mod.js'
 import * as DingDong from './ding-dong-machine.fixture.js'
+import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 
-const ITEM_NUMBERS = [...Array(10).keys()]
+test('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
+  const ITEM_NUMBERS = [...Array(10).keys()]
 
-const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
-  DingDong.Events.DING(i),
-)
-const DONG_EVENT_LIST = ITEM_NUMBERS.map(i =>
-  DingDong.Events.DONG(i),
-)
-
-test('XState machine problem: async tasks running with concurrency', async t => {
-  const sandbox = sinon.createSandbox({
-    useFakeTimers: true,
-  })
-
-  const containerMachine = createMachine({
-    invoke: {
-      src: DingDong.machine,
-      autoForward: true,
-    },
-    states: {},
-  })
-
-  const interpreter = interpret(
-    containerMachine,
+  const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    DingDong.Events.DING(i),
+  )
+  const DONG_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    DingDong.Events.DONG(i),
   )
 
-  const eventList: AnyEventObject[] = []
-  interpreter
-    .onTransition(s => {
-      if (s.event.type === DingDong.Types.DONG) {
-        eventList.push(s.event)
-      }
-      // console.info('Received event', s.event)
-      // console.info('Transition to', s.value)
-    })
-    .start()
-
-  interpreter.send(DING_EVENT_LIST)
-
-  await sandbox.clock.runAllAsync()
-  // eventList.forEach(e => console.info(e))
-  t.equal(eventList.length, 1, `should only reply 1 DONG event to total ${DING_EVENT_LIST.length} DING events`)
-  t.same(eventList[0], DONG_EVENT_LIST[0], 'should reply to the first event',
-  )
-
-  interpreter.stop()
-  sandbox.restore()
-})
-
-test('Mailbox.address(machine) as an actor should enforce process messages one by one', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -97,7 +58,16 @@ test('Mailbox.address(machine) as an actor should enforce process messages one b
   sandbox.restore()
 })
 
-test('parentMachine with invoke.src=Mailbox.address (proxy events)', async t => {
+test.only('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should proxy events', async t => {
+  const ITEM_NUMBERS = [...Array(1).keys()]
+
+  const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    DingDong.Events.DING(i),
+  )
+  const DONG_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    DingDong.Events.DONG(i),
+  )
+
   const CHILD_ID = 'mailbox-child-id'
 
   const sandbox = sinon.createSandbox({
@@ -148,8 +118,47 @@ test('parentMachine with invoke.src=Mailbox.address (proxy events)', async t => 
 
   await sandbox.clock.runAllAsync()
 
-  // t.equal(eventList.length, DONG_EVENT_LIST.length, 'should received enough DONG events')
   t.same(eventList, DONG_EVENT_LIST, 'should get replied DONG events from every DING events')
+
+  interpreter.stop()
+  sandbox.restore()
+})
+
+test('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process messages one by one', async t => {
+  const ITEM_NUMBERS = [...Array(10).keys()]
+
+  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)),
+  )
+  const COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
+    CoffeeMaker.Events.COFFEE(String(i)),
+  )
+
+  const sandbox = sinon.createSandbox({
+    useFakeTimers: true,
+  })
+
+  const interpreter = interpret(
+    Mailbox.address(CoffeeMaker.machine),
+  )
+
+  const eventList: AnyEventObject[] = []
+  interpreter
+    .onTransition(s => {
+      if (s.event.type === CoffeeMaker.Types.COFFEE) {
+        eventList.push(s.event)
+      }
+      console.info('Received event', s.event)
+      console.info('Transition to', s.value)
+    })
+    .start()
+
+  interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
+
+  await sandbox.clock.runAllAsync()
+  // eventList.forEach`(e => console.info(e))
+
+  t.same(eventList, COFFEE_EVENT_LIST, `should reply total ${COFFEE_EVENT_LIST.length} COFFEE events to ${MAKE_ME_COFFEE_EVENT_LIST.length} MAKE_ME_COFFEE events`)
 
   interpreter.stop()
   sandbox.restore()
