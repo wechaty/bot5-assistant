@@ -105,7 +105,7 @@ const address = <
               actions.send(ctx => Events.BUSY(contexts.headMessageType(ctx))),
               contexts.sendHeadMessage,
             ],
-            after: { 0: States.idle },
+            always: States.idle,
             exit: ctx => contexts.dequeue(ctx),
           },
         },
@@ -118,7 +118,7 @@ const address = <
               actions.log('states.child.spawning.entry', 'Mailbox'),
               actions.assign({ childRef : _ => spawn(childMachine) }),
             ],
-            after: { 0: States.idle },
+            always: States.idle,
             exit: [
               actions.log(_ => 'states.child.spawning.exit', 'Mailbox'),
             ],
@@ -169,13 +169,13 @@ const address = <
                 'dead letter',
               )),
             ],
-            after: { 0: States.idle },
+            always: States.idle,
             exit: contexts.assignEventNull,
           },
           [States.routing]: {
             entry: [
               actions.log((_, e, { _event }) => `states.router.routing.entry event: ${e.type}@${_event.origin}`, 'Mailbox'),
-              actions.log(ctx => `states.router.routing.entry ctx.currentEvent: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
+              actions.log(ctx => `states.router.routing.entry ctx.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
             ],
             /**
              * Proxy EVENTs rules:
@@ -192,8 +192,7 @@ const address = <
                */
               {
                 cond: (ctx, e, { _event }) => {
-                  console.info(`Mailbox states.router.routing.always event: ${e.type}@${_event.origin}`)
-                  console.info(`Mailbox states.router.routing.always context.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`)
+                  console.info(`Mailbox states.router.routing.always [expr] context.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`)
                   return false
                 },
                 actions: [],
@@ -239,7 +238,7 @@ const address = <
               actions.log(ctx => `states.router.incoming.entry ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
               contexts.assignEnqueue,
             ],
-            after: { 0: States.idle },
+            always: States.idle,
             exit: [
               actions.log(_ => 'states.router.incoming.exit', 'Mailbox'),
               actions.send(ctx => Events.NOTIFY(contexts.currentEventType(ctx))),
@@ -250,7 +249,7 @@ const address = <
               actions.log(ctx => `states.router.outgoing.entry ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
               contexts.respond,
             ],
-            after: { 0: States.idle },
+            always: States.idle,
           },
         },
       },

@@ -100,23 +100,24 @@ const dequeue = (ctx: Context) => {
 }
 
 const wrapEvent = (event: AnyEventObject, origin?: string) => {
-  console.info('wrapEvent:', event, origin)
   const wrappedEvent = ({
     ...event,
     [metaSymKey]: {
       origin,
     },
   })
-  console.info('wrapEvent:', wrappedEvent)
+  console.info(`wrapEvent: ${wrappedEvent.type}@${wrappedEvent[metaSymKey].origin || ''}`)
   return wrappedEvent
 }
 
 const unwrapEvent = (ctx: Context): AnyEventObject => {
-  const event = {
+  const wrappedEvent = {
     ...currentEvent(ctx),
   }
-  delete (event as any)[metaSymKey]
-  return event
+  console.info(`unwrapEvent: ${wrappedEvent.type}@${wrappedEvent[metaSymKey].origin || ''}`)
+
+  delete (wrappedEvent as any)[metaSymKey]
+  return wrappedEvent
 }
 
 const assignEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
@@ -138,7 +139,7 @@ const respond = actions.choose<Context, AnyEventObject>([
     /**
      * 1. if head message has an origin, then respond the event to that origin
      */
-    cond: ctx => !!headMessageOrigin(ctx),
+    cond: ctx => size(ctx) > 0 && !!headMessageOrigin(ctx),
     actions: [
       actions.log(ctx => `Mailbox contexts.responsd event ${currentEvent(ctx).type}@${currentEventOrigin(ctx)} to message ${headMessage(ctx)}@${headMessageOrigin(ctx)}`),
       actions.send(
