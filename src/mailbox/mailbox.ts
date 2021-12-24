@@ -61,6 +61,14 @@ const address = <
      *  between separate machines
      */
     context: () => contexts.initialContext(),
+    /**
+     * Issue statelyai/xstate#2891:
+     *  The context provided to the expr inside a State
+     *  should be exactly the **context in this state**
+     *
+     * @see https://github.com/statelyai/xstate/issues/2891
+     */
+    preserveActionOrder: true,
     states: {
       message: {
         initial: States.idle,
