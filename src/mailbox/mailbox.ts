@@ -59,7 +59,7 @@ const address = <
      *  factory call to make sure the contexts not the same
      *  between separate machines
      */
-    context: () => ({ ...contexts.initialContext() }),
+    context: () => contexts.initialContext(),
     states: {
       message: {
         initial: States.idle,

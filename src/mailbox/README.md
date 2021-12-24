@@ -30,17 +30,18 @@ It turns out ... (describe that we need to make sure the incoming messages are q
 
 ## The Problem
 
-A navie state machine is a mailbox actor with `capacity=0`, which means it will causing `Dead Letter` problem when it has not finished one message but another new one comes.
+A naive state machine is a mailbox actor with `capacity=0`, which means it will face the `Dead Letter` problem when new messages come but it has not finished processing the last one.
 
-Assume we are a coffee maker, and we need 3 three steps to make a coffee:
+Assume we are a coffee maker, and we need 4 three steps to make a coffee:
 
-1. get a cup
-1. fill coffee to the cup
-1. deliver a cup of coffee to our customer
+1. received a `MAKE_ME_COFFEE` event from a customer (sync)
+1. get a cup (async: cost some time)
+1. fill coffee into the cup (async: cost some time)
+1. send a `COFFEE` event to the customer (sync)
 
-We only can make one cup of coffee at a time, which means when we are making coffee, we can not accept new coffee request.
+The coffee maker can only make one cup of coffee at a time, which means that we can not process the `MAKE_ME_COFFEE` event until we have finished the last one.
 
-The state machine of coffee maker is:
+The state machine of the coffee maker is:
 
 [![coffee maker machine](https://stately.ai/registry/machines/5bd10d92-3d39-49b5-ad0d-13a8a0a43891.png)](https://stately.ai/viz/5bd10d92-3d39-49b5-ad0d-13a8a0a43891)
 
@@ -90,31 +91,34 @@ However, two customer come in, and they talk to us at the same time and each cus
 
 ## The Solution
 
+An actor should read the messages to process from its mailbox. A mailbox is an event proxy that holds messages and deals with the backpressure. When the actor can continue processing the next event, it receives the next event from the mailbox.
+
 [Mailbox](https://www.npmjs.com/package/mailbox) for rescue.
 
 Mailbox is a NPM module written in TypeScript based on the XState finite state machine to strict follow the actor model's principle:
 
 ```ts
+const mailboxAddress = Mailboxe.address(machine)
 ```
+
+Then use `mailboxAddress` instead.
 
 ## Actor Mailbox Concept
 
-In actor model, we must follow that: "if you send 3 messages to the same actor, it will just execute one at a time."
+Actors have mailboxes.
 
-> Actors have mailboxes
-
-```text
-It’s important to understand that, although multiple actors can run at the same time, an actor will process a given message sequentially. This means that if you send 3 messages to the same actor, it will just execute one at a time. To have these 3 messages being executed concurrently, you need to create 3 actors and send one message each.
-
-Messages are sent asynchronously to an actor, that needs to store them somewhere while it’s processing another message. The mailbox is the place where these messages are stored.
-```
-
+> In the actor model, we must follow that: "if you send 3 messages to the same actor, it will just execute one at a time."
+>
+> It’s important to understand that, although multiple actors can run at the same time, an actor will process a given message sequentially. This means that if you send 3 messages to the same actor, it will just execute one at a time. To have these 3 messages being executed concurrently, you need to create 3 actors and send one message each.
+>
+> Messages are sent asynchronously to an actor, that needs to store them somewhere while it’s processing another message. The mailbox is the place where these messages are stored.
+>
 > &mdash; [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/)
 
-an actor is started it will keep running, processing messages from its inbox and won’t stop unless you stop it. It will maintain its state through out and only the actor has access to this state. This is unlike your traditional asynchronous programming, such as using Future in Scala or promises in javascript where once the call has finished its state between calls is not maintained and the call has finished.
-
-Once an actor receives a message, it adds the message to its mailbox. You can think of the mailbox as queue where the actor picks up the next message it needs to process. Actors process one message at a time. The actor patterns specification does say that the order of messages received is not guaranteed, but different implementations of the actor pattern do offer choices on mailbox type which do offer options on how messages received are prioritized for processing.
-
+> an actor is started it will keep running, processing messages from its inbox and won’t stop unless you stop it. It will maintain its state throughout and only the actor has access to this state. This is unlike your traditional asynchronous programming, such as using Future in Scala or promises in javascript where once the call has finished its state between calls is not maintained and the call has finished.
+>
+> Once an actor receives a message, it adds the message to its mailbox. You can think of the mailbox as queue where the actor picks up the next message it needs to process. Actors process one message at a time. The actor patterns specification does say that the order of messages received is not guaranteed, but different implementations of the actor pattern do offer choices on mailbox type which do offer options on how messages received are prioritized for processing.
+>
 > &mdash; [Introduction to the Actor Model](https://www.softinio.com/post/introduction-to-the-actor-model/)
 
 ## Usage
@@ -186,15 +190,21 @@ The Ask Pattern allows us to implement the interactions that need to associate a
 
 The Mailbox implementes the Ask Pattern by default. It will response to the original actor sender when there's any response events from the child actor.
 
-## Resources
+## History
+
+### main
+
+WIP...
+
+### v0.1 (Dec 24, 2021)
+
+Improving the Actor Mailbox model.
+
+Related links:
 
 - [XState Actors](https://xstate.js.org/docs/guides/actors.html#actor-api)
 - [Typed Mailboxes in Scala, @Riccardo Cardin, Feb 23, 2021](https://www.baeldung.com/scala/typed-mailboxes)
 - [Proto.Actor - Mailboxes](https://proto.actor/docs/mailboxes/)
-
-## History
-
-### main
 
 ### v0.0.1 (Dec 18, 2021)
 
@@ -202,12 +212,13 @@ Initial version.
 
 Related issue discussions:
 
-- [respond only work when it's in the first state that receiving the EVENT xstate/issues#2861](https://github.com/statelyai/xstate/issues/2861)
+- [Track the Modeling Events of XState wechaty/bot5-assistant#2](https://github.com/wechaty/bot5-assistant/issues/2)
 - [Actor model needs a Mailbox wrapper/concurrency-manager wechaty/bot5-assistant#4](https://github.com/wechaty/bot5-assistant/issues/4)
 - [Discord Actor Model discussion](https://discord.com/channels/795785288994652170/800812250306183178/917329930294009877)
 - [Kotlin Concurrency with Actors, Jag Saund, Jun 14, 2018](https://medium.com/@jagsaund/kotlin-concurrency-with-actors-34bd12531182)
 - [xstate-onentry-timing-bug.js](https://github.com/statelyai/xstate/issues/370#issuecomment-465954271)
 - [[v5] Optimize mailbox statelyai/xstate#2870](https://github.com/statelyai/xstate/issues/2870)
+- [Automating Spaceships with XState, @stafford Williams, Mar 22, 2021](https://staffordwilliams.com/blog/2021/03/22/automating-spaceships-with-xstate/), 
 
 ## Special Thanks
 

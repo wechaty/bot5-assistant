@@ -2,7 +2,7 @@
 import { actions } from 'xstate'
 
 import { Events } from './events.js'
-import { isMailboxType } from './types.js'
+import { isSystemType } from './types.js'
 
 const sendChildProxy = (childId: string) => actions.choose([
   /**
@@ -10,7 +10,7 @@ const sendChildProxy = (childId: string) => actions.choose([
    *  do not proxy/forward them to child
    */
   {
-    cond: (_, e) => isMailboxType(e.type),
+    cond: (_, e) => isSystemType(e.type),
     actions: [],
   },
   /**
@@ -26,7 +26,7 @@ const receive = (info: string) => actions.choose([
     /**
      * Ignore all Mailbox events: those events is for controling Mailbox only
      */
-    cond: (_, e) => isMailboxType(e.type),
+    cond: (_, e) => isSystemType(e.type),
     actions: [],
   },
   {

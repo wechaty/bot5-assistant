@@ -9,6 +9,7 @@ import {
 import {
   createMachine,
   interpret,
+  Interpreter,
   StateFrom,
 }                   from 'xstate'
 
@@ -28,95 +29,120 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
     invoke: {
       id: CHILD_ID,
       src: Baby.machine,
-      autoForward: true,
+      // autoForward: true,
     },
     states: {
       testing: {},
     },
   })
 
-  const interpreter = interpret(parentMachine)
+  const parentEventList: string[] = []
+  const parentInterpreter = interpret(parentMachine)
+    .onTransition(s => {
+      parentEventList.push(s.event.type)
 
-  const eventList: string[] = []
-  interpreter.onTransition(s => {
-    eventList.push(s.event.type)
+      console.info('onTransition (Parent): ')
+      console.info('  - states:', s.value)
+      console.info('  - event:', s.event.type)
+      console.info()
+    })
+    .start()
 
-    console.info('onTransition: ')
+  const childEventList: string[] = []
+  const childRef = parentInterpreter.getSnapshot().children[CHILD_ID] as Interpreter<any>
+  childRef.onTransition(s => {
+    childEventList.push(s.event.type)
+
+    console.info('onTransition (Child): ')
     console.info('  - states:', s.value)
     console.info('  - event:', s.event.type)
     console.info()
   })
 
-  interpreter.start()
+  const getChildSnapshot: () => StateFrom<typeof Baby.machine> = () =>
+    parentInterpreter.getSnapshot.call(childRef) as any
 
-  const getChildSnapshot: () => StateFrom<typeof Baby.machine> = () => interpreter.getSnapshot.call(
-    interpreter.getSnapshot().children[CHILD_ID],
-  ) as any
-
-  let snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.awake, 'babyMachine initial state should be awake')
-  t.same(eventList, [
+  let childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.awake, 'babyMachine initial state should be awake')
+  t.same(parentEventList, [
     'xstate.init',
-    Mailbox.Types.IDLE,
+    Mailbox.Types.RECEIVE,
     Baby.Types.PLAY,
-  ], 'should have initial event list')
+  ], 'should have initial event list from parent')
+  t.same(childEventList, [
+    'xstate.init',
+  ], 'should have initial event list from child')
 
-  eventList.length = 0
-  interpreter.send(Baby.events.SLEEP(10))
-  snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping')
-  t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10')
-  t.same(eventList, [
-    Baby.Types.SLEEP,
-    Baby.Types.EAT,
+  parentEventList.length = 0
+  childEventList.length = 0
+  childRef.send(Baby.events.SLEEP(10))
+  childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping')
+  t.equal(childSnapshot.context.ms, 10, 'babyMachine context.ms should be 10')
+  t.same(parentEventList, [
     Baby.Types.REST,
     Baby.Types.DREAM,
-  ], 'should have event list')
-
-  eventList.length = 0
-  interpreter.send(Baby.events.SLEEP(100000))
-  snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping')
-  t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped)')
-  t.same(eventList, [
+  ], 'should have event list for parent')
+  t.same(childEventList, [
     Baby.Types.SLEEP,
-  ], 'should no more response when sleeping')
+  ], 'should have event list for child')
 
-  eventList.length = 0
-  await sandbox.clock.tickAsync(4)
-  snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping after 1st 4 ms')
-  t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 1st 4 ms')
-  t.same(eventList, [], 'should no more response after 1st 4 ms')
+  parentEventList.length = 0
+  childEventList.length = 0
+  childRef.send(Baby.events.SLEEP(100000))
+  childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping')
+  t.equal(childSnapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped)')
+  t.same(parentEventList, [], 'should no more response when sleeping for parent')
+  t.same(childEventList, [
+    Baby.Types.SLEEP,
+  ], 'should no more response when sleeping for child')
 
-  eventList.length = 0
+  parentEventList.length = 0
+  childEventList.length = 0
   await sandbox.clock.tickAsync(4)
-  snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping after 2nd 4 ms')
-  t.equal(snapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 2nd 4 ms')
-  t.same(eventList, [
+  childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping after 1st 4 ms')
+  t.equal(childSnapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 1st 4 ms')
+  t.same(parentEventList, [], 'should no more response after 1st 4 ms for parent')
+  t.same(childEventList, [], 'should no more response after 1st 4 ms for parent')
+
+  parentEventList.length = 0
+  childEventList.length = 0
+  await sandbox.clock.tickAsync(4)
+  childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.sleeping, 'babyMachine state should be sleeping after 2nd 4 ms')
+  t.equal(childSnapshot.context.ms, 10, 'babyMachine context.ms should be 10 (new event has been dropped) after 2nd 4 ms')
+  t.same(parentEventList, [
     Baby.Types.CRY,
-  ], 'should cry in middle night (after 2nd 4 ms)')
+  ], 'should cry in middle night (after 2nd 4 ms) for parent')
+  t.same(childEventList, [
+    "xstate.after(cryMs)#baby.baby/sleeping",
+  ], 'should cry in middle night (after 2nd 4 ms) for child')
 
-  eventList.length = 0
+  parentEventList.length = 0
+  childEventList.length = 0
   await sandbox.clock.tickAsync(2)
-  snapshot = getChildSnapshot()
-  t.equal(snapshot.value, Baby.States.awake, 'babyMachine state should be awake after sleep')
-  t.equal(snapshot.context.ms, undefined, 'babyMachine context.ms should be cleared after sleep')
-  t.same(eventList, [
+  childSnapshot = getChildSnapshot()
+  t.equal(childSnapshot.value, Baby.States.awake, 'babyMachine state should be awake after sleep')
+  t.equal(childSnapshot.context.ms, null, 'babyMachine context.ms should be cleared after sleep')
+  t.same(parentEventList, [
     Baby.Types.PEE,
-    Mailbox.Types.IDLE,
+    Mailbox.Types.RECEIVE,
     Baby.Types.PLAY,
-  ], 'should pee after night and start paly in the morning, with idle event (after sleep)')
+  ], 'should pee after night and start paly in the morning, with idle event (after sleep) for parent')
+  t.same(childEventList, [
+    'xstate.after(ms)#baby.baby/sleeping',
+  ], 'should pee after night and start paly in the morning, with idle event (after sleep) for child')
 
   // console.info(eventList)
   /**
    * Huan(202112) xstate bug:
-   *  interpreter.stop() will stop parent first,
+   *  parentInterpreter.stop() will stop parent first,
    *    then if child has any `exit: sendParent(...)` actions,
    *    will throw exception
    */
-  // interpreter.stop()
+  parentInterpreter.stop()
 
   sandbox.restore()
 })
