@@ -25,7 +25,7 @@ import {
   Types,
   isMailboxType,
 }                     from './types.js'
-import { validate } from './validate.js'
+import { validate }   from './validate.js'
 
 const address = <
   TEvent extends EventObject = AnyEventObject,
@@ -75,32 +75,30 @@ const address = <
           },
           [States.dispatching]: {
             entry: [
-              actions.log((_, e) => 'states.message.dispatching.entry ' + (e as any).payload.reason, 'Mailbox'),
+              actions.log((_, e) => 'states.message.dispatching.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.info, 'Mailbox'),
             ],
             always: [
-              { // new event in queue
-                cond: contexts.condMessageQueueNonempty,
+              {
+                cond: ctx => contexts.size(ctx) > 0,
                 actions: [
-                  contexts.assignDequeueMessage,
-                  actions.log(ctx => 'states.message.dispatching.always condMessageQueueNonempty:' + ctx.messageQueue.length, 'Mailbox'),
+                  actions.log(ctx => `states.message.dispatching.always queue size ${contexts.size(ctx)}, transition to delivering`, 'Mailbox'),
                 ],
                 target: States.delivering,
               },
               {
-                actions: actions.log('states.message.dispatching.always idle', 'Mailbox'),
+                actions: actions.log('states.message.dispatching.always size is 0, transition to idle', 'Mailbox'),
                 target: States.idle,
               },
             ],
           },
           [States.delivering]: {
             entry: [
-              actions.log(ctx => 'states.message.delivering.entry ' + ctx.currentMessage?.type + '@' + contexts.getOrigin(ctx), 'Mailbox'),
-              actions.send(ctx => Events.BUSY(ctx.currentMessage!.type)),
+              actions.log(ctx => `states.message.delivering.entry ${contexts.headMessageType(ctx)}@${contexts.headMessageOrigin(ctx)}`, 'Mailbox'),
+              actions.send(ctx => Events.BUSY(contexts.headMessageType(ctx))),
+              contexts.sendHeadMessage,
             ],
-            always: States.idle,
-            exit: [
-              contexts.sendCurrentMessageToChild,
-            ],
+            after: { 0: States.idle },
+            exit: ctx => contexts.dequeue(ctx),
           },
         },
       },
@@ -112,7 +110,7 @@ const address = <
               actions.log('states.child.spawning.entry', 'Mailbox'),
               actions.assign({ childRef : _ => spawn(childMachine) }),
             ],
-            always: States.idle,
+            after: { 0: States.idle },
             exit: [
               actions.log(_ => 'states.child.spawning.exit', 'Mailbox'),
             ],
@@ -151,7 +149,7 @@ const address = <
             on: {
               '*': {
                 target: States.routing,
-                actions: contexts.assignCurrentEvent,
+                actions: contexts.assignEvent,
               },
             },
           },
@@ -159,19 +157,17 @@ const address = <
             entry: [
               actions.log(_ => 'states.router.dead.entry', 'Mailbox'),
               actions.send(ctx => Events.DEAD_LETTER(
+                contexts.currentEvent(ctx),
                 'dead letter',
-                ctx.currentEvent!,
               )),
             ],
-            always: States.idle,
-            exit: [
-              actions.assign({ currentEvent: _ => null }),
-            ],
+            after: { 0: States.idle },
+            exit: contexts.assignEventNull,
           },
           [States.routing]: {
             entry: [
-              actions.log((_, e, { _event }) => 'states.router.routing.entry e: ' + e.type + '@' + (_event.origin || ''), 'Mailbox'),
-              actions.log(ctx => 'states.router.routing.entry ctx.currentEvent: ' + ctx.currentEvent?.type + '@' + contexts.getOrigin(ctx), 'Mailbox'),
+              actions.log((_, e, { _event }) => `states.router.routing.entry event: ${e.type}@${_event.origin}`, 'Mailbox'),
+              actions.log(ctx => `states.router.routing.entry ctx.currentEvent: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
             ],
             /**
              * Proxy EVENTs rules:
@@ -188,8 +184,8 @@ const address = <
                */
               {
                 cond: (ctx, e, { _event }) => {
-                  console.info('HUAN:', e.type, _event.origin)
-                  console.info('states.router.routing.always ctx.currentEvent: ' + ctx.currentEvent?.type + '@' + contexts.getOrigin(ctx), 'Mailbox')
+                  console.info(`Mailbox states.router.routing.always event: ${e.type}@${_event.origin}`)
+                  console.info(`Mailbox states.router.routing.always context.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`)
                   return false
                 },
                 actions: [],
@@ -204,10 +200,10 @@ const address = <
                  *  because the child might send MailboxType EVENTs (with child origin) which should not
                  *    be put to `outgoing`
                  */
-                cond: ctx => isMailboxType(ctx.currentEvent?.type),
+                cond: ctx => isMailboxType(contexts.currentEventType(ctx)),
                 actions: [
-                  actions.log(ctx => 'states.router.routing.always autocrine signal: isMailboxType(' + ctx.currentEvent?.type + ')', 'Mailbox'),
-                  actions.assign({ currentEvent: _ => null }),
+                  actions.log(ctx => `states.router.routing.always autocrine signal: isMailboxType(${contexts.currentEventType(ctx)})`, 'Mailbox'),
+                  contexts.assignEventNull,
                 ],
                 target: States.idle,
               },
@@ -215,8 +211,8 @@ const address = <
                 /**
                  *  2. Paracrine signalling from child machine(cell)
                  */
-                cond: ctx => contexts.condCurrentEventOriginIsChild(ctx),
-                actions: actions.log(ctx => 'states.router.routing.always paracrine signal: condCurrentEventOriginIsChild(' + (contexts.getOrigin(ctx) || '') + ')', 'Mailbox'),
+                cond: ctx => contexts.condEventOriginIsChild(ctx),
+                actions: actions.log(ctx => `states.router.routing.always paracrine signal: condEventOriginIsChild(${contexts.currentEventOrigin(ctx)})`, 'Mailbox'),
                 target: States.outgoing,
               },
               {
@@ -225,28 +221,28 @@ const address = <
                  *
                  * Current event is sent from other actors (neither child nor mailbox)
                  */
-                actions: actions.log(ctx => 'states.router.routing.always endocrine signal:' + ctx.currentEvent?.type + '@' + (contexts.getOrigin(ctx) || ''), 'Mailbox'),
+                actions: actions.log(ctx => `states.router.routing.always endocrine signal: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
                 target: States.incoming,
               },
             ],
           },
           [States.incoming]: {
             entry: [
-              actions.log(ctx => 'states.router.incoming.entry ' + ctx.currentEvent?.type + '@' + (contexts.getOrigin(ctx) || ''), 'Mailbox'),
-              contexts.assignEnqueueMessage,
+              actions.log(ctx => `states.router.incoming.entry ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
+              contexts.assignEnqueue,
             ],
-            always: States.idle,
+            after: { 0: States.idle },
             exit: [
               actions.log(_ => 'states.router.incoming.exit', 'Mailbox'),
-              actions.send(ctx => Events.NOTIFY(ctx.currentEvent?.type)),
+              actions.send(ctx => Events.NOTIFY(contexts.currentEventType(ctx))),
             ],
           },
           [States.outgoing]: {
             entry: [
-              actions.log(ctx => 'states.router.outgoing.entry ' + ctx.currentEvent?.type + '@' + (contexts.getOrigin(ctx) || ''), 'Mailbox'),
+              actions.log(ctx => `states.router.outgoing.entry ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
               contexts.respond,
             ],
-            always: States.idle,
+            after: { 0: States.idle },
           },
         },
       },

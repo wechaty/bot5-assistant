@@ -15,7 +15,7 @@ const payloadNotify     = (info?: string) => ({ info })
 const payloadReset      = (info?: string) => ({ info })
 
 const payloadReceive    = (info?: string) => ({ info })
-const payloadDeadLetter = (info: string, event: AnyEventObject) => ({ info, event })
+const payloadDeadLetter = (event: AnyEventObject, info?: string,) => ({ event, info })
 
 const Events = {
   /**

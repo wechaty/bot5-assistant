@@ -7,22 +7,22 @@ import {
 
 import * as contexts from './contexts.js'
 
-test('assignEnqueueMessage', async t => {
+test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
-  CONTEXT.currentEvent = {
+  CONTEXT.event = {
     type: 'test-type',
     [contexts.metaSymKey]: {
       origin: 'test-origin',
     },
   }
 
-  t.equal(contexts.assignEnqueueMessage.type, 'xstate.assign', 'should be in `assign` type')
+  t.equal(contexts.assignEnqueue.type, 'xstate.assign', 'should be in `assign` type')
 
-  const messageQueue = contexts.assignEnqueueMessage.assignment.messageQueue(CONTEXT)
-  t.same(messageQueue, [CONTEXT.currentEvent], 'should enqueue event to context.queue')
+  const messages = contexts.assignEnqueue.assignment.messages(CONTEXT, undefined, { _event: {} })
+  t.same(messages, [CONTEXT.event], 'should enqueue event to context.queue')
 })
 
-test('assignDequeueMessage', async t => {
+test('dequeue()', async t => {
   const EVENT = {
     type: 'test-type',
     [contexts.metaSymKey]: {
@@ -31,31 +31,28 @@ test('assignDequeueMessage', async t => {
   }
 
   const CONTEXT = contexts.initialContext()
-  CONTEXT.messageQueue = [EVENT]
+  CONTEXT.messages = [EVENT]
 
-  t.equal(contexts.assignDequeueMessage.type, 'xstate.assign', 'should be in `assign` type')
-
-  t.same(CONTEXT.messageQueue, [EVENT], 'should be one EVENT before dequeue event')
-  const currentMessage = contexts.assignDequeueMessage.assignment.currentMessage(CONTEXT)
-  t.same(currentMessage, EVENT, 'should be dequeue-ed event')
-  t.same(CONTEXT.messageQueue, [], 'should be empty after dequeue event')
+  t.same(CONTEXT.messages, [EVENT], 'should be one EVENT before dequeue event')
+  t.equal(contexts.dequeue(CONTEXT), EVENT, 'should get the dequeue-ed event')
+  t.same(CONTEXT.messages, [], 'should be empty after dequeue event')
 })
 
-test('condMessageQueueNonempty', async t => {
+test('size()', async t => {
   const EMPTY_CONTEXT = contexts.initialContext()
 
   const NONEMPTY_CONTEXT = contexts.initialContext()
-  NONEMPTY_CONTEXT.messageQueue = [{} as any]
+  NONEMPTY_CONTEXT.messages = [{} as any]
 
-  t.notOk(contexts.condMessageQueueNonempty(EMPTY_CONTEXT), 'should be false when queue is empty')
-  t.ok(contexts.condMessageQueueNonempty(NONEMPTY_CONTEXT), 'should be true when queue is nonempty')
+  t.equal(contexts.size(EMPTY_CONTEXT), 0, 'should be 0 when queue is empty')
+  t.equal(contexts.size(NONEMPTY_CONTEXT), 1., 'should be 1 when queue has one message')
 })
 
-test('condCurrentEventOriginIsChild', async t => {
+test('condEventOriginIsChild', async t => {
   const SESSION_ID = 'session-id'
 
   const context = contexts.initialContext()
-  context.currentEvent = {
+  context.event = {
     [contexts.metaSymKey]: {
       origin: SESSION_ID,
     },
@@ -64,8 +61,8 @@ test('condCurrentEventOriginIsChild', async t => {
     sessionId: SESSION_ID,
   } as any
 
-  t.ok(contexts.condCurrentEventOriginIsChild(context), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condEventOriginIsChild(context), 'should return true if the event origin is the child session id')
 
-  context.currentEvent![contexts.metaSymKey].origin = undefined
-  t.notOk(contexts.condCurrentEventOriginIsChild(context), 'should return false if the event origin is undefined')
+  context.event![contexts.metaSymKey].origin = undefined
+  t.notOk(contexts.condEventOriginIsChild(context), 'should return false if the event origin is undefined')
 })

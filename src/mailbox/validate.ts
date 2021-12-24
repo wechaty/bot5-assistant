@@ -8,14 +8,12 @@ import {
   Interpreter,
 }                   from 'xstate'
 
-import { IS_DEVELOPMENT } from './config.js'
-
 import * as Mailbox from './mod.js'
 
 /**
- * Initialization with IDLE event
+ * Initialization with RECEIVE event
  *
- * A mailbox-addressable machine MUST send parent IDLE right after it has been initialized
+ * A mailbox-addressable machine MUST send parent RECEIVE right after it has been initialized
  *  (or the mailbox can not know when the machine is ready to process events)
  *
  */
@@ -29,21 +27,21 @@ function validateInitializing (
 
   const EXPECTED_INIT_EVENT_TYPES = [
     'xstate.init',
-    Mailbox.Types.IDLE,
+    Mailbox.Types.RECEIVE,
   ]
   const actualInitEvents = eventList
     .map(e => e.type)
     .filter(type => EXPECTED_INIT_EVENT_TYPES.includes(type))
-  assert.deepEqual(actualInitEvents, EXPECTED_INIT_EVENT_TYPES, 'should send parent IDLE right after it has been initialized')
+  assert.deepEqual(actualInitEvents, EXPECTED_INIT_EVENT_TYPES, 'should send parent RECEIVE right after it has been initialized')
 
   return [interpreter, eventList] as const
 }
 
 /**
- * Response each event with IDLE event
- *  one event will get one IDLE event back
+ * Response each event with RECEIVE event
+ *  one event will get one RECEIVE event back
  */
-function validateIdleForOneUnknownEvent (
+function validateReceiveFormOneUnknownEvent (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
@@ -54,20 +52,20 @@ function validateIdleForOneUnknownEvent (
 
   const actualIdleEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.IDLE)
-  const EXPECTED_IDLE_EVENTS = [Mailbox.Types.IDLE]
+    .filter(t => t === Mailbox.Types.RECEIVE)
+  const EXPECTED_RECEIVE_EVENTS = [Mailbox.Types.RECEIVE]
   assert.deepEqual(
     actualIdleEvents,
-    EXPECTED_IDLE_EVENTS,
-    'Mailbox need the child machine to respond IDLE event to parent immediately whenever it has received an unknown event',
+    EXPECTED_RECEIVE_EVENTS,
+    'Mailbox need the child machine to respond RECEIVE event to parent immediately whenever it has received an unknown event',
   )
 }
 
 /**
- * Response each event with IDLE event
- *  ten events will get ten IDLE events back
+ * Response each event with RECEIVE event
+ *  ten events will get ten RECEIVE events back
  */
-function validateIdleForTenUnknownEvent (
+function validateReceiveFormTenUnknownEvent (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
@@ -77,21 +75,21 @@ function validateIdleForTenUnknownEvent (
     .map(i => String(
       i + Math.random(),
     ))
-  const EXPECTED_IDLE_EVENTS = Array
+  const EXPECTED_RECEIVE_EVENTS = Array
     .from({ length: TOTAL_EVENT_NUM })
-    .fill(Mailbox.Types.IDLE)
+    .fill(Mailbox.Types.RECEIVE)
   interpreter.send(randomEvents)
   const actualIdelEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.IDLE)
-  assert.deepEqual(actualIdelEvents, EXPECTED_IDLE_EVENTS, `should send ${TOTAL_EVENT_NUM} IDLE events to parent when it has finished process ${TOTAL_EVENT_NUM} events`)
+    .filter(t => t === Mailbox.Types.RECEIVE)
+  assert.deepEqual(actualIdelEvents, EXPECTED_RECEIVE_EVENTS, `should send ${TOTAL_EVENT_NUM} RECEIVE events to parent when it has finished process ${TOTAL_EVENT_NUM} events`)
 }
 
 /**
  *
- * Response each event with IDLE event
+ * Response each event with RECEIVE event
  *
- * a mailbox-addressable machine MUST send IDLE event to parent when it has finished process an event
+ * a mailbox-addressable machine MUST send RECEIVE event to parent when it has finished process an event
  *  (or the mailbox will stop sending any new events to it because it stays in busy state)
  *
  */
@@ -99,8 +97,8 @@ function validateIdle (
   interpreter: Interpreter<any>,
   eventList: AnyEventObject[],
 ): void {
-  validateIdleForOneUnknownEvent(interpreter, eventList)
-  validateIdleForTenUnknownEvent(interpreter, eventList)
+  validateReceiveFormOneUnknownEvent(interpreter, eventList)
+  validateReceiveFormTenUnknownEvent(interpreter, eventList)
 }
 
 function container (machine: StateMachine<any, any, any>) {
@@ -131,7 +129,7 @@ function validateSkipMailboxEvents (
   eventList: AnyEventObject[],
 ): void {
   const skipEvents = [
-    Mailbox.Events.IDLE(),
+    Mailbox.Events.RECEIVE(),
     Mailbox.Events.BUSY(),
     Mailbox.Events.DISPATCH(),
     Mailbox.Events.NOTIFY(),
@@ -148,16 +146,14 @@ function validateSkipMailboxEvents (
 /**
  * Validate a machine for satisfying the Mailbox address protocol:
  *  1. skip all EVENTs send from mailbox itself
- *  2. send parent `Mailbox.Events.IDLE()` event after each received events and back to the idle state
+ *  2. send parent `Mailbox.Events.RECEIVE()` event after each received events and back to the idle state
  *
  * Success: will return true
  * Failure: will throw an error
  */
-function validate (machine: StateMachine<any, any, any>): boolean {
-  if (!IS_DEVELOPMENT) {
-    return true
-  }
-
+function validate (
+  machine: StateMachine<any, any, any>,
+): boolean {
   try {
     /**
      * invoke the machine within a parent machine

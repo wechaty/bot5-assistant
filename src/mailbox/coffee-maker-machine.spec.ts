@@ -74,7 +74,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList,
     [
       CoffeeMaker.Events.COFFEE(CUSTOMER),
-      Mailbox.Events.RECEIVE('coffee-maker | xstate.after(10)#(machine).delivering'),
+      Mailbox.Events.RECEIVE('coffee-maker'),
     ],
     'should have received COFFEE/RECEIVE events after runAllAsync',
   )
