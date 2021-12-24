@@ -7,19 +7,9 @@ import {
 
 import {
   Events,
-  condCurrentEventTypeIsMailbox,
 }                                   from './events.js'
-import * as contexts from './contexts.js'
 
-test('condCurrentEventTypeIsMailbox() smoke testing', async t => {
-  const context = contexts.initialContext()
-  context.currentEvent = {
-    ...Events.DISPATCH(),
-    [contexts.metaSymKey]: {
-      origin: undefined,
-    },
-  }
-
-  const result = condCurrentEventTypeIsMailbox(context)
-  t.ok(result, 'should recognize DISPATCH as mailbox event')
+test('tbw', async t => {
+  void Events
+  t.pass('tbw')
 })

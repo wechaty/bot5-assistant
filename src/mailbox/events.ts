@@ -8,12 +8,14 @@ import type {
 
 import { Types }  from './types.js'
 
-const payloadDispatch = (reason?: string) => ({ reason })
-const payloadIdle     = (reason?: string) => ({ reason })
-const payloadBusy     = (reason?: string) => ({ reason })
-const payloadReset    = () => ({})
-const payloadNotify   = (reason?: string) => ({ reason })
-const payloadDeadLetter = (reason: string, event: AnyEventObject) => ({ reason, event })
+const payloadBusy       = (info?: string) => ({ info })
+const payloadDispatch   = (info?: string) => ({ info })
+const payloadIdle       = (info?: string) => ({ info })
+const payloadNotify     = (info?: string) => ({ info })
+const payloadReset      = (info?: string) => ({ info })
+
+const payloadReceive    = (info?: string) => ({ info })
+const payloadDeadLetter = (info: string, event: AnyEventObject) => ({ info, event })
 
 const Events = {
   /**
@@ -27,7 +29,9 @@ const Events = {
   DISPATCH : createAction(Types.DISPATCH, payloadDispatch)(),
   NOTIFY   : createAction(Types.NOTIFY, payloadNotify)(),
   RESET    : createAction(Types.RESET, payloadReset)(),
-  DEAD_LETTER: createAction(Types.DEAD_LETTER, payloadDeadLetter)(),
+
+  RECEIVE     : createAction(Types.RECEIVE, payloadReceive)(),
+  DEAD_LETTER : createAction(Types.DEAD_LETTER, payloadDeadLetter)(),
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>

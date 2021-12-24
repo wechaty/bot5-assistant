@@ -13,6 +13,7 @@ import {
   EventObject,
   Typestate,
 }                       from 'xstate'
+import { IS_DEVELOPMENT } from './config.js'
 
 import * as contexts  from './contexts.js'
 import {
@@ -38,7 +39,7 @@ const address = <
   /**
    * Debugging: do validating when in developement mode
    */
-  if (!validate(childMachine)) {
+  if (IS_DEVELOPMENT && !validate(childMachine)) {
     throw new Error('Mailbox.address: childMachine is not valid')
   }
 
@@ -119,7 +120,7 @@ const address = <
           [States.idle]: {
             entry: [
               actions.log('states.child.idle.entry', 'Mailbox'),
-              actions.send(_ => Events.DISPATCH(Types.IDLE)),
+              actions.send(_ => Events.DISPATCH(Types.RECEIVE)),
             ],
             on: {
               [Types.BUSY]: States.busy,
@@ -135,7 +136,7 @@ const address = <
             // TODO: remove any
             entry: actions.log((_, e) => 'states.child.busy.entry ' + (e as any).payload.reason, 'Mailbox'),
             on: {
-              [Types.IDLE]: States.idle,
+              [Types.RECEIVE]: States.idle,
             },
           },
         },
@@ -200,7 +201,7 @@ const address = <
                  * skip all EVENTs send from mailbox itself
                  *
                  * NOTICE: this should be placed as the first
-                 *  because the child might send IDLE which should not
+                 *  because the child might send MailboxType EVENTs (with child origin) which should not
                  *    be put to `outgoing`
                  */
                 cond: ctx => isMailboxType(ctx.currentEvent?.type),

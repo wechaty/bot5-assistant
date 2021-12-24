@@ -4,6 +4,8 @@ enum Types {
   IDLE     = 'mailbox/IDLE',
   NOTIFY   = 'mailbox/NOTIFY',
   RESET    = 'mailbox/RESET',
+
+  RECEIVE     = 'mailbox/RECEIVE',
   DEAD_LETTER = 'mailbox/DEAD_LETTER',
 }
 

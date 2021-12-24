@@ -10,10 +10,12 @@ import {
   AnyEventObject,
   createMachine,
   interpret,
+  actions,
 }                   from 'xstate'
 
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 import * as Mailbox from './mod.js'
+import { isMailboxType } from './types.js'
 
 test('CoffeeMaker.machine smoke testing', async t => {
   const CUSTOMER = 'John'
@@ -30,12 +32,13 @@ test('CoffeeMaker.machine smoke testing', async t => {
     invoke: {
       id: CHILD_ID,
       src: CoffeeMaker.machine,
-      // autoForward: true,
     },
     states: {
       testing: {
         on: {
-          '*': { actions: Mailbox.Actions.sendChildProxy(CHILD_ID) },
+          '*': {
+            actions: Mailbox.Actions.sendChildProxy(CHILD_ID),
+          },
         },
       },
     },
@@ -47,10 +50,10 @@ test('CoffeeMaker.machine smoke testing', async t => {
   interpreter.onTransition(s => {
     eventList.push(s.event)
 
-    // console.info('onTransition: ')
-    // console.info('  - states:', s.value)
-    // console.info('  - event:', s.event.type)
-    // console.info()
+    console.info('onTransition: ')
+    console.info('  - states:', s.value)
+    console.info('  - event:', s.event.type)
+    console.info()
   })
 
   interpreter.start()
@@ -59,10 +62,10 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList.map(e => e.type),
     [
       'xstate.init',
-      Mailbox.Types.IDLE,
+      Mailbox.Types.RECEIVE,
       CoffeeMaker.Types.MAKE_ME_COFFEE,
     ],
-    'should have received init/IDLE/MAKE_ME_COFFEE events after initializing',
+    'should have received init/RECEIVE/MAKE_ME_COFFEE events after initializing',
   )
 
   eventList.length = 0
@@ -71,13 +74,12 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList,
     [
       CoffeeMaker.Events.COFFEE(CUSTOMER),
-      Mailbox.Events.IDLE('coffee-maker'),
+      Mailbox.Events.RECEIVE('coffee-maker | xstate.after(10)#(machine).delivering'),
     ],
-    'should have received COFFEE/IDLE events after runAllAsync',
+    'should have received COFFEE/RECEIVE events after runAllAsync',
   )
 
   interpreter.stop()
-
   sandbox.restore()
 })
 

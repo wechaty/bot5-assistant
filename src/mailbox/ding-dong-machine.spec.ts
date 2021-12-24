@@ -53,10 +53,10 @@ test('DingDong.machine one DING event', async t => {
     eventList.map(e => e.type),
     [
       'xstate.init',
-      Mailbox.Types.IDLE,
+      Mailbox.Types.RECEIVE,
       DingDong.Types.DING,
     ],
-    'should have received init/IDLE/DING events after initializing',
+    'should have received init/RECEIVE/DING events after initializing',
   )
 
   eventList.length = 0
@@ -65,10 +65,10 @@ test('DingDong.machine one DING event', async t => {
     eventList,
     [
       DingDong.Events.DONG(1),
-      Mailbox.Events.IDLE('ding-dong'),
-      Mailbox.Events.IDLE('ding-dong'),
+      Mailbox.Events.RECEIVE('ding-dong'),
+      Mailbox.Events.RECEIVE('ding-dong'),
     ],
-    'should have received DONG/IDLE events after runAllAsync',
+    'should have received DONG/RECEIVE events after runAllAsync',
   )
 
   interpreter.stop()
