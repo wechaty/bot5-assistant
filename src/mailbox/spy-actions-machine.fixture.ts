@@ -13,6 +13,14 @@ const spyActionsMachine = (spy: sinon.SinonSpy) => createMachine<{ lastSetBy: st
   context: {
     lastSetBy: 'initializing',
   },
+  /**
+   * Issue statelyai/xstate#2891:
+   *  The context provided to the expr inside a State
+   *  should be exactly the **context in this state**
+   *
+   * @see https://github.com/statelyai/xstate/issues/2891
+   */
+  preserveActionOrder: true,
   states: {
     step0: {
       entry: [
