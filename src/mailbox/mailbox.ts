@@ -87,26 +87,26 @@ const address = <
             ],
             always: [
               {
-                cond: ctx => contexts.size(ctx) > 0,
+                cond: ctx => !contexts.empty(ctx),
                 actions: [
-                  actions.log(ctx => `states.message.dispatching.always queue size ${contexts.size(ctx)}, transition to delivering`, 'Mailbox'),
+                  actions.log(_ => 'states.message.dispatching.always queue is nonempty, transition to delivering', 'Mailbox'),
+                  contexts.assignDequeue,
                 ],
                 target: States.delivering,
               },
               {
-                actions: actions.log('states.message.dispatching.always size is 0, transition to idle', 'Mailbox'),
+                actions: actions.log('states.message.dispatching.always queue is empty, transition to idle', 'Mailbox'),
                 target: States.idle,
               },
             ],
           },
           [States.delivering]: {
             entry: [
-              actions.log(ctx => `states.message.delivering.entry ${contexts.headMessageType(ctx)}@${contexts.headMessageOrigin(ctx)}`, 'Mailbox'),
-              actions.send(ctx => Events.BUSY(contexts.headMessageType(ctx))),
-              contexts.sendHeadMessage,
+              actions.log(ctx => `states.message.delivering.entry ${contexts.currentMessageType(ctx)}@${contexts.currentMessageOrigin(ctx)}`, 'Mailbox'),
+              actions.send(ctx => Events.BUSY(contexts.currentMessageType(ctx))),
+              contexts.sendCurrentMessageToChild,
             ],
             always: States.idle,
-            exit: ctx => contexts.dequeue(ctx),
           },
         },
       },
@@ -165,7 +165,7 @@ const address = <
             entry: [
               actions.log(_ => 'states.router.dead.entry', 'Mailbox'),
               actions.send(ctx => Events.DEAD_LETTER(
-                contexts.currentEvent(ctx),
+                contexts.currentEvent(ctx)!,
                 'dead letter',
               )),
             ],
@@ -218,7 +218,7 @@ const address = <
                 /**
                  *  2. Paracrine signalling from child machine(cell)
                  */
-                cond: ctx => contexts.condEventOriginIsChild(ctx),
+                cond: ctx => contexts.condCurrentEventOriginIsChild(ctx),
                 actions: actions.log(ctx => `states.router.routing.always paracrine signal: condEventOriginIsChild(${contexts.currentEventOrigin(ctx)})`, 'Mailbox'),
                 target: States.outgoing,
               },

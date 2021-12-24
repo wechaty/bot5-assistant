@@ -31,27 +31,78 @@ type AnyEventObjectExt = AnyEventObject & AnyEventObjectMeta
 interface Context {
   /**
    * every event that the state machine received will be stored in `event`
+   *  1. system events (Mailbox.Types.*)
+   *  2. user events (Child.Types.*)
    */
   event: null | AnyEventObjectExt
   /**
-   * A message is a event: (external evetns, which should be proxyed to the child)
+   * only received events should sent to child, is a `message`
+   *
+   * current message: actor module must only process one message one time
+   *  a message will only start to be processed (send to the child)
+   *  when the child is ready for processing the next message
+   */
+  message: null | AnyEventObjectExt
+  /**
+   * `queue` is for storing the messages. message is an event: (external events, which should be proxyed to the child)
    *  1. neither sent from mailbox
    *  2. nor from child
    */
-  messages: AnyEventObjectExt[]
-  /**
-   * current message index: actor module must only process one message one time
-   *  a message will only start to be processed(submitted to the child)
-   *  when the child has transited to the IDLE state
-   */
-  index : number
+  queue: AnyEventObjectExt[]
   /**
    * The child actor
    */
   childRef : null | ActorRef<any>
 }
 
-const condEventOriginIsChild = (ctx: Context) => {
+/**
+ * use JSON.parse() to prevent the initial context from being changed
+ */
+ const initialContext: () => Context = () => {
+  const context: Context = {
+    childRef : null,
+    queue : [],
+    message  : null,
+    event    : null,
+  }
+  return JSON.parse(
+    JSON.stringify(
+      context,
+    ),
+  )
+}
+
+const metaOrigin = (event?: null | AnyEventObjectExt) => event && event[metaSymKey].origin || ''
+
+const wrapEvent = (event: AnyEventObject, origin?: string) => {
+  const wrappedEvent = ({
+    ...event,
+    [metaSymKey]: {
+      origin,
+    },
+  })
+  console.info(`wrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
+  return wrappedEvent
+}
+
+const unwrapEvent = (ctx: Context): AnyEventObject => {
+  const wrappedEvent = {
+    ...currentEvent(ctx)!,
+  }
+  console.info(`unwrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
+
+  delete (wrappedEvent as any)[metaSymKey]
+  return wrappedEvent
+}
+
+const assignEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
+const assignEventNull = actions.assign<Context>({ event: _ => null }) as any
+
+const currentEvent        = (ctx: Context) => ctx.event
+const currentEventOrigin  = (ctx: Context) => metaOrigin(currentEvent(ctx))
+const currentEventType    = (ctx: Context) => currentEvent(ctx)!.type
+
+const condCurrentEventOriginIsChild = (ctx: Context) => {
   if (!ctx.event) {
     return false
   }
@@ -63,73 +114,22 @@ const condEventOriginIsChild = (ctx: Context) => {
   return currentEventOrigin(ctx) === (ctx.childRef as any).sessionId
 }
 
+const currentMessage       = (ctx: Context) => ctx.message
+const currentMessageOrigin = (ctx: Context) => metaOrigin(currentMessage(ctx))
+const currentMessageType   = (ctx: Context) => currentMessage(ctx)?.type
+
 const assignEnqueue = actions.assign<Context>({
-  messages: (ctx, _, { _event }) => [
-    ...ctx.messages,
-    wrapEvent(ctx.event!, _event.origin),
+  queue: ctx => [
+    ...ctx.queue,
+    ctx.event!,
   ],
 }) as any
 
-const size = (ctx: Context) => {
-  const n = ctx.messages.length - ctx.index
-  if (n < 0) {
-    throw new Error('size below zero')
-  }
-  return n
-}
+const assignDequeue = actions.assign<Context>({
+  message: ctx => ctx.queue.shift()!,
+}) as any
 
-const clear = (ctx: Context) => {
-  ctx.messages.length = 0
-  ctx.index = 0
-}
-
-const dequeue = (ctx: Context) => {
-  const message = headMessage(ctx)
-
-  if (!message) {
-    return undefined
-  }
-
-  ctx.index++
-
-  if (size(ctx) === 0) {
-    clear(ctx)
-  }
-
-  return message
-}
-
-const wrapEvent = (event: AnyEventObject, origin?: string) => {
-  const wrappedEvent = ({
-    ...event,
-    [metaSymKey]: {
-      origin,
-    },
-  })
-  console.info(`wrapEvent: ${wrappedEvent.type}@${wrappedEvent[metaSymKey].origin || ''}`)
-  return wrappedEvent
-}
-
-const unwrapEvent = (ctx: Context): AnyEventObject => {
-  const wrappedEvent = {
-    ...currentEvent(ctx),
-  }
-  console.info(`unwrapEvent: ${wrappedEvent.type}@${wrappedEvent[metaSymKey].origin || ''}`)
-
-  delete (wrappedEvent as any)[metaSymKey]
-  return wrappedEvent
-}
-
-const assignEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
-const assignEventNull = actions.assign<Context>({ event: _ => null }) as any
-
-const currentEvent        = (ctx: Context) => ctx.event!
-const currentEventOrigin  = (ctx: Context) => currentEvent(ctx)[metaSymKey].origin
-const currentEventType    = (ctx: Context) => currentEvent(ctx).type
-
-const headMessage       = (ctx: Context) => ctx.messages[ctx.index]!
-const headMessageOrigin = (ctx: Context) => headMessage(ctx)[metaSymKey].origin
-const headMessageType   = (ctx: Context) => headMessage(ctx).type
+const empty = (ctx: Context) => ctx.queue.length <= 0
 
 /**
  * Send the `currentEvent` as the repond to `currentMessage`
@@ -139,12 +139,12 @@ const respond = actions.choose<Context, AnyEventObject>([
     /**
      * 1. if head message has an origin, then respond the event to that origin
      */
-    cond: ctx => size(ctx) > 0 && !!headMessageOrigin(ctx),
+    cond: ctx => !!currentMessage(ctx) && !!currentMessageOrigin(ctx),
     actions: [
-      actions.log(ctx => `Mailbox contexts.responsd event ${currentEvent(ctx).type}@${currentEventOrigin(ctx)} to message ${headMessage(ctx)}@${headMessageOrigin(ctx)}`),
+      actions.log(ctx => `Mailbox contexts.responsd event ${currentEventType(ctx)}@${currentEventOrigin(ctx)} to message ${currentMessage(ctx)}@${currentMessageOrigin(ctx)}`),
       actions.send(
         ctx => unwrapEvent(ctx),
-        { to: ctx => headMessageOrigin(ctx)! },
+        { to: ctx => currentMessageOrigin(ctx)! },
       ),
     ],
   },
@@ -155,7 +155,7 @@ const respond = actions.choose<Context, AnyEventObject>([
     actions: [
       actions.log(ctx => `Mailbox contexts.responsd dead letter ${currentEventType(ctx)}@${currentEventOrigin(ctx)}`, 'Mailbox'),
       actions.send(ctx => Events.DEAD_LETTER(
-        currentEvent(ctx),
+        currentEvent(ctx)!,
         'head message origin is undefined',
       )),
     ],
@@ -163,26 +163,12 @@ const respond = actions.choose<Context, AnyEventObject>([
 ])
 
 /**
- * use JSON.parse() to prevent the initial context from being changed
+ * Send current message to child
  */
-const initialContext: () => Context = () => {
-  const context: Context = {
-    childRef : null,
-    event    : null,
-    messages : [],
-    index    : 0,
-  }
-  return JSON.parse(
-    JSON.stringify(
-      context,
-    ),
-  )
-}
-
-const sendHeadMessage = actions.send<Context, any>(
+const sendCurrentMessageToChild = actions.send<Context, any>(
   ctx => {
-    console.info(`Mailbox contexts.sendHeadMessage ${headMessageType(ctx)}@${headMessageOrigin(ctx)}`)
-    return headMessage(ctx)
+    console.info(`Mailbox contexts.sendCurrentMessage ${currentMessageType(ctx)}@${currentMessageOrigin(ctx)} to child`)
+    return currentMessage(ctx)!
   },
   {
     to: ctx => ctx.childRef!,
@@ -195,16 +181,16 @@ export {
   assignEvent,
   assignEventNull,
   assignEnqueue,
+  assignDequeue,
   initialContext,
-  condEventOriginIsChild,
+  condCurrentEventOriginIsChild,
   respond,
-  sendHeadMessage,
-  headMessage,
-  headMessageOrigin,
-  headMessageType,
+  sendCurrentMessageToChild,
+  currentMessage,
+  currentMessageOrigin,
+  currentMessageType,
   currentEvent,
   currentEventType,
   currentEventOrigin,
-  size,
-  dequeue,
+  empty,
 }
