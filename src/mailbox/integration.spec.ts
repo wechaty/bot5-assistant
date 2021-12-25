@@ -14,11 +14,11 @@ import {
   // spawn,
 }                   from 'xstate'
 
-import * as Mailbox from './mod.js'
-import * as DingDong from './ding-dong-machine.fixture.js'
+import * as Mailbox     from './mod.js'
+import * as DingDong    from './ding-dong-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 
-test('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
+test.only('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
   const ITEM_NUMBERS = [...Array(10).keys()]
 
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
@@ -58,7 +58,7 @@ test('Mailbox.address(DingDong.machine) as an actor should enforce process messa
   sandbox.restore()
 })
 
-test.only('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should proxy events', async t => {
+test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should proxy events', async t => {
   const ITEM_NUMBERS = [...Array(1).keys()]
 
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>

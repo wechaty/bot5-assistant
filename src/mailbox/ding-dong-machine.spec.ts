@@ -12,10 +12,10 @@ import {
   interpret,
 }                   from 'xstate'
 
-import * as DingDong from './ding-dong-machine.fixture.js'
-import * as Mailbox from './mod.js'
+import * as DingDong  from './ding-dong-machine.fixture.js'
+import * as Mailbox   from './mod.js'
 
-test('DingDong.machine one DING event', async t => {
+test('DingDong.machine process one DING event', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -76,7 +76,7 @@ test('DingDong.machine one DING event', async t => {
   sandbox.restore()
 })
 
-test('XState machine problem: only be able to process the first message when receiving multiple events at the same time', async t => {
+test('DingDong.machine process 2+ message at once: only be able to process the first message when receiving multiple events at the same time', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
