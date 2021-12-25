@@ -105,9 +105,9 @@ const address = <
             ],
             always: [
               {
-                cond: ctx => !contexts.empty(ctx),
+                cond: ctx => contexts.size(ctx) > 0,
                 actions: [
-                  actions.log(_ => 'states.queue.dispatching.always queue is nonempty, transition to delivering', 'Mailbox'),
+                  actions.log(ctx => `states.queue.dispatching.always queue size ${contexts.size(ctx)}, transition to delivering`, 'Mailbox'),
                   contexts.assignDequeue,
                 ],
                 target: States.delivering,
@@ -184,21 +184,22 @@ const address = <
               },
             },
           },
-          [States.deadLetter]: {
-            entry: [
-              actions.log((_, e) => `states.router.deadLetter.entry ${e.type}`, 'Mailbox'),
-              actions.send(ctx => Events.DEAD_LETTER(
-                contexts.currentEvent(ctx)!,
-                'dead letter',
-              )),
-            ],
-            always: States.idle,
-            exit: contexts.assignEventNull,
-          },
+          // no need a state: just send EVENT is enough
+          // [States.deadLetter]: {
+          //   entry: [
+          //     actions.log((_, e) => `states.router.deadLetter.entry ${e.type}`, 'Mailbox'),
+          //     actions.send(ctx => Events.DEAD_LETTER(
+          //       contexts.currentEvent(ctx)!,
+          //       'dead letter',
+          //     )),
+          //   ],
+          //   always: States.idle,
+          //   exit: contexts.assignEventNull,
+          // },
           [States.routing]: {
             entry: [
               actions.log((_, e, { _event }) => `states.router.routing.entry event: ${e.type}@${_event.origin || ''}`, 'Mailbox'),
-              actions.log(ctx => `states.router.routing.entry ctx.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)}`, 'Mailbox'),
+              actions.log(ctx => `states.router.routing.entry ctx.event: ${contexts.currentEventType(ctx)}@${contexts.currentEventOrigin(ctx)} ${JSON.stringify(ctx.event)}`, 'Mailbox'),
             ],
             /**
              * Proxy EVENTs rules:

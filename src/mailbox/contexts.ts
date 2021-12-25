@@ -136,7 +136,7 @@ const assignDequeue = actions.assign<Context>({
   message: ctx => ctx.queue.shift()!,
 }) as any
 
-const empty = (ctx: Context) => ctx.queue.length <= 0
+const size = (ctx: Context) => ctx.queue.length
 
 /**
  * Send the ctx.event (current event) to the origin (sender) of ctx.message (current message)
@@ -144,7 +144,7 @@ const empty = (ctx: Context) => ctx.queue.length <= 0
 const respond = actions.choose<Context, AnyEventObject>([
   {
     /**
-     * 1. if head message has an origin, then respond the event to that origin
+     * 1. if current message has an origin, then respond the event to that origin
      */
     cond: ctx => !!currentMessage(ctx) && !!currentMessageOrigin(ctx),
     actions: [
@@ -163,7 +163,7 @@ const respond = actions.choose<Context, AnyEventObject>([
       actions.log(ctx => `Mailbox contexts.responsd dead letter ${currentEventType(ctx)}@${currentEventOrigin(ctx)}`, 'Mailbox'),
       actions.send(ctx => Events.DEAD_LETTER(
         currentEvent(ctx)!,
-        'head message origin is undefined',
+        'current message origin is undefined',
       )),
     ],
   },
@@ -199,5 +199,5 @@ export {
   currentEvent,
   currentEventType,
   currentEventOrigin,
-  empty,
+  size,
 }

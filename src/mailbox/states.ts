@@ -25,8 +25,8 @@ enum States {
   outgoing = 'mailbox/outgoing',
   routing = 'mailbox/routing',
 
-  // Dead Letter
-  deadLetter = 'mailbox/deadLetter',
+  // Dead Letter: not need a states, just send EVENTs is enough
+  // deadLetter = 'mailbox/deadLetter',
 }
 
 export {

@@ -45,8 +45,8 @@ test('empty()', async t => {
   const NONEMPTY_CONTEXT = contexts.initialContext()
   NONEMPTY_CONTEXT.queue = [{} as any]
 
-  t.ok(contexts.empty(EMPTY_CONTEXT), 'should be empty when queue is empty')
-  t.notOk(contexts.empty(NONEMPTY_CONTEXT), 'should be not empty when queue has one message')
+  t.equal(contexts.size(EMPTY_CONTEXT), 0, 'should be empty when queue is empty')
+  t.equal(contexts.size(NONEMPTY_CONTEXT), 1, 'should be not empty when queue has one message')
 })
 
 test('condCurrentEventOriginIsChild', async t => {

@@ -17,8 +17,9 @@ import {
 import * as Mailbox     from './mod.js'
 import * as DingDong    from './ding-dong-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
+import { Events } from '../schemas/events.js'
 
-test.only('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
+test('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
   const ITEM_NUMBERS = [...Array(3).keys()]
 
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
@@ -49,12 +50,12 @@ test.only('Mailbox.address(DingDong.machine) as an actor should enforce process 
 
     DING_EVENT_LIST.forEach(e => interpreter.send(e))
 
-  // await sandbox.clock.runAllAsync()
-  // // eventList.forEach`(e => console.info(e))
+  await sandbox.clock.runAllAsync()
+  // eventList.forEach(e => console.info(e))
 
-  // t.same(eventList, DONG_EVENT_LIST, `should reply total ${DONG_EVENT_LIST.length} DONG events to ${DING_EVENT_LIST.length} DING events`)
+  t.same(eventList, DONG_EVENT_LIST, `should reply total ${DONG_EVENT_LIST.length} DONG events to ${DING_EVENT_LIST.length} DING events`)
 
-  // interpreter.stop()
+  interpreter.stop()
   sandbox.restore()
 })
 
@@ -124,15 +125,18 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
   sandbox.restore()
 })
 
-test('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process messages one by one', async t => {
-  const ITEM_NUMBERS = [...Array(10).keys()]
+test.only('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process messages one by one', async t => {
+  const ITEM_NUMBERS = [...Array(3).keys()]
 
   const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
     CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)),
   )
-  const COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
+  const EXPECTED_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
     CoffeeMaker.Events.COFFEE(String(i)),
   )
+  const EXPECTED_DEAD_LETTER_LIST = [
+    ...EXPECTED_COFFEE_EVENT_LIST,
+  ]
 
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
@@ -143,22 +147,28 @@ test('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process me
   )
 
   const eventList: AnyEventObject[] = []
+  const deadLetterList: AnyEventObject[] = []
+
   interpreter
     .onTransition(s => {
       if (s.event.type === CoffeeMaker.Types.COFFEE) {
         eventList.push(s.event)
+      } else if (s.event.type === Mailbox.Types.DEAD_LETTER) {
+        deadLetterList.push(s.event.payload.event)
       }
       console.info('Received event', s.event)
       console.info('Transition to', s.value)
     })
     .start()
 
-  interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
+  MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
+  // interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
-  // eventList.forEach`(e => console.info(e))
+  // eventList.forEach(e => console.info(e))
 
-  t.same(eventList, COFFEE_EVENT_LIST, `should reply total ${COFFEE_EVENT_LIST.length} COFFEE events to ${MAKE_ME_COFFEE_EVENT_LIST.length} MAKE_ME_COFFEE events`)
+  t.same(eventList, EXPECTED_COFFEE_EVENT_LIST, `should reply total ${EXPECTED_COFFEE_EVENT_LIST.length} COFFEE events to ${MAKE_ME_COFFEE_EVENT_LIST.length} MAKE_ME_COFFEE events`)
+  t.same(deadLetterList, EXPECTED_DEAD_LETTER_LIST, `should get every message as deadletters because they are no origin`)
 
   interpreter.stop()
   sandbox.restore()
