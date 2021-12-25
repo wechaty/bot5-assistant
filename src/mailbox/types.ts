@@ -1,10 +1,11 @@
 enum Types {
   BUSY     = 'mailbox/BUSY',
-  DISPATCH = 'mailbox/DISPATCH',
   IDLE     = 'mailbox/IDLE',
-  NOTIFY   = 'mailbox/NOTIFY',
+
+  MESSAGE   = 'mailbox/MESSAGE',
   RESET    = 'mailbox/RESET',
 
+  SEND        = 'mailbox/SEND',
   RECEIVE     = 'mailbox/RECEIVE',
   DEAD_LETTER = 'mailbox/DEAD_LETTER',
 }

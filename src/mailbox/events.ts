@@ -9,9 +9,9 @@ import type {
 import { Types }  from './types.js'
 
 const payloadBusy       = (info?: string) => ({ info })
-const payloadDispatch   = (info?: string) => ({ info })
+const payloadSend       = (info?: string) => ({ info })
 const payloadIdle       = (info?: string) => ({ info })
-const payloadNotify     = (info?: string) => ({ info })
+const payloadMessage    = (info?: string) => ({ info })
 const payloadReset      = (info?: string) => ({ info })
 
 const payloadReceive    = (info?: string) => ({ info })
@@ -26,8 +26,8 @@ const Events = {
   IDLE: createAction(Types.IDLE, payloadIdle)(),
 
   BUSY     : createAction(Types.BUSY, payloadBusy)(),
-  DISPATCH : createAction(Types.DISPATCH, payloadDispatch)(),
-  NOTIFY   : createAction(Types.NOTIFY, payloadNotify)(),
+  SEND : createAction(Types.SEND, payloadSend)(),
+  MESSAGE   : createAction(Types.MESSAGE, payloadMessage)(),
   RESET    : createAction(Types.RESET, payloadReset)(),
 
   RECEIVE     : createAction(Types.RECEIVE, payloadReceive)(),

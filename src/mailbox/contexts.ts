@@ -30,13 +30,13 @@ type AnyEventObjectExt = AnyEventObject & AnyEventObjectMeta
 
 interface Context {
   /**
-   * every event that the state machine received will be stored in `event`
+   * current event: every event that the state machine received will be stored in `event`
    *  1. system events (Mailbox.Types.*)
    *  2. user events (Child.Types.*)
    */
   event: null | AnyEventObjectExt
   /**
-   * only received events should sent to child, is a `message`
+   * current message: only received events should sent to child, is a `message`
    *
    * current message: actor module must only process one message one time
    *  a message will only start to be processed (send to the child)
@@ -44,13 +44,14 @@ interface Context {
    */
   message: null | AnyEventObjectExt
   /**
-   * `queue` is for storing the messages. message is an event: (external events, which should be proxyed to the child)
+   * message queue: `queue` is for storing the messages. message is an event: (external events, which should be proxyed to the child)
    *  1. neither sent from mailbox
    *  2. nor from child
    */
   queue: AnyEventObjectExt[]
   /**
-   * The child actor
+   * child machine
+   * TODO: remove childRef, just use a top invoke.src with id
    */
   childRef : null | ActorRef<any>
 }
@@ -118,6 +119,9 @@ const currentMessage       = (ctx: Context) => ctx.message
 const currentMessageOrigin = (ctx: Context) => metaOrigin(currentMessage(ctx))
 const currentMessageType   = (ctx: Context) => currentMessage(ctx)?.type
 
+/**
+ * enqueue ctx.event to ctx.queue as a new message
+ */
 const assignEnqueue = actions.assign<Context>({
   queue: ctx => [
     ...ctx.queue,
@@ -125,6 +129,9 @@ const assignEnqueue = actions.assign<Context>({
   ],
 }) as any
 
+/**
+ * dequeue ctx.queue to ctx.message (current message)
+ */
 const assignDequeue = actions.assign<Context>({
   message: ctx => ctx.queue.shift()!,
 }) as any
@@ -132,7 +139,7 @@ const assignDequeue = actions.assign<Context>({
 const empty = (ctx: Context) => ctx.queue.length <= 0
 
 /**
- * Send the `currentEvent` as the repond to `currentMessage`
+ * Send the ctx.event (current event) to the origin (sender) of ctx.message (current message)
  */
 const respond = actions.choose<Context, AnyEventObject>([
   {
@@ -163,7 +170,7 @@ const respond = actions.choose<Context, AnyEventObject>([
 ])
 
 /**
- * Send current message to child
+ * Send ctx.message (current message) to child
  */
 const sendCurrentMessageToChild = actions.send<Context, any>(
   ctx => {

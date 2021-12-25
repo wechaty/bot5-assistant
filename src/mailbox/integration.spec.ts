@@ -19,7 +19,7 @@ import * as DingDong    from './ding-dong-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 
 test.only('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
-  const ITEM_NUMBERS = [...Array(10).keys()]
+  const ITEM_NUMBERS = [...Array(3).keys()]
 
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
     DingDong.Events.DING(i),
@@ -42,19 +42,19 @@ test.only('Mailbox.address(DingDong.machine) as an actor should enforce process 
       if (s.event.type === DingDong.Types.DONG) {
         eventList.push(s.event)
       }
-      // console.info('Received event', s.event)
-      // console.info('Transition to', s.value)
+      console.info('Received event', s.event)
+      console.info('Transition to', s.value)
     })
     .start()
 
-  interpreter.send(DING_EVENT_LIST)
+    DING_EVENT_LIST.forEach(e => interpreter.send(e))
 
-  await sandbox.clock.runAllAsync()
-  // eventList.forEach`(e => console.info(e))
+  // await sandbox.clock.runAllAsync()
+  // // eventList.forEach`(e => console.info(e))
 
-  t.same(eventList, DONG_EVENT_LIST, `should reply total ${DONG_EVENT_LIST.length} DONG events to ${DING_EVENT_LIST.length} DING events`)
+  // t.same(eventList, DONG_EVENT_LIST, `should reply total ${DONG_EVENT_LIST.length} DONG events to ${DING_EVENT_LIST.length} DING events`)
 
-  interpreter.stop()
+  // interpreter.stop()
   sandbox.restore()
 })
 
