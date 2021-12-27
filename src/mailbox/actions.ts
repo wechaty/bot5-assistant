@@ -4,8 +4,8 @@ import {
   Interpreter,
 }                 from 'xstate'
 
-import { Events } from './events.js'
-import { isMailboxType } from './types.js'
+import { Events }         from './events.js'
+import { isMailboxType }  from './types.js'
 
 const sendChildProxy = (childId: string) => {
   let childSessionId: string | undefined

@@ -42,16 +42,21 @@ test('Mailbox.address() transition nextState smoke testing', async t => {
   const mailbox = address(Baby.machine)
 
   // console.info('initialState:', actor.initialState)
+  const EXPECTED_EVENT = Baby.events.SLEEP(10)
 
-  let nextState = mailbox.transition(mailbox.initialState, Baby.events.SLEEP(10))
+  let nextState = mailbox.transition(mailbox.initialState, EXPECTED_EVENT)
   // console.info(nextState.actions)
-  t.ok(nextState.actions.some(a => {
-    return a.type === 'xstate.send' && a['event'].type === Types.NEW_MESSAGE
-  }), 'should have triggered NOTIFY event by sending IDLE event')
+  t.same(
+    nextState.actions
+      .filter(a => a.type === 'xstate.send' && a['event'].type === Types.ENQUEUE)
+      .map(a => a['event'].payload.message),
+    [EXPECTED_EVENT],
+    'should have triggered ENQUEUE event by sending SLEEP event',
+  )
 
   nextState = mailbox.transition(nextState, Baby.events.SLEEP(10))
-  t.equal(nextState.context.queue.length, 2, 'should have 2 event in queue after sent two SLEEP event')
-  t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
+  // t.equal(nextState.context.queue.length, 2, 'should have 2 event in queue after sent two SLEEP event')
+  // t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
 })
 
 test('Mailbox.address interpret smoke testing: 1 event', async t => {
@@ -71,7 +76,7 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
 
   t.same(stateList[stateList.length - 1], {
     router  : States.listening,
-    postman : States.standby,
+    queue : States.standby,
     child   : States.idle,
   }, 'should stay at idle state after start')
   t.same(eventList.map(e => e.type), [
@@ -87,14 +92,14 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   let snapshot = interpreter.getSnapshot()
   t.same(stateList[stateList.length - 1], {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
   t.same(eventList.map(e => e.type), [
     Baby.Types.SLEEP,
-    Types.NEW_MESSAGE,
+    Types.ENQUEUE,
     Types.DISPATCH,
-    Types.CHILD_BUSY,
+    Types.DEQUEUE,
     Baby.Types.REST,
     Baby.Types.DREAM,
     Types.DEAD_LETTER,
@@ -122,7 +127,7 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
   t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue before wakeup')
@@ -145,7 +150,7 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.idle,
   }, 'should be state.busy after received the 1st EVENT sleep')
   t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after sleep')
@@ -199,14 +204,14 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value,  {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
   t.same(eventList.map(e => e.type), [
     Baby.Types.SLEEP,
-    Types.NEW_MESSAGE,
+    Types.ENQUEUE,
     Types.DISPATCH,
-    Types.CHILD_BUSY,
+    Types.DEQUEUE,
     Baby.Types.REST,
     Baby.Types.DREAM,
     Types.DEAD_LETTER,
@@ -218,20 +223,20 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received the 2nd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NOTIFY after received the 2nd EVENT sleep')
+  t.equal(snapshot.event.type, Types.ENQUEUE, 'should trigger mailbox.events.NOTIFY after received the 2nd EVENT sleep')
   t.equal(snapshot.context.queue.length, 1, 'should have 1 event in queue after received the 2nd EVENT sleep')
 
   interpreter.send(Baby.events.SLEEP(30))
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received the 3rd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NOTIFY after received the 3rd EVENT sleep')
+  t.equal(snapshot.event.type, Types.ENQUEUE, 'should trigger mailbox.events.NOTIFY after received the 3rd EVENT sleep')
   t.equal(snapshot.context.queue.length, 2, 'should have 1 event in queue after received the 3rd EVENT sleep')
 
   /**
@@ -242,7 +247,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value,  {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after 10 ms')
   t.same(eventList.map(e => e.type), [
@@ -252,7 +257,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
-    Types.CHILD_BUSY,
+    Types.DEQUEUE,
     Baby.Types.PLAY,
     Types.DEAD_LETTER,
     Baby.Types.REST,
@@ -261,7 +266,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     Types.DEAD_LETTER,
   ], 'should right enter 2nd SLEEP after 10 ms')
   // console.info('#### queue:', snapshot.context.queue)
-  t.equal(snapshot.context.queue.length, 1, 'should have 1 event in queue after 10 ms')
+  t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after 10 ms')
 
   /**
    * Finish 2nd
@@ -271,7 +276,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busyafter another 20 ms')
   t.same(eventList.map(e => e.type), [
@@ -281,7 +286,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
-    Types.CHILD_BUSY,
+    Types.DEQUEUE,
     Baby.Types.PLAY,
     Types.DEAD_LETTER,
     Baby.Types.REST,
@@ -298,7 +303,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.idle,
   }, 'should be state.idle after another 30 ms')
   t.equal(snapshot.event.type, Types.DEAD_LETTER, 'should wakeup because there is no more SLEEP events after another 30 ms')
@@ -338,10 +343,10 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after received 3 sleep EVENTs')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger event NOTIFY after received 3 sleep EVENTs')
+  t.equal(snapshot.event.type, Types.ENQUEUE, 'should trigger event NOTIFY after received 3 sleep EVENTs')
   t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after received 3 sleep EVENTs')
 
   eventList.length = 0
@@ -349,7 +354,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after 1st 10 ms')
   t.same(
@@ -365,14 +370,14 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     ],
     'should enter next SLEEP(DREAM) after 1st 10 ms',
   )
-  t.equal(snapshot.context.queue.length, 1, 'should have 1 event in queue after 1st 10 ms')
+  t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after 1st 10 ms')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.busy,
   }, 'should be state.busy after 2nd 10 ms')
   t.same(
@@ -395,7 +400,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   snapshot = interpreter.getSnapshot()
   t.same(snapshot.value, {
     router  : States.listening,
-    postman : States.standby,
+    queue   : States.standby,
     child   : States.idle,
   }, 'should be state.idle after 3rd 10 ms')
   t.same(

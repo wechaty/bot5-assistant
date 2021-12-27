@@ -1,13 +1,23 @@
 const CHILD_MACHINE_ID = 'mailbox-address-child-machind-id'
 
 enum Types {
-  CHILD_BUSY = 'mailbox/CHILD_BUSY',
+  /**
+   * sub state types of: child
+   */
   CHILD_IDLE = 'mailbox/CHILD_IDLE',
 
-  NEW_MESSAGE = 'mailbox/NEW_MESSAGE',
-  DISPATCH    = 'mailbox/DISPATCH',
+  /**
+   * types of: debug
+   */
   DEAD_LETTER = 'mailbox/DEAD_LETTER',
   RESET       = 'mailbox/RESET',
+
+  /**
+   * sub state types of: queue
+   */
+  ENQUEUE  = 'mailbox/ENQUEUE',
+  DEQUEUE  = 'mailbox/DEQUEUE',
+  DISPATCH = 'mailbox/DISPATCH',
 }
 
 /**
@@ -21,7 +31,7 @@ enum Types {
  *
  * @link https://proto.actor/docs/mailboxes/
  */
-const isMailboxType = (type?: null | string): boolean => Object.values<string>(Types).includes(type || '')
+const isMailboxType = (type?: null | string): boolean => !!type && Object.values<string>(Types).includes(type)
 
 export {
   Types,

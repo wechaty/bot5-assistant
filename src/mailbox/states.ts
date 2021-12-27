@@ -24,6 +24,8 @@ enum States {
    */
   dispatching = 'mailbox/dispatching',
   delivering  = 'mailbox/dilivering',
+  dequeuing   = 'mailbox/dequeuing',
+  checking = 'mailbox/checking',
 
   responding = 'mailbox/responding',
 

@@ -51,11 +51,7 @@ interface Context {
    *  2. nor from child
    */
   queue: AnyEventObjectExt[]
-  // /**
-  //  * child machine
-  //  * TODO: remove childRef, just use a top invoke.src with id
-  //  */
-  // childRef : null | ActorRef<any>
+  index: number // current message index in queue
 }
 
 /**
@@ -65,6 +61,7 @@ interface Context {
   const context: Context = {
     // childRef : null,
     queue : [],
+    index: 0,
     message  : null,
     event    : null,
   }
@@ -90,7 +87,7 @@ const wrapEvent = (event: AnyEventObject, origin?: string) => {
 
 const unwrapEvent = (ctx: Context): AnyEventObject => {
   const wrappedEvent = {
-    ...currentEvent(ctx)!,
+    ...routingEvent(ctx)!,
   }
   console.info(`unwrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
 
@@ -98,12 +95,12 @@ const unwrapEvent = (ctx: Context): AnyEventObject => {
   return wrappedEvent
 }
 
-const assignEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
-const assignEventNull = actions.assign<Context>({ event: _ => null }) as any
+const assignRoutingEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
+const assignRoutingEventNull = actions.assign<Context>({ event: _ => null }) as any
 
-const currentEvent        = (ctx: Context) => ctx.event
-const currentEventOrigin  = (ctx: Context) => metaOrigin(currentEvent(ctx))
-const currentEventType    = (ctx: Context) => currentEvent(ctx)!.type
+const routingEvent        = (ctx: Context) => ctx.event
+const routingEventOrigin  = (ctx: Context) => metaOrigin(routingEvent(ctx))
+const routingEventType    = (ctx: Context) => routingEvent(ctx)?.type
 
 const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   const child = children[CHILD_MACHINE_ID] as undefined | Interpreter<any>
@@ -125,46 +122,54 @@ const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   return child.sessionId
 }
 
-const condCurrentEventOriginIsChild = (ctx: Context, children: Record<string, ActorRef<any, any>>) =>
-  currentEventOrigin(ctx) === childSessionId(children)
+const condRoutingEventOriginIsChild = (ctx: Context, children: Record<string, ActorRef<any, any>>) =>
+  routingEventOrigin(ctx) === childSessionId(children)
 
-const currentMessage       = (ctx: Context) => ctx.message
-const currentMessageOrigin = (ctx: Context) => metaOrigin(currentMessage(ctx))
-const currentMessageType   = (ctx: Context) => currentMessage(ctx)?.type
+const childMessage       = (ctx: Context) => ctx.message
+const childMessageOrigin = (ctx: Context) => metaOrigin(childMessage(ctx))
+const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
 
 /**
- * enqueue ctx.event to ctx.queue as a new message
+ * enqueue message to ctx.queue as a new message
  */
 const assignEnqueue = actions.assign<Context>({
-  queue: ctx => [
+  queue: (ctx, e) => [
     ...ctx.queue,
-    ctx.event!,
+    (e as ReturnType<typeof Events.ENQUEUE>).payload.message,
   ],
 }) as any
 
 /**
- * dequeue ctx.queue to ctx.message (current message)
+ * dequeue ctx.queue by increasing index by 1 (current message pointer move forward)
  */
 const assignDequeue = actions.assign<Context>({
-  message: ctx => ctx.queue.shift()!,
+  // message: ctx => ctx.queue.shift()!,
+  index: ctx => ctx.index + 1,
 }) as any
 
-const size = (ctx: Context) => ctx.queue.length
+const assignEmptyQueue = actions.assign<Context>({
+  queue: _ => [],
+  index: _ => 0,
+}) as any
 
+const queueSize     = (ctx: Context) => ctx.queue.length - ctx.index
+const queueMessage  = (ctx: Context) => ctx.queue[ctx.index]
+const queueMessageType = (ctx: Context) => ctx.queue[ctx.index]?.type
+const queueMessageOrigin = (ctx: Context) => metaOrigin(ctx.queue[ctx.index])
 /**
  * Send the ctx.event (current event) to the origin (sender) of ctx.message (current message)
  */
-const respond = actions.choose<Context, AnyEventObject>([
+const respondChildMessage = actions.choose<Context, AnyEventObject>([
   {
     /**
      * 1. if current message has an origin, then respond the event to that origin
      */
-    cond: ctx => !!currentMessage(ctx) && !!currentMessageOrigin(ctx),
+    cond: ctx => !!childMessage(ctx) && !!childMessageOrigin(ctx),
     actions: [
-      actions.log(ctx => `Mailbox contexts.responsd event ${currentEventType(ctx)}@${currentEventOrigin(ctx)} to message ${currentMessage(ctx)}@${currentMessageOrigin(ctx)}`),
+      actions.log(ctx => `Mailbox contexts.responsd event ${routingEventType(ctx)}@${routingEventOrigin(ctx)} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`),
       actions.send(
         ctx => unwrapEvent(ctx),
-        { to: ctx => currentMessageOrigin(ctx)! },
+        { to: ctx => childMessageOrigin(ctx)! },
       ),
     ],
   },
@@ -173,42 +178,76 @@ const respond = actions.choose<Context, AnyEventObject>([
    */
   {
     actions: [
-      actions.log(ctx => `Mailbox contexts.responsd dead letter ${currentEventType(ctx)}@${currentEventOrigin(ctx)}`, 'Mailbox'),
+      actions.log(ctx => `Mailbox contexts.responsd dead letter ${routingEventType(ctx)}@${routingEventOrigin(ctx)}`, 'Mailbox'),
       actions.send(ctx => Events.DEAD_LETTER(
-        currentEvent(ctx)!,
+        routingEvent(ctx)!,
         'current message origin is undefined',
       )),
     ],
   },
 ])
 
+const assignChildMessage = actions.assign<Context>({
+  message: (_, e) => {
+    return (e as ReturnType<typeof Events.DEQUEUE>).payload.message
+  },
+}) as any
+
 /**
  * Send ctx.message (current message) to child
  */
-const sendCurrentMessageToChild = actions.send<Context, any>(
+const sendChildMessage = actions.send<Context, any>(
   ctx => {
-    console.info(`Mailbox contexts.sendCurrentMessage ${currentMessageType(ctx)}@${currentMessageOrigin(ctx)} to child`)
-    return currentMessage(ctx)!
+    console.info(`Mailbox contexts.sendCurrentMessage ${childMessageType(ctx)}@${childMessageOrigin(ctx)} to child`)
+    return childMessage(ctx)!
   },
   { to: CHILD_MACHINE_ID },
 ) as any
 
 export {
   type Context,
+  type AnyEventObjectExt,
   metaSymKey,
-  assignEvent,
-  assignEventNull,
+  initialContext,
+  metaOrigin,
+  /**
+   * actions.assign<Context>({...})
+   */
+  assignRoutingEvent,
+  assignRoutingEventNull,
   assignEnqueue,
   assignDequeue,
-  initialContext,
-  condCurrentEventOriginIsChild,
-  respond,
-  sendCurrentMessageToChild,
-  currentMessage,
-  currentMessageOrigin,
-  currentMessageType,
-  currentEvent,
-  currentEventType,
-  currentEventOrigin,
-  size,
-}
+  assignEmptyQueue,
+  assignChildMessage,
+  /**
+   * actions.respond(...)
+   */
+  respondChildMessage,
+  /**
+   * actions.send(...)
+   */
+  sendChildMessage,
+  /**
+   * ctx.message helpers
+   */
+  childMessage,
+  childMessageOrigin,
+  childMessageType,
+  /**
+   * ctx.event helpers
+   */
+  routingEvent,
+  routingEventType,
+  routingEventOrigin,
+  /**
+   * ctx.queue helpers
+   */
+  queueSize,
+  queueMessage,
+  queueMessageType,
+  queueMessageOrigin,
+  /**
+   * cond: ...
+   */
+   condRoutingEventOriginIsChild,
+  }
