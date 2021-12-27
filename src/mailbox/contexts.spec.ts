@@ -4,8 +4,10 @@
 import {
   test,
 }                   from 'tstest'
+import type { ActorRef } from 'xstate'
 
 import * as contexts from './contexts.js'
+import { CHILD_MACHINE_ID } from './types.js'
 
 test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
@@ -58,12 +60,14 @@ test('condCurrentEventOriginIsChild', async t => {
       origin: SESSION_ID,
     },
   } as any
-  context.childRef = {
-    sessionId: SESSION_ID,
-  } as any
+  const children: Record<string, ActorRef<any, any>> = {
+    [CHILD_MACHINE_ID]: {
+      sessionId: SESSION_ID,
+    } as any as ActorRef<any, any>,
+  }
 
-  t.ok(contexts.condCurrentEventOriginIsChild(context), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condCurrentEventOriginIsChild(context, children), 'should return true if the event origin is the child session id')
 
   context.event![contexts.metaSymKey].origin = undefined
-  t.notOk(contexts.condCurrentEventOriginIsChild(context), 'should return false if the event origin is undefined')
+  t.notOk(contexts.condCurrentEventOriginIsChild(context, children), 'should return false if the event origin is undefined')
 })
