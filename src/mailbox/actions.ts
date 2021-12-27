@@ -53,7 +53,7 @@ const sendChildProxy = (childId: string) => {
   ])
 }
 
-const receive = (info: string) => actions.choose([
+const sendParentIdle = (info: string) => actions.choose([
   {
     /**
      * If the transition event is a Mailbox type events (system messages):
@@ -62,7 +62,7 @@ const receive = (info: string) => actions.choose([
      */
     cond: (_, e) => isMailboxType(e.type),
     actions: [
-      actions.log((_, e) => `actions.receive skip for MailboxType ${e.type}`, 'Mailbox'),
+      actions.log((_, e) => `actions.sendParentIdle skip for MailboxType ${e.type}`, 'Mailbox'),
     ],
   },
   {
@@ -70,14 +70,14 @@ const receive = (info: string) => actions.choose([
      * send RECEIVE event to the mailbox for receiving new messages
      */
     actions: [
-      actions.log((_, e) => `actions.receive triggered by ${e.type}`, 'Mailbox'),
-      actions.sendParent(_ => Events.RECEIVE(info)),
+      actions.log((_, e) => `actions.sendParentIdle triggered by ${e.type}`, 'Mailbox'),
+      actions.sendParent(_ => Events.CHILD_IDLE(info)),
     ],
   },
 ]) as any
 
 const Actions = {
-  receive,
+  sendParentIdle,
   sendChildProxy,
 }
 

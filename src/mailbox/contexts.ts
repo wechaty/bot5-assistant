@@ -9,9 +9,11 @@ import {
   AnyEventObject,
   SCXML,
   ActorRef,
+  Interpreter,
 }                   from 'xstate'
 
 import { Events } from './events.js'
+import { CHILD_MACHINE_ID } from './types.js'
 
 const metaSymKey = Symbol('meta')
 
@@ -49,11 +51,11 @@ interface Context {
    *  2. nor from child
    */
   queue: AnyEventObjectExt[]
-  /**
-   * child machine
-   * TODO: remove childRef, just use a top invoke.src with id
-   */
-  childRef : null | ActorRef<any>
+  // /**
+  //  * child machine
+  //  * TODO: remove childRef, just use a top invoke.src with id
+  //  */
+  // childRef : null | ActorRef<any>
 }
 
 /**
@@ -61,7 +63,7 @@ interface Context {
  */
  const initialContext: () => Context = () => {
   const context: Context = {
-    childRef : null,
+    // childRef : null,
     queue : [],
     message  : null,
     event    : null,
@@ -103,17 +105,28 @@ const currentEvent        = (ctx: Context) => ctx.event
 const currentEventOrigin  = (ctx: Context) => metaOrigin(currentEvent(ctx))
 const currentEventType    = (ctx: Context) => currentEvent(ctx)!.type
 
-const condCurrentEventOriginIsChild = (ctx: Context) => {
-  if (!ctx.event) {
-    return false
-  }
-  // Huan(202112): TODO: remove any
-  if (!ctx.childRef || !(ctx.childRef as any).sessionId) {
-    return false
+const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
+  const child = children[CHILD_MACHINE_ID] as undefined | Interpreter<any>
+  if (!child) {
+    throw new Error('can not found child id ' + CHILD_MACHINE_ID)
   }
 
-  return currentEventOrigin(ctx) === (ctx.childRef as any).sessionId
+  if (!child.sessionId) {
+    /**
+     * Huan(202112):
+     *
+     * When we are not using the interpreter, we can not get the sessionId
+     * for example, we are usint the `machine.transition(event)`
+     */
+    // console.error(new Error('can not found child sessionId from ' + CHILD_MACHINE_ID))
+    return undefined
+  }
+
+  return child.sessionId
 }
+
+const condCurrentEventOriginIsChild = (ctx: Context, children: Record<string, ActorRef<any, any>>) =>
+  currentEventOrigin(ctx) === childSessionId(children)
 
 const currentMessage       = (ctx: Context) => ctx.message
 const currentMessageOrigin = (ctx: Context) => metaOrigin(currentMessage(ctx))
@@ -177,9 +190,7 @@ const sendCurrentMessageToChild = actions.send<Context, any>(
     console.info(`Mailbox contexts.sendCurrentMessage ${currentMessageType(ctx)}@${currentMessageOrigin(ctx)} to child`)
     return currentMessage(ctx)!
   },
-  {
-    to: ctx => ctx.childRef!,
-  },
+  { to: CHILD_MACHINE_ID },
 ) as any
 
 export {

@@ -50,7 +50,7 @@ function validateInitializing (
 
   const EXPECTED_INIT_EVENT_TYPES = [
     'xstate.init',
-    Mailbox.Types.RECEIVE,
+    Mailbox.Types.CHILD_IDLE,
   ]
   // console.info(eventList)
   const actualInitEvents = eventList
@@ -80,8 +80,8 @@ function validateReceiveFormOtherEvent (
 
   const actualIdleEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.RECEIVE)
-  const EXPECTED_RECEIVE_EVENTS = [Mailbox.Types.RECEIVE]
+    .filter(t => t === Mailbox.Types.CHILD_IDLE)
+  const EXPECTED_RECEIVE_EVENTS = [Mailbox.Types.CHILD_IDLE]
   assert.deepEqual(
     actualIdleEvents,
     EXPECTED_RECEIVE_EVENTS,
@@ -105,11 +105,11 @@ function validateReceiveFormOtherEvents (
     ))
   const EXPECTED_RECEIVE_EVENTS = Array
     .from({ length: TOTAL_EVENT_NUM })
-    .fill(Mailbox.Types.RECEIVE)
+    .fill(Mailbox.Types.CHILD_IDLE)
   interpreter.send(randomEvents)
   const actualIdelEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.RECEIVE)
+    .filter(t => t === Mailbox.Types.CHILD_IDLE)
   assert.deepEqual(actualIdelEvents, EXPECTED_RECEIVE_EVENTS, `should send ${TOTAL_EVENT_NUM} RECEIVE events to parent when it has finished process ${TOTAL_EVENT_NUM} of other events`)
 }
 

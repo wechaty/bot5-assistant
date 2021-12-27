@@ -2,9 +2,18 @@ enum States {
   /**
    * Idle Time – Definition, Causes, And How To Reduce It
    *  @see https://limblecmms.com/blog/idle-time/
+   *
+   * Note: idle & busy are only for Async mode.
+   *  non-async mode should use listening/standby (see below)
    */
   idle = 'mailbox/idle',
   busy = 'mailbox/busy',
+
+  /**
+   * Non-async mode should use listening/standby
+   */
+  listening = 'mailbox/listening',
+  standby   = 'mailbox/standby',
 
   /**
    * Dispatch v.s. Deliver
@@ -23,10 +32,7 @@ enum States {
 
   incoming = 'mailbox/incoming',
   outgoing = 'mailbox/outgoing',
-  routing = 'mailbox/routing',
-
-  // Dead Letter: not need a states, just send EVENTs is enough
-  // deadLetter = 'mailbox/deadLetter',
+  routing  = 'mailbox/routing',
 }
 
 export {

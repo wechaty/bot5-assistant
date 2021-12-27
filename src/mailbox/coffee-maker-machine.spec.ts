@@ -62,7 +62,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList.map(e => e.type),
     [
       'xstate.init',
-      Mailbox.Types.RECEIVE,
+      Mailbox.Types.CHILD_IDLE,
       CoffeeMaker.Types.MAKE_ME_COFFEE,
     ],
     'should have received init/RECEIVE/MAKE_ME_COFFEE events after initializing',
@@ -74,7 +74,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList,
     [
       CoffeeMaker.Events.COFFEE(CUSTOMER),
-      Mailbox.Events.RECEIVE('coffee-maker'),
+      Mailbox.Events.CHILD_IDLE('coffee-maker'),
     ],
     'should have received COFFEE/RECEIVE events after runAllAsync',
   )

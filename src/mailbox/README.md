@@ -14,6 +14,24 @@ A XState wrapper to implement Mailbox of Actor Model.
 > if you send 3 messages to the same actor, it will just execute one at a time.  
 > &mdash; [The actor model in 10 minutes - Actors have mailboxes](https://www.brianstorti.com/the-actor-model/)
 
+## Quick Start
+
+1. `import * as Mailbox from 'mailbox'`
+1. Add `actions.sendParent(Mailbox.RECEIVE())` to the `entry` of the idle state of your machine, to let the Mailbox continue sending new messages from other actors.
+1. Use `actions.sendParent('YOUR_EVENT')` to response messages to other actors.
+1. Use `const actor = Mailbox.address(yourMachine)` to create your async actor with mailbox address. The mailbox address is a parent XState machine which invoked your machine as child.
+
+```ts
+import * as Mailbox from 'mailbox'
+
+const actor = Mailbox.address(yourMachine)
+// just use it as a standard XState machine
+```
+
+Notes:
+
+1. Your machine must not use any of `Mailbox.Events.*` excepts `Mailbox.Events.RECEIVE` because they are internal used by the Mailbox and will never send out.
+
 ## Motivation
 
 I'm building assistant chatbot for Wechaty community, and I want to use actor model based on XState to implement it.
@@ -190,6 +208,24 @@ The Ask Pattern allows us to implement the interactions that need to associate a
 
 The Mailbox implementes the Ask Pattern by default. It will response to the original actor sender when there's any response events from the child actor.
 
+### The `Event` v.s. `Message`
+
+- "The difference being that messages are directed, events are not — a message has a clear addressable recipient while an event just happen for others (0-N) to observe it." ([link](https://stackoverflow.com/a/31706206/1123955))
+- "The difference lies in that with MessageQueues it's typical that the sender requires a response. With an EventQueue this is not necessary." ([link](https://stackoverflow.com/a/65209807/1123955))
+- "A Message is some data sent to a specific address; An Event is some data emitted from a component for anyone listening to consume." ([link](https://developer.lightbend.com/docs/akka-platform-guide/concepts/message-driven-event-driven.html#message_vs_event))
+
+## Known Issues
+
+### Never send batch events
+
+Never use `interpreter.send([...eventList])` to send multiple events. It will cause the mailbox to behavior not right (only the first event will be delivered).
+
+Use `eventList.forEach(e => interpreter.send(e))` to send event list.
+
+The reason is that internally `Mailbox` have three parallel states and they will run into race condition in batch-event mode.
+
+See: [XState Docs - Batched Events](https://xstate.js.org/docs/guides/interpretation.html#batched-events)
+
 ## History
 
 ### main
@@ -231,9 +267,12 @@ Great thanks to [@alxhotel](https://github.com/alxhotel) who owned the great NPM
 
 ## Author
 
-[Huan LI](https://github.com/huan) ([李卓桓](http://linkedin.com/in/zixia)), Author of Wechaty, [Microsoft Regional Director](https://rd.microsoft.com/en-us/huan-li), zixia@zixia.net
-
-[![Profile of Huan LI (李卓桓) on StackOverflow](https://stackexchange.com/users/flair/265499.png)](https://stackexchange.com/users/265499)
+[Huan LI](http://linkedin.com/in/zixia) is a serial entrepreneur, active angel investor with strong technology background.
+Huan is a widely recognized technical leader on conversational AI and open source cloud architectures.
+He co-authored guide books "Chatbot 0 to 1" and "Concise Handbook of TensorFlow 2"
+and has been recognized both by Microsoft and Google as MVP/GDE.
+Huan is a Chatbot Architect and speaks regularly at technical conferences around the world.
+Find out more about his work at <https://github.com/huan>
 
 ## Copyright & License
 

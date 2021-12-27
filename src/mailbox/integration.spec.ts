@@ -161,8 +161,8 @@ test.only('Mailbox.address(CoffeeMaker.machine) as an actor should enforce proce
     })
     .start()
 
-  MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
-  // interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
+  // MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
+  interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))

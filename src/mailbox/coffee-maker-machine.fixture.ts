@@ -35,7 +35,7 @@ const machine = createMachine<Context, Event>({
   initial: States.idle,
   states: {
     [States.idle]: {
-      entry: Mailbox.Actions.receive('coffee-maker'),
+      entry: Mailbox.Actions.sendParentIdle('coffee-maker'),
       on: {
         [Types.MAKE_ME_COFFEE]: {
           target: States.gettingCup,

@@ -1,13 +1,13 @@
+const CHILD_MACHINE_ID = 'mailbox-address-child-machind-id'
+
 enum Types {
-  BUSY     = 'mailbox/BUSY',
-  IDLE     = 'mailbox/IDLE',
+  CHILD_BUSY = 'mailbox/CHILD_BUSY',
+  CHILD_IDLE = 'mailbox/CHILD_IDLE',
 
-  MESSAGE   = 'mailbox/MESSAGE',
-  RESET    = 'mailbox/RESET',
-
-  SEND        = 'mailbox/SEND',
-  RECEIVE     = 'mailbox/RECEIVE',
+  NEW_MESSAGE = 'mailbox/NEW_MESSAGE',
+  DISPATCH    = 'mailbox/DISPATCH',
   DEAD_LETTER = 'mailbox/DEAD_LETTER',
+  RESET       = 'mailbox/RESET',
 }
 
 /**
@@ -26,4 +26,5 @@ const isMailboxType = (type?: null | string): boolean => Object.values<string>(T
 export {
   Types,
   isMailboxType,
+  CHILD_MACHINE_ID,
 }

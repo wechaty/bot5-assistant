@@ -8,13 +8,12 @@ import type {
 
 import { Types }  from './types.js'
 
-const payloadBusy       = (info?: string) => ({ info })
-const payloadSend       = (info?: string) => ({ info })
-const payloadIdle       = (info?: string) => ({ info })
-const payloadMessage    = (info?: string) => ({ info })
+const payloadChildBusy  = (info?: string) => ({ info })
+const payloadDispatch   = (info?: string) => ({ info })
+const payloadNewMessage = (info?: string) => ({ info })
 const payloadReset      = (info?: string) => ({ info })
 
-const payloadReceive    = (info?: string) => ({ info })
+const payloadChildIdle  = (info?: string) => ({ info })
 const payloadDeadLetter = (event: AnyEventObject, info?: string,) => ({ event, info })
 
 const Events = {
@@ -23,14 +22,13 @@ const Events = {
    *  it must be send whenever the child machine is idle.
    *  so that the Mailbox can be able to send messages to the child machine
    */
-  IDLE: createAction(Types.IDLE, payloadIdle)(),
+  CHILD_IDLE: createAction(Types.CHILD_IDLE, payloadChildIdle)(),
 
-  BUSY     : createAction(Types.BUSY, payloadBusy)(),
-  SEND : createAction(Types.SEND, payloadSend)(),
-  MESSAGE   : createAction(Types.MESSAGE, payloadMessage)(),
-  RESET    : createAction(Types.RESET, payloadReset)(),
+  CHILD_BUSY  : createAction(Types.CHILD_BUSY, payloadChildBusy)(),
+  DISPATCH    : createAction(Types.DISPATCH, payloadDispatch)(),
+  NEW_MESSAGE : createAction(Types.NEW_MESSAGE, payloadNewMessage)(),
 
-  RECEIVE     : createAction(Types.RECEIVE, payloadReceive)(),
+  RESET       : createAction(Types.RESET, payloadReset)(),
   DEAD_LETTER : createAction(Types.DEAD_LETTER, payloadDeadLetter)(),
 } as const
 

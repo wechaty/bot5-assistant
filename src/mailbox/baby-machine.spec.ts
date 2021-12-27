@@ -66,7 +66,7 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
   t.equal(childSnapshot.value, Baby.States.awake, 'babyMachine initial state should be awake')
   t.same(parentEventList, [
     'xstate.init',
-    Mailbox.Types.RECEIVE,
+    Mailbox.Types.CHILD_IDLE,
     Baby.Types.PLAY,
   ], 'should have initial event list from parent')
   t.same(childEventList, [
@@ -128,7 +128,7 @@ test('babyMachine smoke testing with sleeping under mock clock', async t => {
   t.equal(childSnapshot.context.ms, null, 'babyMachine context.ms should be cleared after sleep')
   t.same(parentEventList, [
     Baby.Types.PEE,
-    Mailbox.Types.RECEIVE,
+    Mailbox.Types.CHILD_IDLE,
     Baby.Types.PLAY,
   ], 'should pee after night and start paly in the morning, with idle event (after sleep) for parent')
   t.same(childEventList, [

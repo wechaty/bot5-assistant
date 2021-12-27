@@ -48,7 +48,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
     [States.awake]: {
       entry: [
         actions.log((_, e, { _event }) => 'states.awake.entry ' + e.type + '@' + _event.origin, 'BabyMachine'),
-        MailboxActions.receive('BabyMachine.states.awake'),
+        MailboxActions.sendParentIdle('BabyMachine.states.awake'),
         actions.sendParent(events.PLAY()),
       ],
       on: {
