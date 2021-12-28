@@ -148,6 +148,16 @@ const address = <
       },
       child: {
         initial: States.idle,
+        on: {
+          /**
+           * No matter idle or busy: the child may send reponse message at any time.
+           */
+          [Types.CHILD_RESPOND]: {
+            actions: [
+              contexts.respondChildMessage,
+            ],
+          },
+        },
         states: {
           [States.idle]: {
             /**
@@ -175,7 +185,7 @@ const address = <
           },
           [States.busy]: {
             entry: [
-              actions.log((_, e) => 'states.child.busy.entry ' + (e as ReturnType<typeof Events.CHILD_BUSY>).payload.info, 'Mailbox'),
+              actions.log((_, e) => 'states.child.busy.entry ' + (e as ReturnType<typeof Events.ENQUEUE>).payload.message.type, 'Mailbox'),
               contexts.assignChildMessage,
               contexts.sendChildMessage,
             ],
@@ -264,7 +274,7 @@ const address = <
           [States.outgoing]: {
             entry: [
               actions.log(ctx => `states.router.outgoing.entry ${contexts.routingEventType(ctx)}@${contexts.routingEventOrigin(ctx)}`, 'Mailbox'),
-              contexts.respondChildMessage,
+              actions.send(ctx => Events.CHILD_RESPOND(contexts.routingEvent(ctx)!)),
             ],
             always: States.listening,
             exit: [

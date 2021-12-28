@@ -85,9 +85,9 @@ const wrapEvent = (event: AnyEventObject, origin?: string) => {
   return wrappedEvent
 }
 
-const unwrapEvent = (ctx: Context): AnyEventObject => {
+const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
   const wrappedEvent = {
-    ...routingEvent(ctx)!,
+    ...e,
   }
   console.info(`unwrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
 
@@ -95,12 +95,11 @@ const unwrapEvent = (ctx: Context): AnyEventObject => {
   return wrappedEvent
 }
 
-const assignRoutingEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
-const assignRoutingEventNull = actions.assign<Context>({ event: _ => null }) as any
-
-const routingEvent        = (ctx: Context) => ctx.event
-const routingEventOrigin  = (ctx: Context) => metaOrigin(routingEvent(ctx))
-const routingEventType    = (ctx: Context) => routingEvent(ctx)?.type
+/*********************
+ *
+ * Utils
+ *
+ *********************/
 
 const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   const child = children[CHILD_MACHINE_ID] as undefined | Interpreter<any>
@@ -122,12 +121,31 @@ const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   return child.sessionId
 }
 
+/*****************************
+ *
+ * sub state of: router
+ *
+ *****************************/
+
+const assignRoutingEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
+const assignRoutingEventNull = actions.assign<Context>({ event: _ => null }) as any
+
+const routingEvent        = (ctx: Context) => ctx.event
+const routingEventOrigin  = (ctx: Context) => metaOrigin(routingEvent(ctx))
+const routingEventType    = (ctx: Context) => routingEvent(ctx)?.type
+
 const condRoutingEventOriginIsChild = (ctx: Context, children: Record<string, ActorRef<any, any>>) =>
   routingEventOrigin(ctx) === childSessionId(children)
 
 const childMessage       = (ctx: Context) => ctx.message
 const childMessageOrigin = (ctx: Context) => metaOrigin(childMessage(ctx))
 const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
+
+/**************************
+ *
+ * sub state of: queue
+ *
+ **************************/
 
 /**
  * enqueue message to ctx.queue as a new message
@@ -156,8 +174,15 @@ const queueSize     = (ctx: Context) => ctx.queue.length - ctx.index
 const queueMessage  = (ctx: Context) => ctx.queue[ctx.index]
 const queueMessageType = (ctx: Context) => ctx.queue[ctx.index]?.type
 const queueMessageOrigin = (ctx: Context) => metaOrigin(ctx.queue[ctx.index])
+
+/**************************
+ *
+ * substate of: Child
+ *
+ *************************/
+
 /**
- * Send the ctx.event (current event) to the origin (sender) of ctx.message (current message)
+ * Send the CHILD_RESPOND.payload.message to the origin (sender) of ctx.message (child message which is current processing)
  */
 const respondChildMessage = actions.choose<Context, AnyEventObject>([
   {
@@ -166,9 +191,9 @@ const respondChildMessage = actions.choose<Context, AnyEventObject>([
      */
     cond: ctx => !!childMessage(ctx) && !!childMessageOrigin(ctx),
     actions: [
-      actions.log(ctx => `Mailbox contexts.responsd event ${routingEventType(ctx)}@${routingEventOrigin(ctx)} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`),
+      actions.log((ctx, e) => `Mailbox contexts.responsd event ${(e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message.type}@${metaOrigin((e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message)} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`),
       actions.send(
-        ctx => unwrapEvent(ctx),
+        (_, e) => unwrapEvent((e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message),
         { to: ctx => childMessageOrigin(ctx)! },
       ),
     ],
@@ -179,13 +204,13 @@ const respondChildMessage = actions.choose<Context, AnyEventObject>([
   {
     actions: [
       actions.log(ctx => `Mailbox contexts.responsd dead letter ${routingEventType(ctx)}@${routingEventOrigin(ctx)}`, 'Mailbox'),
-      actions.send(ctx => Events.DEAD_LETTER(
-        routingEvent(ctx)!,
-        'current message origin is undefined',
+      actions.send((_, e) => Events.DEAD_LETTER(
+        (e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message,
+        'child message origin is undefined',
       )),
     ],
   },
-])
+]) as any
 
 const assignChildMessage = actions.assign<Context>({
   message: (_, e) => {
@@ -204,6 +229,11 @@ const sendChildMessage = actions.send<Context, any>(
   { to: CHILD_MACHINE_ID },
 ) as any
 
+/**************
+ *
+ * exports
+ *
+ **************/
 export {
   type Context,
   type AnyEventObjectExt,

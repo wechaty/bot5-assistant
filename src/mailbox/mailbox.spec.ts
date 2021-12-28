@@ -84,6 +84,7 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
     Types.CHILD_IDLE,
     Baby.Types.PLAY,
     Types.DISPATCH,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
   ], 'should received DISPATCH event aftrer child sent IDLE')
 
@@ -102,6 +103,8 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
     Types.DEQUEUE,
     Baby.Types.REST,
     Baby.Types.DREAM,
+    Types.CHILD_RESPOND,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Types.DEAD_LETTER,
   ], 'should receive event [..., child.Types.DREAM, ...] after received the 1st EVENT sleep')
@@ -133,6 +136,7 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue before wakeup')
   t.same(eventList.map(e => e.type), [
     Baby.Types.CRY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
   ], 'should receive event child.Types.CRY after before wakeup')
   t.same(
@@ -156,10 +160,12 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after sleep')
   t.same(eventList.map(e => e.type), [
     Baby.Types.PEE,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
     Baby.Types.PLAY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
   ], 'should receive event child.Types.PLAY after sleep')
   t.same(
@@ -214,6 +220,8 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     Types.DEQUEUE,
     Baby.Types.REST,
     Baby.Types.DREAM,
+    Types.CHILD_RESPOND,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Types.DEAD_LETTER,
   ], 'should send event child.Types.DREAM after received the 1st EVENT sleep')
@@ -252,17 +260,22 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   }, 'should be state.busy after 10 ms')
   t.same(eventList.map(e => e.type), [
     Baby.Types.CRY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.PEE,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
     Types.DEQUEUE,
     Baby.Types.PLAY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.REST,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.DREAM,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
   ], 'should right enter 2nd SLEEP after 10 ms')
   // console.info('#### queue:', snapshot.context.queue)
@@ -281,17 +294,22 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   }, 'should be state.busyafter another 20 ms')
   t.same(eventList.map(e => e.type), [
     Baby.Types.CRY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.PEE,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
     Types.DEQUEUE,
     Baby.Types.PLAY,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.REST,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
     Baby.Types.DREAM,
+    Types.CHILD_RESPOND,
     Types.DEAD_LETTER,
   ], 'should right enter 3rd SLEEP after another 20 ms')
   t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after another 20 ms')
