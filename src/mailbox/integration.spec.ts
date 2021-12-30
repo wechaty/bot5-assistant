@@ -154,7 +154,7 @@ test.only('Mailbox.address(CoffeeMaker.machine) as an actor should enforce proce
       if (s.event.type === CoffeeMaker.Types.COFFEE) {
         eventList.push(s.event)
       } else if (s.event.type === Mailbox.Types.DEAD_LETTER) {
-        deadLetterList.push(s.event.payload.event)
+        deadLetterList.push(s.event.payload.message)
       }
       console.info('Received event', s.event)
       console.info('Transition to', s.value)

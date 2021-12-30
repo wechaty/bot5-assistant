@@ -4,7 +4,7 @@ enum Types {
   /**
    * sub state types of: child
    */
-  CHILD_IDLE = 'mailbox/CHILD_IDLE',
+  CHILD_IDLE    = 'mailbox/CHILD_IDLE',
   CHILD_RESPOND = 'mailbox/CHLID_RESPOND',
 
   /**
@@ -16,9 +16,9 @@ enum Types {
   /**
    * sub state types of: queue
    */
-  ENQUEUE  = 'mailbox/ENQUEUE',
-  DEQUEUE  = 'mailbox/DEQUEUE',
-  DISPATCH = 'mailbox/DISPATCH',
+  NEW_MESSAGE = 'mailbox/NEW_MESSAGE',
+  DEQUEUE     = 'mailbox/DEQUEUE',
+  DISPATCH    = 'mailbox/DISPATCH',
 }
 
 /**

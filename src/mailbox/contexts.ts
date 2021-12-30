@@ -10,6 +10,7 @@ import {
   SCXML,
   ActorRef,
   Interpreter,
+  GuardMeta,
 }                   from 'xstate'
 
 import { Events } from './events.js'
@@ -31,12 +32,6 @@ interface AnyEventObjectMeta {
 type AnyEventObjectExt = AnyEventObject & AnyEventObjectMeta
 
 interface Context {
-  /**
-   * current event: every event that the state machine received will be stored in `event`
-   *  1. system events (Mailbox.Types.*)
-   *  2. user events (Child.Types.*)
-   */
-  event: null | AnyEventObjectExt
   /**
    * current message: only received events should sent to child, is a `message`
    *
@@ -63,7 +58,6 @@ interface Context {
     queue : [],
     index: 0,
     message  : null,
-    event    : null,
   }
   return JSON.parse(
     JSON.stringify(
@@ -121,25 +115,39 @@ const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   return child.sessionId
 }
 
-/*****************************
- *
- * sub state of: router
- *
- *****************************/
+const condEventSentFromChild = (meta: GuardMeta<Context, AnyEventObject>) =>
+  meta._event.origin && meta._event.origin === childSessionId(meta.state.children)
 
-const assignRoutingEvent     = actions.assign<Context>({ event: (_, e, { _event }) => wrapEvent(e, _event.origin) }) as any
-const assignRoutingEventNull = actions.assign<Context>({ event: _ => null }) as any
-
-const routingEvent        = (ctx: Context) => ctx.event
-const routingEventOrigin  = (ctx: Context) => metaOrigin(routingEvent(ctx))
-const routingEventType    = (ctx: Context) => routingEvent(ctx)?.type
-
-const condRoutingEventOriginIsChild = (ctx: Context, children: Record<string, ActorRef<any, any>>) =>
-  routingEventOrigin(ctx) === childSessionId(children)
-
-const childMessage       = (ctx: Context) => ctx.message
-const childMessageOrigin = (ctx: Context) => metaOrigin(childMessage(ctx))
-const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
+/**
+ * send the CHILD_RESPONSE.payload.message to the child message origin
+ */
+const sendChildResponse = actions.choose<Context, ReturnType<typeof Events.CHILD_RESPOND>>([
+  {
+    /**
+     * 1. if current message has an origin, then respond the event to that origin
+     */
+    cond: ctx => !!childMessage(ctx) && !!childMessageOrigin(ctx),
+    actions: [
+      actions.log((ctx, e) => `contexts.childResponse event ${e.payload.message.type} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`, 'Mailbox'),
+      actions.send(
+        (_, e) => e.payload.message,
+        { to: ctx => childMessageOrigin(ctx)! },
+      ),
+    ],
+  },
+  /**
+   * 2. send to Dead Letter Queue (DLQ)
+   */
+  {
+    actions: [
+      actions.log((_, e) => `contexts.childResponse dead letter ${e.payload.message.type}`, 'Mailbox'),
+      actions.send((_, e) => Events.DEAD_LETTER(
+        e.payload.message,
+        'can not found child message origin',
+      )),
+    ],
+  },
+]) as any
 
 /**************************
  *
@@ -148,14 +156,14 @@ const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
  **************************/
 
 /**
- * enqueue message to ctx.queue as a new message
+ * wrap the message and enqueue it to ctx.queue as a new message
  */
-const assignEnqueue = actions.assign<Context>({
-  queue: (ctx, e) => [
+const assignEnqueue = actions.assign<Context, AnyEventObject>({
+  queue: (ctx, e, { _event }) => [
     ...ctx.queue,
-    (e as ReturnType<typeof Events.ENQUEUE>).payload.message,
+    wrapEvent(e, _event.origin),
   ],
-}) as any
+})
 
 /**
  * dequeue ctx.queue by increasing index by 1 (current message pointer move forward)
@@ -181,42 +189,16 @@ const queueMessageOrigin = (ctx: Context) => metaOrigin(ctx.queue[ctx.index])
  *
  *************************/
 
-/**
- * Send the CHILD_RESPOND.payload.message to the origin (sender) of ctx.message (child message which is current processing)
- */
-const respondChildMessage = actions.choose<Context, AnyEventObject>([
-  {
-    /**
-     * 1. if current message has an origin, then respond the event to that origin
-     */
-    cond: ctx => !!childMessage(ctx) && !!childMessageOrigin(ctx),
-    actions: [
-      actions.log((ctx, e) => `Mailbox contexts.responsd event ${(e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message.type}@${metaOrigin((e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message)} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`),
-      actions.send(
-        (_, e) => unwrapEvent((e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message),
-        { to: ctx => childMessageOrigin(ctx)! },
-      ),
-    ],
-  },
-  /**
-   * 2. send to dead letter queue
-   */
-  {
-    actions: [
-      actions.log(ctx => `Mailbox contexts.responsd dead letter ${routingEventType(ctx)}@${routingEventOrigin(ctx)}`, 'Mailbox'),
-      actions.send((_, e) => Events.DEAD_LETTER(
-        (e as ReturnType<typeof Events.CHILD_RESPOND>).payload.message,
-        'child message origin is undefined',
-      )),
-    ],
-  },
-]) as any
+ const childMessage       = (ctx: Context) => ctx.message
+ const childMessageOrigin = (ctx: Context) => metaOrigin(childMessage(ctx))
+ const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
 
-const assignChildMessage = actions.assign<Context>({
+const assignChildMessage = actions.assign<Context, ReturnType<typeof Events.DEQUEUE>>({
   message: (_, e) => {
-    return (e as ReturnType<typeof Events.DEQUEUE>).payload.message
+    console.info(`Mailbox contexts.assignChildMessage ${e.payload.message.type}@${metaOrigin(e.payload.message)}`)
+    return e.payload.message
   },
-}) as any
+})
 
 /**
  * Send ctx.message (current message) to child
@@ -240,35 +222,25 @@ export {
   metaSymKey,
   initialContext,
   metaOrigin,
+  unwrapEvent,
   /**
    * actions.assign<Context>({...})
    */
-  assignRoutingEvent,
-  assignRoutingEventNull,
   assignEnqueue,
   assignDequeue,
   assignEmptyQueue,
   assignChildMessage,
   /**
-   * actions.respond(...)
-   */
-  respondChildMessage,
-  /**
    * actions.send(...)
    */
   sendChildMessage,
+  sendChildResponse,
   /**
    * ctx.message helpers
    */
   childMessage,
   childMessageOrigin,
   childMessageType,
-  /**
-   * ctx.event helpers
-   */
-  routingEvent,
-  routingEventType,
-  routingEventOrigin,
   /**
    * ctx.queue helpers
    */
@@ -279,5 +251,5 @@ export {
   /**
    * cond: ...
    */
-   condRoutingEventOriginIsChild,
+  condEventSentFromChild,
   }

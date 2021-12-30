@@ -38,6 +38,15 @@ enum States {
   errored = 'bot5-assitant/errored',
   failed = 'bot5-assitant/failed',
 
+  /**
+   * Huan(202112): Recommended states transition for actors with Mailbox
+   *  1. initial: initializing / onDone: inactive
+   *  2. start/stop:
+   *    2.1 START: starting / onDone: active (validating might be required)
+   *    2.2 STOP: stopping / onDone: inactive
+   *  3. RESET: resetting
+   *  4. ABORT: ???
+   */
   initializing  = 'bot5-assitant/initializing',
   starting  = 'bot5-assitant/starting',
   stopping  = 'bot5-assitant/stopping',

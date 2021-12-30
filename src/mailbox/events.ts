@@ -4,6 +4,7 @@ import {
 }                 from 'typesafe-actions'
 import type {
   AnyEventObject,
+  EventObject,
 }                 from 'xstate'
 
 import { Types }  from './types.js'
@@ -12,21 +13,21 @@ import type * as contexts from './contexts.js'
 /**
  * paload of: child
  */
-const payloadChildIdle  = (info?: string) => ({ info })
-const payloadChildRespond = (message: contexts.AnyEventObjectExt) => ({ message })
+const payloadChildIdle    = (info?: string)         => ({ info })
+const payloadChildRespond = (message: EventObject)  => ({ message })
 
 /**
  * payload of: queue
  */
+const payloadNewMessage = (info?: string) => ({ info })
 const payloadDispatch   = (info?: string) => ({ info })
-const payloadEnqueue = (message: contexts.AnyEventObjectExt) => ({ message })
-const payloadDequeue = (message: contexts.AnyEventObjectExt) => ({ message })
+const payloadDequeue    = (message: contexts.AnyEventObjectExt) => ({ message })
 
 /**
  * payload of: debugging
  */
 const payloadReset      = (info?: string) => ({ info })
-const payloadDeadLetter = (event: AnyEventObject, info?: string,) => ({ event, info })
+const payloadDeadLetter = (message: AnyEventObject, info?: string,) => ({ message, info })
 
 const Events = {
   /**
@@ -42,9 +43,9 @@ const Events = {
   /**
    * events of: queue
    */
-  DISPATCH : createAction(Types.DISPATCH, payloadDispatch)(),
-  ENQUEUE  : createAction(Types.ENQUEUE, payloadEnqueue)(),
-  DEQUEUE  : createAction(Types.DEQUEUE, payloadDequeue)(),
+  NEW_MESSAGE : createAction(Types.NEW_MESSAGE, payloadNewMessage)(),
+  DISPATCH    : createAction(Types.DISPATCH, payloadDispatch)(),
+  DEQUEUE     : createAction(Types.DEQUEUE, payloadDequeue)(),
 
   /**
    * events for : debugging

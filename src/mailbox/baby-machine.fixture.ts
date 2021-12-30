@@ -49,7 +49,8 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
       entry: [
         actions.log((_, e, { _event }) => 'states.awake.entry ' + e.type + '@' + _event.origin, 'BabyMachine'),
         MailboxActions.sendParentIdle('BabyMachine.states.awake'),
-        actions.sendParent(events.PLAY()),
+        MailboxActions.reply(events.PLAY())
+        // actions.sendParent(events.PLAY()),
       ],
       on: {
         /**
@@ -70,7 +71,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
           target: States.sleeping,
           actions: [
             actions.log((_, e) => `states.awake.on.sleep.actions ${JSON.stringify(e)}`, 'BabyMachine'),
-            actions.sendParent(events.REST()),
+            MailboxActions.reply(events.REST()),
           ],
         },
       },
@@ -89,18 +90,18 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
         // Huan(202112): move this assign to previous state.on(SLEEP)
         // FIXME: `(parameter) e: never`
         actions.assign({ ms: (_, e) => e.ms }),
-        actions.sendParent(events.DREAM()),
+        MailboxActions.reply(events.DREAM()),
       ],
       after: {
         cryMs: {
-          actions: actions.sendParent(events.CRY()),
+          actions: MailboxActions.reply(events.CRY()),
         },
         ms: States.awake,
       },
       exit: [
         actions.log(_ => 'states.sleeping.exit', 'BabyMachine'),
         actions.assign({ ms: _ => null }),
-        actions.sendParent(events.PEE()),
+        MailboxActions.reply(events.PEE()),
       ],
     },
   },
