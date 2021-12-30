@@ -13,21 +13,21 @@ import type * as contexts from './contexts.js'
 /**
  * paload of: child
  */
-const payloadChildIdle  = (info?: string)         => ({ info })
+const payloadChildIdle  = (debug?: string)         => ({ debug })
 const payloadChildReply = (message: EventObject)  => ({ message })
 
 /**
  * payload of: queue
  */
-const payloadNewMessage = (info?: string) => ({ info })
-const payloadDispatch   = (info?: string) => ({ info })
+const payloadNewMessage = (debug?: string) => ({ debug })
+const payloadDispatch   = (debug?: string) => ({ debug })
 const payloadDequeue    = (message: contexts.AnyEventObjectExt) => ({ message })
 
 /**
  * payload of: debugging
  */
-const payloadReset      = (info?: string) => ({ info })
-const payloadDeadLetter = (message: AnyEventObject, info?: string,) => ({ message, info })
+const payloadReset      = (debug?: string) => ({ debug })
+const payloadDeadLetter = (message: AnyEventObject, debug?: string,) => ({ message, debug })
 
 const Events = {
   /**
@@ -37,7 +37,7 @@ const Events = {
    *  it must be send whenever the child machine is idle.
    *  so that the Mailbox can be able to send messages to the child machine
    */
-  CHILD_IDLE    : createAction(Types.CHILD_IDLE,    payloadChildIdle)(),
+  CHILD_IDLE  : createAction(Types.CHILD_IDLE,  payloadChildIdle)(),
   CHILD_REPLY : createAction(Types.CHILD_REPLY, payloadChildReply)(),
 
   /**

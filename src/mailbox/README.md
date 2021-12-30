@@ -14,6 +14,11 @@ A XState wrapper to implement Mailbox of Actor Model.
 > if you send 3 messages to the same actor, it will just execute one at a time.  
 > &mdash; [The actor model in 10 minutes - Actors have mailboxes](https://www.brianstorti.com/the-actor-model/)
 
+## TODO
+
+- [ ] Add `capacity` option to `Mailbox` (new messages will be dropped as a DEAD_LETTER event)
+- [ ] Publish to NPM
+
 ## Quick Start
 
 1. `import * as Mailbox from 'mailbox'`

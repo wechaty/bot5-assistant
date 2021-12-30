@@ -205,7 +205,7 @@ const assignChildMessage = actions.assign<Context, ReturnType<typeof Events.DEQU
  */
 const sendChildMessage = actions.send<Context, any>(
   ctx => {
-    console.info(`Mailbox contexts.sendCurrentMessage ${childMessageType(ctx)}@${childMessageOrigin(ctx)} to child`)
+    console.info(`Mailbox contexts.sendChildMessage ${childMessageType(ctx)}@${childMessageOrigin(ctx)} to child`)
     return childMessage(ctx)!
   },
   { to: CHILD_MACHINE_ID },

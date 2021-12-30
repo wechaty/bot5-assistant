@@ -128,7 +128,7 @@ const address = <
           },
           [States.checking]: {
             entry: [
-              actions.log((_, e) => 'states.queue.checking.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.info, 'Mailbox'),
+              actions.log((_, e) => 'states.queue.checking.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.debug, 'Mailbox'),
             ],
             always: [
               {
@@ -195,7 +195,7 @@ const address = <
               },
               [Types.NEW_MESSAGE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.info}`, 'Mailbox'),
+                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug}`, 'Mailbox'),
                   actions.send(Events.DISPATCH(Types.NEW_MESSAGE)),
                 ],
               },
