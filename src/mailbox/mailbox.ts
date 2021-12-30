@@ -93,13 +93,13 @@ const address = <
         /**
          * queue states transitions are all SYNC
          */
-        initial: States.standby,
+        initial: States.listening,
         on: {
           '*': {
             actions: actions.choose([
               {
                 /**
-                 * Skipp:
+                 * Skip:
                  *  1. Mailbox.Types.* is system messages, skip them
                  *  2. Child events (origin from child machine) are handled by child machine, skip them
                  *
@@ -107,7 +107,7 @@ const address = <
                  */
                 cond: (_, e, meta) => true
                   && !isMailboxType(e.type)
-                  && !contexts.condEventSentFromChild(meta), // condRoutingEventOriginIsChild(ctx, state.children),
+                  && !contexts.condEventSentFromChildOf()(meta),
                 actions: [
                   actions.log((_, e, { _event }) => `states.queue.on.* contexts.assignEnqueue ${e.type}@${_event.origin || ''}`, 'Mailbox') as any,
                   contexts.assignEnqueue,
@@ -118,9 +118,9 @@ const address = <
           },
         },
         states: {
-          [States.standby]: {
+          [States.listening]: {
             entry: [
-              actions.log('states.queue.standby.entry', 'Mailbox'),
+              actions.log('states.queue.listening.entry', 'Mailbox'),
             ],
             on: {
               [Types.DISPATCH]: States.checking,
@@ -139,8 +139,8 @@ const address = <
                 target: States.dequeuing,
               },
               {
-                actions: actions.log('states.queue.checking.always queue is empty, transition to standby', 'Mailbox'),
-                target: States.standby,
+                actions: actions.log('states.queue.checking.always queue is empty, transition to listening', 'Mailbox'),
+                target: States.listening,
               },
             ],
           },
@@ -159,7 +159,7 @@ const address = <
                 }
               ]),
             ],
-            always: States.standby,
+            always: States.listening,
           },
         },
       },
@@ -169,9 +169,9 @@ const address = <
           /**
            * No matter idle or busy: the child may send reponse message at any time.
            */
-          [Types.CHILD_RESPOND]: {
+          [Types.CHILD_REPLY]: {
             actions: [
-              contexts.sendChildResponse,
+              contexts.sendChildReply,
             ],
           },
         },

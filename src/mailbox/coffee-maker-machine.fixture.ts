@@ -55,7 +55,7 @@ const machine = createMachine<Context, Event>({
       },
     },
     [States.delivering]: {
-      entry: actions.sendParent(ctx => Events.COFFEE(ctx.customer || 'NO CUSTOMER')),
+      entry: Mailbox.Actions.reply(ctx => Events.COFFEE(ctx.customer || 'NO CUSTOMER')),
       after: {
         10: States.idle,
       },

@@ -25,7 +25,7 @@ enum Types {
   EAT  = 'baby/EAT',
 }
 
-const events = {
+const Events = {
   SLEEP : (ms: number)  => ({ type: Types.SLEEP, ms }),
   // sleeping
   DREAM : ()  => ({ type: Types.DREAM }),
@@ -38,7 +38,7 @@ const events = {
 }
 
 type BabyContext = { ms?: null | number }
-type BabyEvent   = ReturnType<typeof events.SLEEP>
+type BabyEvent   = ReturnType<typeof Events.SLEEP>
 
 const machine = createMachine<BabyContext, BabyEvent, any>({
   context: {},
@@ -49,7 +49,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
       entry: [
         actions.log((_, e, { _event }) => 'states.awake.entry ' + e.type + '@' + _event.origin, 'BabyMachine'),
         MailboxActions.sendParentIdle('BabyMachine.states.awake'),
-        MailboxActions.reply(events.PLAY())
+        MailboxActions.reply(Events.PLAY())
         // actions.sendParent(events.PLAY()),
       ],
       on: {
@@ -71,7 +71,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
           target: States.sleeping,
           actions: [
             actions.log((_, e) => `states.awake.on.sleep.actions ${JSON.stringify(e)}`, 'BabyMachine'),
-            MailboxActions.reply(events.REST()),
+            MailboxActions.reply(Events.REST()),
           ],
         },
       },
@@ -90,18 +90,18 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
         // Huan(202112): move this assign to previous state.on(SLEEP)
         // FIXME: `(parameter) e: never`
         actions.assign({ ms: (_, e) => e.ms }),
-        MailboxActions.reply(events.DREAM()),
+        MailboxActions.reply(Events.DREAM()),
       ],
       after: {
         cryMs: {
-          actions: MailboxActions.reply(events.CRY()),
+          actions: MailboxActions.reply(Events.CRY()),
         },
         ms: States.awake,
       },
       exit: [
         actions.log(_ => 'states.sleeping.exit', 'BabyMachine'),
         actions.assign({ ms: _ => null }),
-        MailboxActions.reply(events.PEE()),
+        MailboxActions.reply(Events.PEE()),
       ],
     },
   },
@@ -121,7 +121,7 @@ const machine = createMachine<BabyContext, BabyEvent, any>({
 })
 
 export {
-  events,
+  Events,
   machine,
   States,
   Types,

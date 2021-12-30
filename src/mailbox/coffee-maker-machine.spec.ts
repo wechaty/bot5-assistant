@@ -15,7 +15,6 @@ import {
 
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 import * as Mailbox from './mod.js'
-import { isMailboxType } from './types.js'
 
 test('CoffeeMaker.machine smoke testing', async t => {
   const CUSTOMER = 'John'
@@ -36,8 +35,8 @@ test('CoffeeMaker.machine smoke testing', async t => {
     states: {
       testing: {
         on: {
-          '*': {
-            actions: Mailbox.Actions.sendChildProxy(CHILD_ID),
+          [CoffeeMaker.Types.MAKE_ME_COFFEE]: {
+            actions: actions.send((_, e) => e, { to: CHILD_ID }),
           },
         },
       },
@@ -71,10 +70,10 @@ test('CoffeeMaker.machine smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.runAllAsync()
   t.same(
-    eventList,
+    eventList
+      .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
     [
-      CoffeeMaker.Events.COFFEE(CUSTOMER),
-      Mailbox.Events.CHILD_IDLE('coffee-maker'),
+      Mailbox.Events.CHILD_REPLY(CoffeeMaker.Events.COFFEE(CUSTOMER)),
     ],
     'should have received COFFEE/RECEIVE events after runAllAsync',
   )
@@ -83,48 +82,50 @@ test('CoffeeMaker.machine smoke testing', async t => {
   sandbox.restore()
 })
 
-test('XState machine will lost incoming messages(events) when receiving multiple messages at the same time', async t => {
-  const ITEM_NUMBERS = [...Array(10).keys()]
-  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)),
-  )
-  const COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    CoffeeMaker.Events.COFFEE(String(i)),
-  )
-
+test.only('XState machine will lost incoming messages(events) when receiving multiple messages at the same time', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
+  const ITEM_NUMBERS = [...Array(10).keys()]
+  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i => CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)))
+  const COFFEE_EVENT_LIST         = ITEM_NUMBERS.map(i => CoffeeMaker.Events.COFFEE(String(i)))
+
   const containerMachine = createMachine({
     invoke: {
+      id: 'child',
       src: CoffeeMaker.machine,
-      autoForward: true,
+    },
+    on: {
+      [CoffeeMaker.Types.MAKE_ME_COFFEE]: {
+        actions: [
+          actions.send((_, e) => e, { to: 'child' }),
+        ],
+      },
     },
     states: {},
   })
 
-  const interpreter = interpret(
-    containerMachine,
-  )
+  const interpreter = interpret(containerMachine)
 
   const eventList: AnyEventObject[] = []
   interpreter
-    .onTransition(s => {
-      if (s.event.type === CoffeeMaker.Types.COFFEE) {
-        eventList.push(s.event)
-      }
-      // console.info('Received event', s.event)
-      // console.info('Transition to', s.value)
-    })
+    .onTransition(s => eventList.push(s.event))
     .start()
 
-  interpreter.send(MAKE_ME_COFFEE_EVENT_LIST)
+    MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
-  t.equal(eventList.length, 1, `should only get 1 COFFEE event no matter how many MAKE_ME_COFFEE events we sent (at the same time, total: ${MAKE_ME_COFFEE_EVENT_LIST.length})`)
-  t.same(eventList[0], COFFEE_EVENT_LIST[0], 'should only the first event get replied',
+  t.same(
+    eventList
+      .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
+    [
+      COFFEE_EVENT_LIST.map(e =>
+        Mailbox.Events.CHILD_REPLY(e),
+      )[0],
+    ],
+    `should only get 1 COFFEE event no matter how many MAKE_ME_COFFEE events we sent (at the same time, total: ${MAKE_ME_COFFEE_EVENT_LIST.length})`,
   )
 
   interpreter.stop()

@@ -6,10 +6,12 @@ import {
   interpret,
   AnyEventObject,
   Interpreter,
+  actions,
 }                   from 'xstate'
 
 import * as Mailbox from './mod.js'
-
+import * as contexts from './contexts.js'
+import { isMailboxType } from './types.js'
 /**
  * Make the machine the child of the container to ready for testing
  *  because the machine need to use `sendParent` to send events to parent
@@ -25,7 +27,23 @@ function container (machine: StateMachine<any, any, any>) {
     states: {
       testing: {
         on: {
-          '*': { actions: Mailbox.Actions.sendChildProxy(CHILD_ID) },
+          '*': {
+            actions: actions.choose([{
+              /**
+               * skip all:
+               *  1. Mailbox.Types (system messages): those events is for controling Mailbox only
+               *  2. child original messages
+               *
+               *  Send all other events to the child
+               */
+              cond: (_, e, meta) => true
+                && !isMailboxType(e.type)
+                && !contexts.condEventSentFromChildOf(CHILD_ID)(meta),
+              actions: [
+                actions.send((_, e) => e, { to: CHILD_ID }),
+              ],
+            }]),
+          },
         },
       },
     },

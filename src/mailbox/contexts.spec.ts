@@ -4,11 +4,14 @@
 import {
   test,
 }                   from 'tstest'
-import type { ActorRef } from 'xstate'
+import type {
+  ActorRef,
+  GuardMeta,
+  SCXML,
+}                 from 'xstate'
 
 import * as contexts from './contexts.js'
 import { CHILD_MACHINE_ID } from './types.js'
-import { Events } from './events.js'
 
 test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
@@ -18,11 +21,10 @@ test('assignEnqueue', async t => {
       origin: 'test-origin',
     },
   }
-  const ENQUEUE_EVENT = Events.ENQUEUE(EVENT)
 
   t.equal(contexts.assignEnqueue.type, 'xstate.assign', 'should be in `assign` type')
 
-  const queue = contexts.assignEnqueue.assignment.queue(CONTEXT, ENQUEUE_EVENT)
+  const queue = (contexts.assignEnqueue.assignment as any).queue(CONTEXT, EVENT, { _event: { origin: 'test-origin' }})
   t.same(queue, [EVENT], 'should enqueue event to context.queue')
 })
 
@@ -66,20 +68,23 @@ test('assignDequeue()', async t => {
 test('condRoutingEventOriginIsChild', async t => {
   const SESSION_ID = 'session-id'
 
-  const context = contexts.initialContext()
-  context.event = {
-    [contexts.metaSymKey]: {
-      origin: SESSION_ID,
-    },
-  } as any
-  const children: Record<string, ActorRef<any, any>> = {
+  const _EVENT = {
+    origin: SESSION_ID,
+  } as any as SCXML.Event<any>
+
+  const CHILDREN: Record<string, ActorRef<any, any>> = {
     [CHILD_MACHINE_ID]: {
       sessionId: SESSION_ID,
     } as any as ActorRef<any, any>,
   }
 
-  t.ok(contexts.condRoutingEventOriginIsChild(context, children), 'should return true if the event origin is the child session id')
+  const META = {
+    _event: _EVENT,
+    state: { children: CHILDREN }
+  } as GuardMeta<any, any>
 
-  context.event![contexts.metaSymKey].origin = undefined
-  t.notOk(contexts.condRoutingEventOriginIsChild(context, children), 'should return false if the event origin is undefined')
+  t.ok(contexts.condEventSentFromChild(META), 'should return true if the event origin is the child session id')
+
+  META._event.origin = undefined
+  t.notOk(contexts.condEventSentFromChild(META), 'should return false if the event origin is undefined')
 })

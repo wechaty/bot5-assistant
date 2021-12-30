@@ -54,7 +54,7 @@ const machine = createMachine<Context, Event>({
       after: {
         randomMs: {
           actions: [
-            actions.sendParent(ctx => Events.DONG(ctx.i)),
+            Mailbox.Actions.reply(ctx => Events.DONG(ctx.i)),
           ],
           target: States.idle,
         },

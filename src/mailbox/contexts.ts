@@ -95,8 +95,8 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
  *
  *********************/
 
-const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
-  const child = children[CHILD_MACHINE_ID] as undefined | Interpreter<any>
+const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children: Record<string, ActorRef<any, any>>) => {
+  const child = children[childId] as undefined | Interpreter<any>
   if (!child) {
     throw new Error('can not found child id ' + CHILD_MACHINE_ID)
   }
@@ -115,13 +115,13 @@ const childSessionId = (children: Record<string, ActorRef<any, any>>) => {
   return child.sessionId
 }
 
-const condEventSentFromChild = (meta: GuardMeta<Context, AnyEventObject>) =>
-  meta._event.origin && meta._event.origin === childSessionId(meta.state.children)
+const condEventSentFromChildOf = (childId = CHILD_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
+  meta._event.origin && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
 
 /**
  * send the CHILD_RESPONSE.payload.message to the child message origin
  */
-const sendChildResponse = actions.choose<Context, ReturnType<typeof Events.CHILD_RESPOND>>([
+const sendChildReply = actions.choose<Context, ReturnType<typeof Events.CHILD_REPLY>>([
   {
     /**
      * 1. if current message has an origin, then respond the event to that origin
@@ -234,7 +234,7 @@ export {
    * actions.send(...)
    */
   sendChildMessage,
-  sendChildResponse,
+  sendChildReply,
   /**
    * ctx.message helpers
    */
@@ -251,5 +251,5 @@ export {
   /**
    * cond: ...
    */
-  condEventSentFromChild,
+  condEventSentFromChildOf,
   }

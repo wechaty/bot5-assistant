@@ -13,8 +13,8 @@ import type * as contexts from './contexts.js'
 /**
  * paload of: child
  */
-const payloadChildIdle    = (info?: string)         => ({ info })
-const payloadChildRespond = (message: EventObject)  => ({ message })
+const payloadChildIdle  = (info?: string)         => ({ info })
+const payloadChildReply = (message: EventObject)  => ({ message })
 
 /**
  * payload of: queue
@@ -38,7 +38,7 @@ const Events = {
    *  so that the Mailbox can be able to send messages to the child machine
    */
   CHILD_IDLE    : createAction(Types.CHILD_IDLE,    payloadChildIdle)(),
-  CHILD_RESPOND : createAction(Types.CHILD_RESPOND, payloadChildRespond)(),
+  CHILD_REPLY : createAction(Types.CHILD_REPLY, payloadChildReply)(),
 
   /**
    * events of: queue

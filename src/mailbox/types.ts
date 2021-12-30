@@ -5,7 +5,7 @@ enum Types {
    * sub state types of: child
    */
   CHILD_IDLE    = 'mailbox/CHILD_IDLE',
-  CHILD_RESPOND = 'mailbox/CHLID_RESPOND',
+  CHILD_REPLY = 'mailbox/CHLID_REPLY',
 
   /**
    * types of: debug

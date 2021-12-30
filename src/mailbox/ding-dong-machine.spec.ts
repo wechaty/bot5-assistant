@@ -61,11 +61,11 @@ test('DingDong.machine process one DING event', async t => {
 
   eventList.length = 0
   await sandbox.clock.runAllAsync()
+  // eventList.forEach(e => console.info(e))
   t.same(
     eventList,
     [
-      DingDong.Events.DONG(1),
-      Mailbox.Events.CHILD_IDLE('ding-dong'),
+      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(1)),
       Mailbox.Events.CHILD_IDLE('ding-dong'),
     ],
     'should have received DONG/RECEIVE events after runAllAsync',
@@ -95,13 +95,7 @@ test('DingDong.machine process 2+ message at once: only be able to process the f
 
   const eventList: AnyEventObject[] = []
   interpreter
-    .onTransition(s => {
-      if (s.event.type === DingDong.Types.DONG) {
-        eventList.push(s.event)
-      }
-      // console.info('Received event', s.event)
-      // console.info('Transition to', s.value)
-    })
+    .onTransition(s => eventList.push(s.event))
     .start()
 
   interpreter.send([
@@ -110,9 +104,15 @@ test('DingDong.machine process 2+ message at once: only be able to process the f
   ])
 
   await sandbox.clock.runAllAsync()
-  // eventList.forEach(e => console.info(e))
-  t.equal(eventList.length, 1, 'should only has replied one DONG event')
-  t.same(eventList[0], DingDong.Events.DONG(0), 'should reply to the first event',)
+  eventList.forEach(e => console.info(e))
+  t.same(
+    eventList
+      .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
+    [
+      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(0)),
+    ],
+    'should reply DONG to the first DING event',
+  )
 
   interpreter.stop()
   sandbox.restore()
