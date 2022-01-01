@@ -29,12 +29,13 @@ const payloadContacts  = (contacts: Contact[]) => ({ contacts })
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[]) => ({ conversation, mentions, text })
-const payloadWechaty  = (wechaty: Wechaty) => ({ wechaty })
+const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
+const payloadWechatyAddress   = (address: string) => ({ address })
 
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
-const payloadError     = (error: string) => ({ error })
+const payloadError     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
 
 const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
@@ -65,10 +66,11 @@ const Events = {
   ERROR : createAction(Types.ERROR, payloadError)(),
   RESET : createAction(Types.RESET, payloadReset)(),
 
-  WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
-  CHECK  : createAction(Types.CHECK, payloadEmpty)(),
+  // WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
+  // CHECK  : createAction(Types.CHECK, payloadEmpty)(),
 
   WECHATY : createAction(Types.WECHATY, payloadWechaty)(),
+  WECHATY_ADDRESS : createAction(Types.WECHATY_ADDRESS, payloadWechatyAddress)(),
 
   /**
    * Complete v.s. Finish

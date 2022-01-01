@@ -37,6 +37,7 @@ enum States {
    */
   errored = 'bot5-assitant/errored',
   failed = 'bot5-assitant/failed',
+  erroring = 'bot5-assistant/erroring',
 
   /**
    * Huan(202112): Recommended states transition for actors with Mailbox
@@ -65,6 +66,10 @@ enum States {
   mentioning = 'bot5-assistant/mentioning',
   registering = 'bot5-assistant/registering',
   registered = 'bot5-assistant/registered',
+
+  saying = 'bot5-assistant/saying',
+  updating = 'bot5-assistant/updating',
+  confirming = 'bot5-assistant/confirming',
 }
 
 export {

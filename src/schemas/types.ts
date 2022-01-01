@@ -19,9 +19,9 @@ enum Types {
   SAY = 'bot5-assistant/SAY',
   RESET = 'bot5-assistant/RESET',
 
-  WAKEUP = 'bot5-assistant/WAKEUP',
+  // WAKEUP = 'bot5-assistant/WAKEUP',
   ERROR = 'bot5-assistant/ERROR',
-  CHECK = 'bot5-assistant/CHECK',
+  // CHECK = 'bot5-assistant/CHECK',
 
   FEEDBACK = 'bot5-assistant/FEEDBACK',
 
@@ -40,8 +40,11 @@ enum Types {
   CANCEL = 'bot5-assistant/CANCEL',
 
   WECHATY = 'bot5-assistant/WECHATY',
+  WECHATY_ADDRESS = 'bot5-assistant/WECHATY_ADDRESS',
 
   DELIVER = 'bot5-assistant/DELIVER',
+
+
 }
 
 export {
