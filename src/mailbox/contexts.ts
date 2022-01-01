@@ -11,10 +11,13 @@ import {
   ActorRef,
   Interpreter,
   GuardMeta,
-}                   from 'xstate'
+}                     from 'xstate'
 
-import { Events } from './events.js'
-import { CHILD_MACHINE_ID } from './types.js'
+import { Events }     from './events.js'
+import {
+  CHILD_MACHINE_ID,
+  isMailboxType,
+}                     from './types.js'
 
 const metaSymKey = Symbol('meta')
 
@@ -39,7 +42,7 @@ interface Context {
    *  a message will only start to be processed (send to the child)
    *  when the child is ready for processing the next message
    */
-  message: null | AnyEventObjectExt
+  message?: AnyEventObjectExt
   /**
    * message queue: `queue` is for storing the messages. message is an event: (external events, which should be proxyed to the child)
    *  1. neither sent from mailbox
@@ -54,10 +57,9 @@ interface Context {
  */
  const initialContext: () => Context = () => {
   const context: Context = {
-    // childRef : null,
-    queue : [],
-    index: 0,
-    message  : null,
+    message  : undefined,
+    queue    : [],
+    index    : 0,
   }
   return JSON.parse(
     JSON.stringify(
@@ -95,7 +97,11 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
  *
  *********************/
 
-const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children: Record<string, ActorRef<any, any>>) => {
+const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children?: Record<string, ActorRef<any, any>>) => {
+  if (!children) {
+    return undefined
+  }
+
   const child = children[childId] as undefined | Interpreter<any>
   if (!child) {
     throw new Error('can not found child id ' + CHILD_MACHINE_ID)
@@ -116,7 +122,7 @@ const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children: Record<strin
 }
 
 const condEventSentFromChildOf = (childId = CHILD_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
-  meta._event.origin && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
+  !!(meta._event.origin) && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
 
 /**
  * send the CHILD_RESPONSE.payload.message to the child message origin
@@ -124,11 +130,19 @@ const condEventSentFromChildOf = (childId = CHILD_MACHINE_ID) => (meta: GuardMet
 const sendChildReply = actions.choose<Context, ReturnType<typeof Events.CHILD_REPLY>>([
   {
     /**
-     * 1. if current message has an origin, then respond the event to that origin
+     * I. validate the event, make it as the reply of actor if it valid
      */
-    cond: ctx => !!childMessage(ctx) && !!childMessageOrigin(ctx),
+    cond: (ctx, _, { _event, state }) =>
+      true
+      // 1. current event is sent from CHILD_MACHINE_ID
+      && (!!_event.origin && _event.origin === childSessionIdOf(CHILD_MACHINE_ID)(state.children))
+      // // 2. has a message for which we are going to reply to
+      // && !!childMessage(ctx)
+      // 3. the message has valid origin for which we are going to reply to
+      && !!childMessageOrigin(ctx)
+    ,
     actions: [
-      actions.log((ctx, e) => `contexts.childResponse event ${e.payload.message.type} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`, 'Mailbox'),
+      actions.log((ctx, e) => `contexts.sendChildReply event ${e.payload.message.type} to message ${childMessage(ctx)}@${childMessageOrigin(ctx)}`, 'Mailbox'),
       actions.send(
         (_, e) => e.payload.message,
         { to: ctx => childMessageOrigin(ctx)! },
@@ -136,14 +150,14 @@ const sendChildReply = actions.choose<Context, ReturnType<typeof Events.CHILD_RE
     ],
   },
   /**
-   * 2. send to Dead Letter Queue (DLQ)
+   * II. send invalid event to Dead Letter Queue (DLQ)
    */
   {
     actions: [
-      actions.log((_, e) => `contexts.childResponse dead letter ${e.payload.message.type}`, 'Mailbox'),
-      actions.send((_, e) => Events.DEAD_LETTER(
+      actions.log((_, e, { _event }) => `contexts.sendChildReply dead letter ${e.payload.message.type}@${_event.origin || ''}`, 'Mailbox'),
+      actions.send((_, e, { _event }) => Events.DEAD_LETTER(
         e.payload.message,
-        'can not found child message origin',
+        `message ${e.payload.message.type}@${_event.origin || ''} dropped`,
       )),
     ],
   },
@@ -178,10 +192,43 @@ const assignEmptyQueue = actions.assign<Context>({
   index: _ => 0,
 }) as any
 
-const queueSize     = (ctx: Context) => ctx.queue.length - ctx.index
-const queueMessage  = (ctx: Context) => ctx.queue[ctx.index]
-const queueMessageType = (ctx: Context) => ctx.queue[ctx.index]?.type
+const queueSize          = (ctx: Context) => ctx.queue.length - ctx.index
+const queueMessage       = (ctx: Context) => ctx.queue[ctx.index]
+const queueMessageType   = (ctx: Context) => ctx.queue[ctx.index]?.type
 const queueMessageOrigin = (ctx: Context) => metaOrigin(ctx.queue[ctx.index])
+
+const queueAcceptingMessageWithCapacity = (capacity = Infinity) => actions.choose<Context, AnyEventObject>([
+  {
+    // 1. Mailbox.Types.* is system messages, skip them
+    cond: (_, e) => isMailboxType(e.type),
+    actions: [],  // skip
+  },
+  {
+    // 2. Child events (origin from child machine) are handled by child machine, skip them
+    cond: (_, __, meta) => condEventSentFromChildOf()(meta),
+    actions: [],  // skip
+  },
+  {
+    /**
+     * 3. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
+     */
+    cond: ctx => queueSize(ctx) > capacity,
+    actions: [
+      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, 'Mailbox'),
+      actions.send((ctx, e) => Events.DEAD_LETTER(e, `queueSize(${queueSize(ctx)} out of capacity(${capacity})`)),
+    ],
+  },
+  {
+    /**
+     * 4. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
+     */
+    actions: [
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity ${e.type}@${_event.origin || ''}`, 'Mailbox') as any,
+      assignEnqueue,
+      actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
+    ],
+  },
+]) as any
 
 /**************************
  *
@@ -248,6 +295,7 @@ export {
   queueMessage,
   queueMessageType,
   queueMessageOrigin,
+  queueAcceptingMessageWithCapacity,
   /**
    * cond: ...
    */

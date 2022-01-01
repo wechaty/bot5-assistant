@@ -81,12 +81,11 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
 
   t.same(stateList[stateList.length - 1]?.value, {
     queue : States.listening,
-    child   : States.idle,
+    child : States.idle,
   }, 'should stay at idle state after start')
   t.same(stateList[stateList.length - 1]?.context, {
     queue: [],
     index: 0,
-    message: null,
   }, 'should have initial context after start')
   t.same(eventList.map(e => e.type), [
     'xstate.init',

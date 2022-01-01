@@ -25,7 +25,6 @@ import {
   actions,
   createMachine,
   StateMachine,
-  AnyEventObject,
   EventObject,
 }                   from 'xstate'
 
@@ -39,19 +38,25 @@ import {
 import { States }         from './states.js'
 import {
   Types,
-  isMailboxType,
   CHILD_MACHINE_ID,
 }                         from './types.js'
 import { validate }       from './validate.js'
 
+interface MailboxAddressOptions {
+  id?: string
+  capacity?: number
+}
+
 const address = <
-  TEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject,
+  TContext extends {},
 >(
   childMachine: StateMachine<
-    any,
+    TContext,
     any,
     TEvent
   >,
+  options?: MailboxAddressOptions,
 ) => {
   /**
    * when in developement mode, we will validate the childMachine
@@ -59,6 +64,14 @@ const address = <
   if (IS_DEVELOPMENT && !validate(childMachine)) {
     throw new Error('Mailbox.address: childMachine is not valid')
   }
+
+  const normalizedOptions: Required<MailboxAddressOptions> = {
+    id       : 'mailbox',
+    capacity : Infinity,
+    ...options,
+  }
+
+  // https://xstate.js.org/docs/guides/context.html#initial-context
 
   const machine = createMachine<
     contexts.Context,
@@ -69,7 +82,7 @@ const address = <
      */
     Event | { type: TEvent['type'] }
   >({
-    id: 'mailbox',
+    id: normalizedOptions.id,
     invoke: {
       id: CHILD_MACHINE_ID,
       src: childMachine,
@@ -96,25 +109,7 @@ const address = <
         initial: States.listening,
         on: {
           '*': {
-            actions: actions.choose([
-              {
-                /**
-                 * Skip:
-                 *  1. Mailbox.Types.* is system messages, skip them
-                 *  2. Child events (origin from child machine) are handled by child machine, skip them
-                 *
-                 * Incoming messages: add them to queue by wrapping the `_event.origin` meta data
-                 */
-                cond: (_, e, meta) => true
-                  && !isMailboxType(e.type)
-                  && !contexts.condEventSentFromChildOf()(meta),
-                actions: [
-                  actions.log((_, e, { _event }) => `states.queue.on.* contexts.assignEnqueue ${e.type}@${_event.origin || ''}`, 'Mailbox') as any,
-                  contexts.assignEnqueue,
-                  actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
-                ],
-              },
-            ]),
+            actions: contexts.queueAcceptingMessageWithCapacity(normalizedOptions.capacity),
           },
         },
         states: {
@@ -212,85 +207,6 @@ const address = <
           },
         },
       },
-      // router: {
-      //   initial: States.listening,
-      //   states: {
-      //     [States.listening]: {
-      //       entry: [
-      //         actions.log((_, e) => 'states.router.listening.entry ' + e.type, 'Mailbox'),
-      //       ],
-      //       on: {
-      //         '*': {
-      //           target: States.routing,
-      //         },
-      //       },
-      //     },
-      //     [States.routing]: {
-      //       entry: [
-      //         actions.log((_, e, { _event }) => `states.router.routing.entry event: ${e.type}@${_event.origin || ''}`, 'Mailbox'),
-      //         actions.log(ctx => `states.router.routing.entry ctx.event: ${contexts.routingEventType(ctx)}@${contexts.routingEventOrigin(ctx)} ${JSON.stringify(ctx.event)}`, 'Mailbox'),
-      //         contexts.assignRoutingEvent,
-      //       ],
-      //       /**
-      //        * Proxy EVENTs rules:
-      //        *  1. skip all EVENTs send from mailbox itself
-      //        *  2. enqueue all EVENTs which are not sent from child machine
-      //        *  3. mailbox.respond all EVENTs send from child machine
-      //        *
-      //        * Difference Between Autocrine and Paracrine, @Samanthi, July 29, 2018
-      //        *  @see https://www.differencebetween.com/difference-between-autocrine-and-paracrine
-      //        */
-      //       always: [
-      //         {
-      //           /**
-      //            * 1. Autocrine signalling from mailbox itself
-      //            *
-      //            * skip all EVENTs send from mailbox itself
-      //            *
-      //            * NOTICE: this should be placed as the first
-      //            *  because the child might send MailboxType EVENTs (with child origin) which should not
-      //            *    be put to `outgoing`
-      //            */
-      //           cond: ctx => isMailboxType(contexts.routingEventType(ctx)),
-      //           actions: [
-      //             actions.log(ctx => `states.router.routing.always autocrine signal: isMailboxType(${contexts.routingEventType(ctx)})`, 'Mailbox'),
-      //             contexts.assignRoutingEventNull,
-      //           ],
-      //           target: States.listening,
-      //         },
-      //         {
-      //           /**
-      //            *  2. Paracrine signalling from child machine
-      //            */
-      //           cond: (ctx, _, { state }) => contexts.condRoutingEventOriginIsChild(ctx, state.children),
-      //           actions: actions.log(ctx => `states.router.routing.always paracrine signal: condCurrentEventOriginIsChild(${contexts.routingEventOrigin(ctx)})`, 'Mailbox'),
-      //           // target: States.outgoing,
-      //           target: States.listening,
-      //         },
-      //         {
-      //           /**
-      //            * 3. Endocrine signalling from external actors
-      //            *
-      //            * Current event is sent from other actors (neither child nor mailbox)
-      //            */
-      //           actions: actions.log(ctx => `states.router.routing.always endocrine signal: ${contexts.routingEventType(ctx)}@${contexts.routingEventOrigin(ctx)}`, 'Mailbox'),
-      //           target: States.incoming,
-      //         },
-      //       ],
-      //     },
-      //     [States.incoming]: {
-      //       entry: [
-      //         actions.log(ctx => `states.router.incoming.entry ${contexts.routingEventType(ctx)}@${contexts.routingEventOrigin(ctx)}`, 'Mailbox'),
-      //         actions.send(ctx => Events.ENQUEUE(contexts.routingEvent(ctx)!)),
-      //       ],
-      //       always: States.listening,
-      //       exit: [
-      //         actions.log(_ => 'states.router.incoming.exit', 'Mailbox'),
-      //         contexts.assignRoutingEventNull,
-      //       ],
-      //     },
-      //   },
-      // },
     },
   })
   return machine

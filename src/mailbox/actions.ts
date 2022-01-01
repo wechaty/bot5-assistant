@@ -6,16 +6,16 @@ import {
 import { Events }         from './events.js'
 import { isMailboxType }  from './types.js'
 
-const sendParentIdle = (info: string) => actions.choose([
+const idle = (info: string) => actions.choose([
   {
     /**
      * If the transition event is a Mailbox type events (system messages):
-     *  then do not trigger RECEIVE event
-     *  because only non-mailbox-type events need to check RECEIVE
+     *  then do not trigger DISPATCH event
+     *  because only non-mailbox-type events need to check QUEUE
      */
     cond: (_, e) => isMailboxType(e.type),
     actions: [
-      actions.log((_, e) => `actions.sendParentIdle skip for MailboxType ${e.type}`, 'Mailbox'),
+      actions.log((_, e) => `actions.idle skip for MailboxType ${e.type}`, 'Mailbox'),
     ],
   },
   {
@@ -23,7 +23,7 @@ const sendParentIdle = (info: string) => actions.choose([
      * send RECEIVE event to the mailbox for receiving new messages
      */
     actions: [
-      actions.log((_, e) => `actions.sendParentIdle triggered by ${e.type}`, 'Mailbox'),
+      actions.log((_, e) => `actions.idle triggered by ${e.type}`, 'Mailbox'),
       actions.sendParent(_ => Events.CHILD_IDLE(info)),
     ],
   },
@@ -63,7 +63,7 @@ const reply: typeof actions.sendParent = (event, options) => {
 }
 
 const Actions = {
-  sendParentIdle,
+  idle,
   reply,
 }
 

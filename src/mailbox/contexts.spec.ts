@@ -65,7 +65,7 @@ test('assignDequeue()', async t => {
   t.equal(index, 1, 'should be at index 1 after dequeue event')
 })
 
-test('condRoutingEventOriginIsChild', async t => {
+test('condEventSentFromChildOf', async t => {
   const SESSION_ID = 'session-id'
 
   const _EVENT = {
@@ -83,8 +83,10 @@ test('condRoutingEventOriginIsChild', async t => {
     state: { children: CHILDREN }
   } as GuardMeta<any, any>
 
-  t.ok(contexts.condEventSentFromChild(META), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condEventSentFromChildOf(CHILD_MACHINE_ID)(META), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condEventSentFromChildOf()(META), 'should return true if the event origin is the child session id (with empty child id for using the default value)')
 
   META._event.origin = undefined
-  t.notOk(contexts.condEventSentFromChild(META), 'should return false if the event origin is undefined')
+  t.notOk(contexts.condEventSentFromChildOf(CHILD_MACHINE_ID)(META), 'should return false if the event origin is undefined')
+  t.notOk(contexts.condEventSentFromChildOf()(META), 'should return false if the event origin is undefined (with empty child id for using the default value)')
 })
