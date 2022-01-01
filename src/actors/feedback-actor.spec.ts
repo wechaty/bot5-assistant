@@ -3,13 +3,14 @@
 
 import {
   test,
-  // sinon,
+  sinon,
 }                   from 'tstest'
 
 import {
   AnyEventObject,
   interpret,
   createMachine,
+  Interpreter,
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
@@ -24,6 +25,8 @@ import {
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
 
+import * as Mailbox from '../mailbox/mod.js'
+
 import {
   Events,
   States,
@@ -32,7 +35,6 @@ import {
 
 import {
   feedbackMachine,
-  feedbackActor,
 }                   from './feedback-actor.js'
 
 import { audioFixtures } from '../to-text/mod.js'
@@ -52,12 +54,13 @@ test('feedbackMachine smoke testing', async t => {
     },
   })
 
+  const eventList: AnyEventObject[] = []
+
   const testInterpreter = interpret(testMachine)
+    .onEvent(e => eventList.push(e))
     .start()
 
   const childRef = testInterpreter.children.get(CHILD_ID)!
-
-  const eventList: AnyEventObject[] = []
   childRef.subscribe(s => {
     eventList.push(s.event)
     console.info('[new transition]')
@@ -218,31 +221,60 @@ test('feedbackMachine smoke testing', async t => {
       [mocker.player.id] : FIXTURES.feedbacks.player,
     }, 'should have feedback from all users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
+
+    // eventList.forEach(e => console.info(e))
+    // console.info(eventList
+    //   .filter(e => e.type === Mailbox.Types.CHILD_REPLY)[0])
+
+    t.same(
+      eventList
+        .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
+      [
+        Mailbox.Events.CHILD_REPLY(
+          Events.FEEDBACK({
+            [mary.id]          : FIXTURES.feedbacks.mary,
+            [mocker.bot.id]    : FIXTURES.feedbacks.bot,
+            [mike.id]          : FIXTURES.feedbacks.mike,
+            [mocker.player.id] : FIXTURES.feedbacks.player,
+          }),
+        ),
+      ],
+      'should get feedback EVENT from parent',
+    )
   }
 
   testInterpreter.stop()
 })
 
-test.only('feedbackActor smoke testing', async t => {
-  const interpreter = interpret(feedbackActor)
-    .start()
+test('feedbackActor smoke testing', async t => {
+  // const sandbox = sinon.createSandbox({
+  //   useFakeTimers: true,
+  // })
+
+  const feedbackActor = Mailbox.address(feedbackMachine)
+
+  const CHILD_ID = 'child-id'
+  const testMachine = createMachine({
+    invoke: {
+      id: CHILD_ID,
+      src: feedbackActor,
+    },
+    on: {
+      '*': {
+        actions: Mailbox.Actions.proxyToChild(CHILD_ID),
+      }
+    }
+  })
 
   const eventList: AnyEventObject[] = []
-  interpreter.subscribe(s => {
-    eventList.push(s.event)
-    console.info('[new transition]')
-    console.info('  state ->', s.value)
-    console.info('  event ->', s.event.type)
-  })
 
-  interpreter.machine.start()
-
-  console.info('XXX', interpreter.machine.context)
-  interpreter.machine.context.childRef?.subscribe(s => {
-    console.info('[childRef]')
-    console.info('  state ->', s.value)
-    console.info('  event ->', s.event.type)
-  })
+  const interpreter = interpret(testMachine)
+    .onEvent(e => eventList.push(e))
+    .onTransition(s => {
+      console.info('  transition:', s.value, s.event.type)
+      // console.info('event:', s.event.type)
+    })
+    .start()
 
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
@@ -289,47 +321,80 @@ test.only('feedbackActor smoke testing', async t => {
     /**
      * Send initial message to start the feedback
      */
-    interpreter.send([
+    eventList.length = 0
+    ;[
       Events.CONTACTS(MEMBER_LIST),
       Events.ROOM(MEETING_ROOM),
-    ])
-    interpreter.send([
-      Events.ROOM(MEETING_ROOM),
-      Events.CONTACTS(MEMBER_LIST),
-    ])
-    await new Promise(setImmediate)
+    ].forEach(e => interpreter.send(e))
 
+    t.same(
+      eventList.map(e => e.type),
+      [
+        Types.CONTACTS,
+        Types.ROOM,
+      ],
+      'should get CONTACTS and ROOM event',
+    )
+
+    eventList.length = 0
     /**
      * Send MESSAGE event
      */
-    const msgs = [
+    ;[
       await listenMessage(() => mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom)),
       await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)),
       await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
       await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom)),
     ]
-    // console.info(msgs)
-    interpreter.send(msgs.map(
-      Events.MESSAGE,
-    ))
-    await new Promise(setImmediate)
+      .map(Events.MESSAGE)
+      .forEach(e => interpreter.send(e))
+    t.same(
+      eventList.map(e => e.type),
+      Array(4).fill(Types.MESSAGE),
+      'should get 4 message events',
+    )
 
-    // await firstValueFrom(
-    //   from(interpreter).pipe(
-    //     tap(x => console.info('tap event:', x.event.type)),
-    //     filter(s => s.value === States.idle),
-    //   ),
-    // )
-    // await new Promise(resolve => setTimeout(resolve, 1000))
-    // console.info(eventList)
-    // t.same(eventList, [], 'event list')
-    // t.same(snapshot.context.feedbacks, {
-    //   [mary.id]          : FIXTURES.feedbacks.mary,
-    //   [mocker.bot.id]    : FIXTURES.feedbacks.bot,
-    //   [mike.id]          : FIXTURES.feedbacks.mike,
-    //   [mocker.player.id] : FIXTURES.feedbacks.player,
-    // }, 'should have feedback from all users')
-    // t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
+    eventList.length = 0
+    // eventList.forEach(e => console.info(e))
+    await firstValueFrom(
+      from(interpreter).pipe(
+        // tap(x => console.info('tap event:', x.event.type)),
+        filter(s => s.event.type === Types.FEEDBACK),
+      ),
+    )
+    const EXPECTED_FEEDBACKS = {
+      [mary.id]          : FIXTURES.feedbacks.mary,
+      [mocker.bot.id]    : FIXTURES.feedbacks.bot,
+      [mike.id]          : FIXTURES.feedbacks.mike,
+      [mocker.player.id] : FIXTURES.feedbacks.player,
+    }
+    t.same(
+      eventList,
+      [
+        Events.FEEDBACK(EXPECTED_FEEDBACKS),
+      ],
+      'should get FEEDBACKS event',
+    )
+
+    const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
+    interpreter.send(Events.MESSAGE(msg))
+    eventList.length = 0
+    await firstValueFrom(
+      from(interpreter).pipe(
+        // tap(x => console.info('tap event:', x.event.type)),
+        filter(s => s.event.type === Types.FEEDBACK),
+      ),
+    )
+    t.same(
+      eventList,
+      [
+        Events.FEEDBACK({
+          ...EXPECTED_FEEDBACKS,
+          [mary.id] : FIXTURES.feedbacks.mike,
+        }),
+      ],
+      'should get FEEDBACKS event immediately after mary said mike feedback once again',
+    )
   }
 
   interpreter.stop()

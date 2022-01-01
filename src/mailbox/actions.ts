@@ -5,6 +5,7 @@ import {
 
 import { Events }         from './events.js'
 import { isMailboxType }  from './types.js'
+import * as contexts      from './contexts.js'
 
 const idle = (info: string) => actions.choose([
   {
@@ -62,9 +63,34 @@ const reply: typeof actions.sendParent = (event, options) => {
   }
 }
 
+/**
+ * Send events to child except:
+ *  1. Mailbox type
+ *  2. send from Child
+ */
+const proxyToChild = (childId: string) => actions.choose([
+  {
+    // 1. Mailbox.Types.* is system messages, skip them
+    cond: (_, e) => isMailboxType(e.type),
+    actions: [],  // skip
+  },
+  {
+    // 2. Child events (origin from child machine) are handled by child machine, skip them
+    cond: (_, __, meta) => contexts.condEventSentFromChildOf(childId)(meta),
+    actions: [],  // skip
+  },
+  {
+    actions: [
+      actions.send((_, e) => e, { to: childId }),
+      actions.log((_, e, { _event }) => `actions.proxyToChild ${e.type}@${_event.origin || ''} -> ${childId}`, 'Mailbox'),
+    ],
+  },
+])
+
 const Actions = {
   idle,
   reply,
+  proxyToChild,
 }
 
 export {

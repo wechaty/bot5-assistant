@@ -9,6 +9,7 @@ import type {
   Contact,
   Room,
 }                       from 'wechaty'
+import { GError } from 'gerror'
 
 import {
   Events,
@@ -28,6 +29,8 @@ type Context = {
   message?   : Message,
   feedback?  : string
   feedbacks : { [id: string]: string }
+  //
+  gerror?    : string,
 }
 
 type Event =
@@ -48,7 +51,7 @@ const nextAttendee = (ctx: Context) =>
     !Object.keys(ctx.feedbacks).includes(c.id),
   )[0]
 
-const initialContext = () => {
+function initialContext (): Context {
   const context: Context = {
     admins    : [],
     //
@@ -58,43 +61,38 @@ const initialContext = () => {
     message   : undefined,
     feedback  : undefined,
     feedbacks : {},
+    //
+    gerror     : undefined,
   }
-  return JSON.parse(JSON.stringify(context)) as typeof context
+  return JSON.parse(JSON.stringify(context))
 }
+
+const MACHINE_NAME = 'feedback-machine'
 
 const feedbackMachine = createMachine<Context, Event>(
   {
+    id: MACHINE_NAME,
     context: initialContext(),
     initial: States.initializing,
     states: {
       [States.initializing]: {
-        always: States.starting,
-      },
-      [States.starting]: {
-        always: States.checking,
-      },
-      [States.checking]: {
-        entry: actions.log('states.checking.entry', 'FeedbackMachine'),
-        always: [
-          { // everyone feedback-ed
-            cond: ctx => ctx.contacts.length > 0 && Object.keys(ctx.feedbacks).length >= ctx.contacts.length,
-            actions: actions.log(ctx => `states.checking.always contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, 'FeedbackMachine'),
-            target: States.feedbacked,
-          },
-          {
-            target: States.idle,
-            actions: actions.log(ctx => `states.checking.always default contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, 'FeedbackMachine'),
-          },
-        ],
+        always: States.idle,
       },
       [States.idle]: {
         entry: [
-          Mailbox.Actions.sendParentIdle('feedbackMachine'),
+          Mailbox.Actions.idle(MACHINE_NAME),
         ],
         on: {
+          /**
+           * Huan(202112):
+           *  Every EVENTs received in state.idle must have a `target` to make sure it is a `external` event.
+           *  so that the Mailbox.Actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
+           */
+          '*': States.idle,
+          //
           [Types.CONTACTS]: {
             actions: [
-              actions.log('states.idle.on.CONTACTS', 'FeedbackMachine'),
+              actions.log('states.idle.on.CONTACTS', MACHINE_NAME),
               actions.assign({
                 contacts: (ctx, e)  => [
                   ...ctx.contacts,
@@ -102,18 +100,20 @@ const feedbackMachine = createMachine<Context, Event>(
                 ],
               }),
             ],
+            target: States.idle,
           },
           [Types.ROOM]: {
             actions: [
-              actions.log('states.idle.on.ROOM', 'FeedbackMachine'),
+              actions.log('states.idle.on.ROOM', MACHINE_NAME),
               actions.assign({
                 room: (_, e) => e.payload.room,
               }),
             ],
+            target: States.idle,
           },
           [Types.ADMINS]: {
             actions: [
-              actions.log('states.idle.on.ADMINS', 'FeedbackMachine'),
+              actions.log('states.idle.on.ADMINS', MACHINE_NAME),
               actions.assign({
                 admins: (ctx, e) => [
                   ...ctx.admins,
@@ -121,17 +121,18 @@ const feedbackMachine = createMachine<Context, Event>(
                 ],
               }),
             ],
+            target: States.idle,
           },
           [Types.RESET]: {
             actions: [
-              actions.log('states.idle.on.RESET', 'FeedbackMachine'),
+              actions.log('states.idle.on.RESET', MACHINE_NAME),
               actions.assign(_ => initialContext()),
             ],
             target: States.initializing,
           },
           [Types.MESSAGE]: {
             actions: [
-              actions.log('states.idle.on.MESSAGE', 'FeedbackMachine'),
+              actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
               actions.assign({
                 message: (_, e) => e.payload.message,
               }),
@@ -140,8 +141,18 @@ const feedbackMachine = createMachine<Context, Event>(
           },
         },
       },
+      [States.erroring]: {
+        entry: [
+          actions.log('states.error.entry', MACHINE_NAME),
+          Mailbox.Actions.reply(ctx => Events.ERROR(ctx.gerror!)),
+        ],
+        exit: [
+          actions.assign({ gerror: _ => undefined }),
+        ],
+        always: States.idle,
+      },
       [States.recognizing]: {
-        entry: actions.log('states.recognizing.entry', 'FeedbackMachine'),
+        entry: actions.log('states.recognizing.entry', MACHINE_NAME),
         invoke: {
           src: (ctx) => messageToText(ctx.message),
           onDone: {
@@ -152,32 +163,26 @@ const feedbackMachine = createMachine<Context, Event>(
           },
           onError: {
             actions: [
-              actions.assign({ feedback: _ => undefined }),
-              actions.log((_, e) => 'states.feedbacking invoke error: ' + e.data, 'FeedbackMachine'),
+              actions.assign({
+                gerror: (_, e) => GError.stringify(e.data),
+                feedback: _ => undefined,
+              }),
+              actions.log((_, e) => 'states.recognizing invoke error: ' + e.data, MACHINE_NAME),
             ],
-            target: States.unknown,
+            target: States.erroring,
           },
         },
       },
-      [States.unknown]: {
-        entry: [
-          actions.log('states.unknown.entry', 'FeedbackMachine'),
-        ],
-        always: States.checking,
-      },
       [States.recognized]: {
         entry: [
-          actions.log((ctx, _) => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, 'FeedbackMachine'),
-          actions.log((ctx, _) => `states.recognized.entry next feedbacker ${nextAttendee(ctx)}`, 'FeedbackMachine'),
+          actions.log(ctx => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, MACHINE_NAME),
+          actions.log(ctx => `states.recognized.entry next feedbacker ${nextAttendee(ctx)}`, MACHINE_NAME),
         ],
         always: [
           {
-            cond: ctx => !ctx.feedback,
-            target: States.unknown,
-          },
-          {
+            cond: ctx => !!ctx.feedback,
             actions: [
-              actions.log(ctx => `states.recognized.always exist feedback: "${ctx.feedback}" from ${ctx.message!.talker().id}`, 'FeedbackMachine'),
+              actions.log(ctx => `states.recognized.always exist feedback: "${ctx.feedback}" from ${ctx.message!.talker().id}`, MACHINE_NAME),
               actions.assign({
                 feedbacks: ctx => ({
                   ...ctx.feedbacks,
@@ -187,12 +192,29 @@ const feedbackMachine = createMachine<Context, Event>(
             ],
             target: States.checking,
           },
+          {
+            target: States.idle,
+          }
+        ],
+      },
+      [States.checking]: {
+        entry: actions.log('states.checking.entry', MACHINE_NAME),
+        always: [
+          { // everyone feedback-ed
+            cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.contacts.length,
+            actions: actions.log(ctx => `states.checking.always contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, MACHINE_NAME),
+            target: States.feedbacked,
+          },
+          {
+            target: States.idle,
+            actions: actions.log(ctx => `states.checking.always default contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, MACHINE_NAME),
+          },
         ],
       },
       [States.feedbacked]: {
         entry: [
-          actions.log('states.feedbacked', 'FeedbackMachine'),
-          actions.sendParent(ctx => Events.FEEDBACK(ctx.feedbacks)),
+          actions.log('states.feedbacked.entry', MACHINE_NAME),
+          Mailbox.Actions.reply(ctx => Events.FEEDBACK(ctx.feedbacks)),
         ],
         always: States.idle,
       },
@@ -200,9 +222,6 @@ const feedbackMachine = createMachine<Context, Event>(
   },
 )
 
-const feedbackActor = Mailbox.address(feedbackMachine)
-
 export {
-  feedbackActor,
   feedbackMachine,
 }
