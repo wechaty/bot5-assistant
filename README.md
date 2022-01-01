@@ -69,6 +69,19 @@ We are trying to use [XState](https://xstate.js.org/) to implement the FSM and u
 
 Currently we are just getting started, you can learn more about the BOT5 Club Meeting FSM at <https://wechaty.github.io/bot5-assistant/>
 
+## Resources
+
+### Projects
+
+- [Dialogs modeled as finite state machines, Giorgio Robino, Jul 14, 2016](https://solyarisoftware.medium.com/dialoghi-come-macchine-a-stati-41bb748fd5b0)
+
+### Papers
+
+- [Dialog Management for Credit Card Selling via Finite State Machine Using Sentiment Classification in Turkish Language, Gizem Sogancıo ˘ glu et. al., INTELLI 2017 : The Sixth International Conference on Intelligent Systems and Applications (includes InManEnt)](https://www.thinkmind.org/articles/intelli_2017_2_30_60066.pdf)
+- [State Machine Based Human-Bot Conversation Model and Services, Shayan Zamanirad et. al., May 9, 2020, CAiSE 2020](https://www.semanticscholar.org/paper/State-Machine-Based-Human-Bot-Conversation-Model-Zamanirad-Benatallah/ffa524c4e247a9f532ea4ddb6407be0c9cc8d301)
+- [Tartan: A retrieval-based socialbot powered by a dynamic finite-state machine architecture, George Larionov, 4 Dec 2018](https://arxiv.org/abs/1812.01260)
+- [A Chatbot by Combining Finite State Machine , Information Retrieval , and Bot-Initiative Strategy, Sanghyun Yi, Published 2017](https://www.semanticscholar.org/paper/A-Chatbot-by-Combining-Finite-State-Machine-%2C-%2C-and-Yi/1fc7c24d80ede54871696e8e44a60fb6d0c8a475)
+
 ## History
 
 ### main v0.3 (Nov 29, 2021)
