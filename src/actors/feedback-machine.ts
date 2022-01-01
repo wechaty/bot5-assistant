@@ -67,12 +67,19 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const MACHINE_NAME = 'feedback-machine'
+const MACHINE_NAME = 'FeedbackMachine'
 
 const feedbackMachine = createMachine<Context, Event>(
   {
     id: MACHINE_NAME,
     context: initialContext(),
+    /**
+     * Issue statelyai/xstate#2891:
+     *  The context provided to the expr inside a State
+     *  should be exactly the **context in this state**
+     * @see https://github.com/statelyai/xstate/issues/2891
+     */
+    preserveActionOrder: true,
     initial: States.initializing,
     states: {
       [States.initializing]: {

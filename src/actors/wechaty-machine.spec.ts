@@ -9,7 +9,6 @@ import {
 import {
   createMachine,
   interpret,
-  actions,
   AnyEventObject,
   // spawn,
 }                   from 'xstate'
@@ -31,84 +30,81 @@ test('wechatyMachine transition smoke testing', async t => {
   // console.info('nextState:', nextState.value)
   // console.info('nextState:', nextState.event.type)
 
-  t.equal(nextState.value, States.inactive, 'should abort if no wechaty set before start')
+  t.equal(nextState.value, States.idle, 'should idle after start')
   t.equal(nextState.event.type, Types.START, 'should get START event')
 
-  nextState = wechatyMachine.transition(nextState, Events.WECHATY({} as any))
+  const DUMMY_WECHATY = {} as any
+  nextState = wechatyMachine.transition(nextState, Events.WECHATY(DUMMY_WECHATY as any))
 
-  t.equal(nextState.value, States.inactive, 'should be in inactive after received WECHATY event')
+  t.same(nextState.context, {
+    wechaty: DUMMY_WECHATY,
+  }, 'should have wechaty context after received WECHATY event')
   t.equal(nextState.event.type, Types.WECHATY, 'should get WECHATY event')
-
-  nextState = wechatyMachine.transition(nextState, Events.START())
-  // console.info('nextState.actions:', nextState.actions)
-  // console.info('nextState.transitions:', nextState.transitions.map(t => t.source.key))
-  // console.info('nextState.historyValue:', nextState.historyValue)
-  t.same(nextState.value, {
-    [States.active]: States.idle,
-  }, 'should be in active.idle after received START event')
-  t.equal(nextState.event.type, Types.START, 'should get START event')
 })
 
-// test('wechatyActor SAY with concurrency', async t => {
-//   for await (const WECHATY_FIXTURES of createFixture()) {
-//     const {
-//       wechaty,
-//       bot,
-//       player,
-//       room,
-//     }         = WECHATY_FIXTURES.wechaty
+test('wechatyActor SAY with concurrency', async t => {
+  const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
-//     const EXPECTED_TEXT = 'hello world'
-//     const eventList: AnyEventObject[] = []
-//     const interpreter = interpret(wechatyActor)
-//       .onTransition(s => eventList.push(s.event))
-//       .start()
+  const testActor = createMachine({
+    invoke: {
+      src: Mailbox.address(wechatyMachine),
+      id: WECHATY_MACHINE_ID,
+    },
+    on: { '*': {
+      actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
+    }},
+  })
 
-//     interpreter.send(Events.WECHATY(wechaty))
+  for await (const WECHATY_FIXTURES of createFixture()) {
+    const {
+      wechaty,
+      bot,
+      player,
+      room,
+    }         = WECHATY_FIXTURES.wechaty
 
-//     eventList.length = 0
-//     interpreter.send(Events.START())
+    const EXPECTED_TEXT = 'hello world'
 
-//     const spy = sinon.spy()
-//     wechaty.on('message', spy)
+    const eventList: AnyEventObject[] = []
+    const interpreter = interpret(testActor)
+      .onTransition(s => eventList.push(s.event))
+      .start()
 
-//     interpreter.send(Events.SAY(EXPECTED_TEXT + 0, room.id, []))
-//     interpreter.send(Events.SAY(EXPECTED_TEXT + 1, room.id, []))
-//     interpreter.send(Events.SAY(EXPECTED_TEXT + 2, room.id, []))
-//     // eventList.forEach(e => console.info(e.type))
+    interpreter.send(Events.WECHATY(wechaty))
 
-//     /**
-//      * Wait async: `wechaty.puppet.messageSendText()`
-//      */
-//     await new Promise(setImmediate)
-//     t.equal(spy.callCount, 3, 'should emit 3 messages')
-//     t.equal(spy.args[0]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
-//     t.equal(spy.args[0]![0].text(), EXPECTED_TEXT + 0, `should emit "${EXPECTED_TEXT}0"`)
+    eventList.length = 0
 
-//     interpreter.stop()
-//   }
-// })
+    const spy = sinon.spy()
+    wechaty.on('message', spy)
+
+    interpreter.send(Events.SAY(EXPECTED_TEXT + 0, room.id, []))
+    interpreter.send(Events.SAY(EXPECTED_TEXT + 1, room.id, []))
+    interpreter.send(Events.SAY(EXPECTED_TEXT + 2, room.id, []))
+    // eventList.forEach(e => console.info(e.type))
+
+    /**
+     * Wait async: `wechaty.puppet.messageSendText()`
+     */
+    await new Promise(setImmediate)
+    t.equal(spy.callCount, 3, 'should emit 3 messages')
+    t.equal(spy.args[1]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
+    t.equal(spy.args[1]![0].text(), EXPECTED_TEXT + 1, `should emit "${EXPECTED_TEXT}1"`)
+
+    interpreter.stop()
+  }
+})
 
 test('wechatyMachine interpreter smoke testing', async t => {
   const WECHATY_MACHINE_ID = 'wechaty-machine-id'
-  const proxy = {
-    actions: actions.send((_, e) => e, { to: WECHATY_MACHINE_ID }),
-  }
 
   const testMachine = createMachine({
-    id: 'test',
-    initial: 'testing',
     invoke: {
       src: wechatyMachine,
       id: WECHATY_MACHINE_ID,
     },
-    states: {
-      testing: {
-        on: {
-          [Types.START]: proxy,
-          [Types.WECHATY]: proxy,
-          [Types.SAY]: proxy,
-        },
+    on: {
+      '*': {
+        actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
       },
     },
   })
@@ -134,21 +130,6 @@ test('wechatyMachine interpreter smoke testing', async t => {
       room,
     }         = WECHATY_FIXTURES.wechaty
 
-    interpreter.send(
-      Events.START(),
-    )
-    snapshot = interpreter.getSnapshot()
-    // console.info(snapshot.history)
-    t.same(
-      eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY),
-      [
-        Mailbox.Events.CHILD_REPLY(
-          Events.ABORT('wechaty actor failed validating: aborted'),
-        ),
-      ],
-      'should get ABORT after START event if no wechaty set',
-    )
-
     interpreter.send([
       Events.WECHATY(wechaty),
     ])
@@ -167,40 +148,4 @@ test('wechatyMachine interpreter smoke testing', async t => {
   }
 
   interpreter.stop()
-})
-
-test('WechatyActor send ABORT event to parent', async t => {
-  const WECHATY_MACHINE_ID = 'wechaty-machine-id'
-  const parentMachine = createMachine({
-    id: 'parent',
-    invoke: {
-      id: WECHATY_MACHINE_ID,
-      src: wechatyMachine,
-    },
-    initial: 'testing',
-    context: {},
-    on: {
-      [Types.ABORT]: {
-        // actions: actions.log('ABORT'),
-      },
-    },
-    states: {
-      testing: {
-        entry: actions.send(Events.START(), { to: WECHATY_MACHINE_ID }),
-      },
-    },
-  })
-
-  const eventList: AnyEventObject[] = []
-  const interpreter = interpret(parentMachine)
-    .onTransition(s => eventList.push(s.event))
-    .start()
-
-  t.same(
-    eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY),
-    [
-      Mailbox.Events.CHILD_REPLY(Events.ABORT('wechaty actor failed validating: aborted')),
-    ],
-    'should receive ABORT event from child to parent',
-  )
 })

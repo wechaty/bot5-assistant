@@ -35,7 +35,7 @@ import {
 
 import {
   feedbackMachine,
-}                   from './feedback-actor.js'
+}                   from './feedback-machine.js'
 
 import { audioFixtures } from '../to-text/mod.js'
 
@@ -117,13 +117,16 @@ test('feedbackMachine smoke testing', async t => {
     /**
      * Send CONTACTS event
      */
-    eventList.length = 0
-    childRef.send(
+     eventList.length = 0
+     childRef.send(
       Events.CONTACTS(FIXTURES.members),
     )
     t.same(
       eventList.map(e => e.type),
-      [Types.CONTACTS],
+      [
+        Mailbox.Types.CHILD_IDLE,
+        Types.CONTACTS,
+      ],
       'should get CONTACT event',
     )
 

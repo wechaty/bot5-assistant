@@ -47,6 +47,8 @@ interface MailboxAddressOptions {
   capacity?: number
 }
 
+const MAILBOX_NAME = 'Mailbox'
+
 const address = <
   TEvent extends EventObject,
   TContext extends {},
@@ -64,6 +66,8 @@ const address = <
   if (IS_DEVELOPMENT && !validate(childMachine)) {
     throw new Error('Mailbox.address: childMachine is not valid')
   }
+
+  const MAILBOX_ADDRESS_NAME = `${MAILBOX_NAME}<${childMachine.id}>`
 
   const normalizedOptions: Required<MailboxAddressOptions> = {
     id       : 'mailbox',
@@ -115,7 +119,7 @@ const address = <
         states: {
           [States.listening]: {
             entry: [
-              actions.log('states.queue.listening.entry', 'Mailbox'),
+              actions.log('states.queue.listening.entry', MAILBOX_ADDRESS_NAME),
             ],
             on: {
               [Types.DISPATCH]: States.checking,
@@ -123,25 +127,25 @@ const address = <
           },
           [States.checking]: {
             entry: [
-              actions.log((_, e) => 'states.queue.checking.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.debug, 'Mailbox'),
+              actions.log((_, e) => 'states.queue.checking.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.debug, MAILBOX_ADDRESS_NAME),
             ],
             always: [
               {
                 cond: ctx => contexts.queueSize(ctx) > 0,
                 actions: [
-                  actions.log(ctx => `states.queue.checking.always queue size ${contexts.queueSize(ctx)}, transition to dequeuing`, 'Mailbox'),
+                  actions.log(ctx => `states.queue.checking.always queue size ${contexts.queueSize(ctx)}, transition to dequeuing`, MAILBOX_ADDRESS_NAME),
                 ],
                 target: States.dequeuing,
               },
               {
-                actions: actions.log('states.queue.checking.always queue is empty, transition to listening', 'Mailbox'),
+                actions: actions.log('states.queue.checking.always queue is empty, transition to listening', MAILBOX_ADDRESS_NAME),
                 target: States.listening,
               },
             ],
           },
           [States.dequeuing]: {
             entry: [
-              actions.log(ctx => `states.queue.dequeuing.entry ${contexts.queueMessageType(ctx)}@${contexts.queueMessageOrigin(ctx)}`, 'Mailbox'),
+              actions.log(ctx => `states.queue.dequeuing.entry ${contexts.queueMessageType(ctx)}@${contexts.queueMessageOrigin(ctx)}`, MAILBOX_ADDRESS_NAME),
               actions.send(ctx => Events.DEQUEUE(contexts.queueMessage(ctx)!)),
               // contexts.sendCurrentMessageToChild,
             ],
@@ -177,20 +181,20 @@ const address = <
              *  because it will drop the current message and dequeue the next one
              */
             entry: [
-              actions.log('states.child.idle.entry', 'Mailbox'),
+              actions.log('states.child.idle.entry', MAILBOX_ADDRESS_NAME),
               actions.send(Events.DISPATCH(States.idle)),
             ],
             on: {
               [Types.DEQUEUE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.DEQUEUE ${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, 'Mailbox'),
+                  actions.log((_, e) => `states.child.idle.on.DEQUEUE ${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME),
                   contexts.assignChildMessage,
                 ],
                 target: States.busy,
               },
               [Types.NEW_MESSAGE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug}`, 'Mailbox'),
+                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug}`, MAILBOX_ADDRESS_NAME),
                   actions.send(Events.DISPATCH(Types.NEW_MESSAGE)),
                 ],
               },
@@ -198,7 +202,7 @@ const address = <
           },
           [States.busy]: {
             entry: [
-              actions.log((_, e) => 'states.child.busy.entry ' + (e as ReturnType<typeof Events.DEQUEUE>).payload.message.type, 'Mailbox'),
+              actions.log((_, e) => 'states.child.busy.entry ' + (e as ReturnType<typeof Events.DEQUEUE>).payload.message.type, MAILBOX_ADDRESS_NAME),
               contexts.sendChildMessage,
             ],
             on: {
