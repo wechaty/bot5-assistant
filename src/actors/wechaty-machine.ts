@@ -144,10 +144,7 @@ const wechatyMachine = createMachine<Context, Event>({
   },
 })
 
-const wechatyActor = Mailbox.address(wechatyMachine)
-
 export {
-  wechatyActor,
   wechatyMachine,
   initialContext,
 }

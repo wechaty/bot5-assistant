@@ -22,9 +22,8 @@ import {
 }           from '../schemas/mod.js'
 
 import {
-  wechatyActor,
   wechatyMachine,
-}                   from './wechaty-actor.js'
+}                   from './wechaty-machine.js'
 import * as Mailbox from '../mailbox/mod.js'
 
 test('wechatyMachine transition smoke testing', async t => {
@@ -50,45 +49,45 @@ test('wechatyMachine transition smoke testing', async t => {
   t.equal(nextState.event.type, Types.START, 'should get START event')
 })
 
-test('wechatyActor SAY with concurrency', async t => {
-  for await (const WECHATY_FIXTURES of createFixture()) {
-    const {
-      wechaty,
-      bot,
-      player,
-      room,
-    }         = WECHATY_FIXTURES.wechaty
+// test('wechatyActor SAY with concurrency', async t => {
+//   for await (const WECHATY_FIXTURES of createFixture()) {
+//     const {
+//       wechaty,
+//       bot,
+//       player,
+//       room,
+//     }         = WECHATY_FIXTURES.wechaty
 
-    const EXPECTED_TEXT = 'hello world'
-    const eventList: AnyEventObject[] = []
-    const interpreter = interpret(wechatyActor)
-      .onTransition(s => eventList.push(s.event))
-      .start()
+//     const EXPECTED_TEXT = 'hello world'
+//     const eventList: AnyEventObject[] = []
+//     const interpreter = interpret(wechatyActor)
+//       .onTransition(s => eventList.push(s.event))
+//       .start()
 
-    interpreter.send(Events.WECHATY(wechaty))
+//     interpreter.send(Events.WECHATY(wechaty))
 
-    eventList.length = 0
-    interpreter.send(Events.START())
+//     eventList.length = 0
+//     interpreter.send(Events.START())
 
-    const spy = sinon.spy()
-    wechaty.on('message', spy)
+//     const spy = sinon.spy()
+//     wechaty.on('message', spy)
 
-    interpreter.send(Events.SAY(EXPECTED_TEXT + 0, room.id, []))
-    interpreter.send(Events.SAY(EXPECTED_TEXT + 1, room.id, []))
-    interpreter.send(Events.SAY(EXPECTED_TEXT + 2, room.id, []))
-    // eventList.forEach(e => console.info(e.type))
+//     interpreter.send(Events.SAY(EXPECTED_TEXT + 0, room.id, []))
+//     interpreter.send(Events.SAY(EXPECTED_TEXT + 1, room.id, []))
+//     interpreter.send(Events.SAY(EXPECTED_TEXT + 2, room.id, []))
+//     // eventList.forEach(e => console.info(e.type))
 
-    /**
-     * Wait async: `wechaty.puppet.messageSendText()`
-     */
-    await new Promise(setImmediate)
-    t.equal(spy.callCount, 3, 'should emit 3 messages')
-    t.equal(spy.args[0]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
-    t.equal(spy.args[0]![0].text(), EXPECTED_TEXT + 0, `should emit "${EXPECTED_TEXT}0"`)
+//     /**
+//      * Wait async: `wechaty.puppet.messageSendText()`
+//      */
+//     await new Promise(setImmediate)
+//     t.equal(spy.callCount, 3, 'should emit 3 messages')
+//     t.equal(spy.args[0]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
+//     t.equal(spy.args[0]![0].text(), EXPECTED_TEXT + 0, `should emit "${EXPECTED_TEXT}0"`)
 
-    interpreter.stop()
-  }
-})
+//     interpreter.stop()
+//   }
+// })
 
 test('wechatyMachine interpreter smoke testing', async t => {
   const WECHATY_MACHINE_ID = 'wechaty-machine-id'
@@ -176,7 +175,7 @@ test('WechatyActor send ABORT event to parent', async t => {
     id: 'parent',
     invoke: {
       id: WECHATY_MACHINE_ID,
-      src: wechatyActor,
+      src: wechatyMachine,
     },
     initial: 'testing',
     context: {},
@@ -192,10 +191,16 @@ test('WechatyActor send ABORT event to parent', async t => {
     },
   })
 
+  const eventList: AnyEventObject[] = []
   const interpreter = interpret(parentMachine)
-    .onTransition(s => console.info(s.event.type))
+    .onTransition(s => eventList.push(s.event))
     .start()
 
-  const snapshot = interpreter.getSnapshot()
-  t.equal(snapshot.event.type, Types.ABORT, 'should receive ABORT event from child to parent')
+  t.same(
+    eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY),
+    [
+      Mailbox.Events.CHILD_REPLY(Events.ABORT('wechaty actor failed validating: aborted')),
+    ],
+    'should receive ABORT event from child to parent',
+  )
 })
