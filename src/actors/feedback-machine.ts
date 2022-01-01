@@ -7,7 +7,7 @@ import {
 import type {
   Message,
   Contact,
-  Room,
+  // Room,
 }                       from 'wechaty'
 import { GError } from 'gerror'
 
@@ -24,7 +24,7 @@ type Context = {
   admins    : Contact[]
   //
   contacts  : Contact[]
-  room?      : Room,
+  // room?      : Room,
   //
   message?   : Message,
   feedback?  : string
@@ -36,10 +36,7 @@ type Context = {
 type Event =
   | ReturnType<typeof Events.MESSAGE>
   | ReturnType<typeof Events.CONTACTS>
-  | ReturnType<typeof Events.ROOM>
-  | ReturnType<typeof Events.START>
-  | ReturnType<typeof Events.STOP>
-  | ReturnType<typeof Events.ABORT>
+  // | ReturnType<typeof Events.ROOM>
   | ReturnType<typeof Events.RESET>
   | ReturnType<typeof Events.ADMINS>
 
@@ -56,7 +53,7 @@ function initialContext (): Context {
     admins    : [],
     //
     contacts  : [],
-    room      : undefined,
+    // room      : undefined,
     //
     message   : undefined,
     feedback  : undefined,
@@ -109,15 +106,15 @@ const feedbackMachine = createMachine<Context, Event>(
             ],
             target: States.idle,
           },
-          [Types.ROOM]: {
-            actions: [
-              actions.log('states.idle.on.ROOM', MACHINE_NAME),
-              actions.assign({
-                room: (_, e) => e.payload.room,
-              }),
-            ],
-            target: States.idle,
-          },
+          // [Types.ROOM]: {
+          //   actions: [
+          //     actions.log('states.idle.on.ROOM', MACHINE_NAME),
+          //     actions.assign({
+          //       room: (_, e) => e.payload.room,
+          //     }),
+          //   ],
+          //   target: States.idle,
+          // },
           [Types.ADMINS]: {
             actions: [
               actions.log('states.idle.on.ADMINS', MACHINE_NAME),
