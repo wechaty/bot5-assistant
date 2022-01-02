@@ -33,7 +33,7 @@ const textMachine = createMachine<Context, Event>(
     states: {
       idle: {
         entry: [
-          actions.sendParent(Mailbox.Events.IDLE('stt idle')),
+          actions.sendParent(Mailbox.Events.CHILD_IDLE('stt idle')),
         ],
         on: {
           [Types.MESSAGE]: {

@@ -77,7 +77,7 @@ const wrapEvent = (event: AnyEventObject, origin?: string) => {
       origin,
     },
   })
-  console.info(`wrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
+  // console.info(`wrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
   return wrappedEvent
 }
 
@@ -85,7 +85,7 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
   const wrappedEvent = {
     ...e,
   }
-  console.info(`unwrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
+  // console.info(`unwrapEvent: ${wrappedEvent.type}@${metaOrigin(wrappedEvent)}`)
 
   delete (wrappedEvent as any)[metaSymKey]
   return wrappedEvent
@@ -241,20 +241,14 @@ const queueAcceptingMessageWithCapacity = (capacity = Infinity) => actions.choos
  const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
 
 const assignChildMessage = actions.assign<Context, ReturnType<typeof Events.DEQUEUE>>({
-  message: (_, e) => {
-    console.info(`Mailbox contexts.assignChildMessage ${e.payload.message.type}@${metaOrigin(e.payload.message)}`)
-    return e.payload.message
-  },
+  message: (_, e) => e.payload.message,
 })
 
 /**
  * Send ctx.message (current message) to child
  */
 const sendChildMessage = actions.send<Context, any>(
-  ctx => {
-    console.info(`Mailbox contexts.sendChildMessage ${childMessageType(ctx)}@${childMessageOrigin(ctx)} to child`)
-    return childMessage(ctx)!
-  },
+  ctx => childMessage(ctx)!,
   { to: CHILD_MACHINE_ID },
 ) as any
 

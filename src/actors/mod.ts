@@ -1,7 +1,6 @@
 import * as Mailbox from '../mailbox/mod.js'
 
 import { registerMachine } from './register-machine.js'
-import { mentionMachine } from './mention-machine.js'
 import { feedbackMachine } from './feedback-machine.js'
 import { wechatyMachine } from './wechaty-machine.js'
 
