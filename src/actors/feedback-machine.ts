@@ -13,6 +13,7 @@ import { GError } from 'gerror'
 
 import {
   Events,
+  EventPayloads,
   States,
   Types,
 }                   from '../schemas/mod.js'
@@ -34,11 +35,10 @@ type Context = {
 }
 
 type Event =
-  | ReturnType<typeof Events.MESSAGE>
-  | ReturnType<typeof Events.CONTACTS>
-  // | ReturnType<typeof Events.ROOM>
-  | ReturnType<typeof Events.RESET>
-  | ReturnType<typeof Events.ADMINS>
+  | EventPayloads['MESSAGE']
+  | EventPayloads['CONTACTS']
+  | EventPayloads['RESET']
+  | EventPayloads['ADMINS']
 
 // const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
 // const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio

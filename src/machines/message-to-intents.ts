@@ -3,14 +3,14 @@ import {
   types,
 }                   from 'wechaty'
 
-enum Intent {
-  Unknown = 0,
-  Start,
-  Stop,
-}
+import { Intent } from '../schemas/mod.js'
 
-const textToIntents = async (text: string): Promise<Intent[]> => {
+const textToIntents = async (text?: string): Promise<Intent[]> => {
   const intentList: Intent[] = []
+
+  if (!text) {
+    return intentList
+  }
 
   if (/^开始|start/i.test(text)) {
     intentList.push(Intent.Start)

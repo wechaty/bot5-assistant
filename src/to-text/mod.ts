@@ -1,9 +1,9 @@
 import * as audioFixtures from './audio-fixtures.js'
-import { stt } from './stt.js'
+import { speechToText } from './speech-to-text.js'
 import { messageToText } from './message-to-text.js'
 
 export {
-  stt,
+  speechToText,
   audioFixtures,
   messageToText,
 }

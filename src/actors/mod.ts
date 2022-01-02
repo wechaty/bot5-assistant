@@ -1,8 +1,9 @@
 import * as Mailbox from '../mailbox/mod.js'
 
-import { registerMachine } from './register-machine.js'
-import { feedbackMachine } from './feedback-machine.js'
-import { wechatyMachine } from './wechaty-machine.js'
+import { registerMachine }  from './register-machine.js'
+import { feedbackMachine }  from './feedback-machine.js'
+import { wechatyMachine }   from './wechaty-machine.js'
+import { intentMachine }    from './intent-machine.js'
 
 const feedback = {
   actor: Mailbox.address(feedbackMachine),
@@ -19,8 +20,14 @@ const wechaty = {
   id: 'wechaty',
 } as const
 
+const intent = {
+  actor: Mailbox.address(intentMachine),
+  id: 'intent',
+}
+
 export {
   register,
   feedback,
   wechaty,
+  intent,
 }

@@ -8,7 +8,7 @@ import type { Message } from 'wechaty'
 
 import * as Mailbox from '../mailbox/mod.js'
 
-import { stt } from '../to-text/mod.js'
+import { speechToText } from '../to-text/mod.js'
 
 import {
   Events,
@@ -89,7 +89,7 @@ const textMachine = createMachine<Context, Event>(
       }),
     },
     services: {
-      stt: async context => context.message && stt(await context.message.toFileBox()),
+      stt: async context => context.message && speechToText(await context.message.toFileBox()),
     },
     guards: {
       isAudio:  ctx => !!ctx.message && ctx.message.type() === ctx.message.wechaty.Message.Type.Audio,

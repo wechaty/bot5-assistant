@@ -3,7 +3,7 @@ import {
   types as WechatyTypes,
 }                         from 'wechaty'
 
-import { stt }  from './stt.js'
+import { speechToText }  from './speech-to-text.js'
 
 const messageToText = async (message?: null | Message): Promise<undefined | string> => {
   if (!message) {
@@ -16,7 +16,7 @@ const messageToText = async (message?: null | Message): Promise<undefined | stri
 
     case WechatyTypes.Message.Audio: {
       const fileBox = await message.toFileBox()
-      const text = stt(fileBox)
+      const text = speechToText(fileBox)
       return text
     }
 

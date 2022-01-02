@@ -11,6 +11,7 @@ import type {
   Room,
   Wechaty,
 }               from 'wechaty'
+import type { Intent } from './intents.js'
 
 import { Types } from './types.js'
 
@@ -37,6 +38,8 @@ const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadError     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
+
+const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
 const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 
@@ -68,6 +71,7 @@ const Events = {
 
   // WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
   // CHECK  : createAction(Types.CHECK, payloadEmpty)(),
+  INTENTS: createAction(Types.INTENTS, payloadIntents)(),
 
   WECHATY : createAction(Types.WECHATY, payloadWechaty)(),
   WECHATY_ADDRESS : createAction(Types.WECHATY_ADDRESS, payloadWechatyAddress)(),
@@ -80,38 +84,11 @@ const Events = {
   COMPLETE : createAction(Types.COMPLETE, payloadData)(),
 } as const
 
-type Event = ReturnType<typeof Events[keyof typeof Events]>
-
-// const payloads = {
-//   ATTENDEES  : payloadAttendees,
-//   MENTIONS   : payloadMentions,
-//   MESSAGE    : payloadMessage,
-//   NEXT       : payloadEmpty,
-//   NO_AUDIO   : payloadEmpty,
-//   NO_MENTION : payloadEmpty,
-
-//   RESET: payloadEmpty,
-//   ABORTED: payloadAbort,
-//   CANCEL :payloadCancel,
-//   ERROR  :payloadError,
-
-//   ROOM       : payloadRoom,
-//   SAY        : payloadSay,
-
-//   START      : payloadEmpty,
-//   STOP: payloadEmpty,
-
-//   TEXT       : payloadText,
-//   WAKEUP : payloadEmpty,
-//   CHECK: payloadEmpty,
-
-//   COMPLETE: payloadData,
-//   FINISH: payloadData,
-
-//   WECHATY: payloadWechaty,
-// } as const
+type EventPayloads = {
+  [key in keyof typeof Events]: ReturnType<typeof Events[key]>
+}
 
 export {
   Events,
-  type Event,
+  type EventPayloads,
 }

@@ -1,49 +1,49 @@
 enum Types {
-  MESSAGE = 'bot5-assistant/MESSAGE',
-  ROOM = 'bot5-assistant/ROOM',
+  MESSAGE = 'bot5/MESSAGE',
+  ROOM = 'bot5/ROOM',
 
-  CONTACTS = 'bot5-assistant/CONTACTS',
-  ADMINS = 'bot5-assistant/ADMINS',
+  CONTACTS = 'bot5/CONTACTS',
+  ADMINS = 'bot5/ADMINS',
 
-  NO_AUDIO = 'bot5-assistant/NO_AUDIO',
+  NO_AUDIO = 'bot5/NO_AUDIO',
   TEXT = 'bot5-assisstant/TEXT',
 
-  MENTIONS = 'bot5-assistant/MENTIONS',
-  NO_MENTION = 'bot5-assistant/NO_MENTION',
+  MENTIONS = 'bot5/MENTIONS',
+  NO_MENTION = 'bot5/NO_MENTION',
 
-  NEXT = 'bot5-assistant/NEXT',
+  NEXT = 'bot5/NEXT',
 
-  START = 'bot5-assistant/START',
-  STOP = 'bot5-assistant/STOP',
+  START = 'bot5/START',
+  STOP = 'bot5/STOP',
 
-  SAY = 'bot5-assistant/SAY',
-  RESET = 'bot5-assistant/RESET',
+  SAY = 'bot5/SAY',
+  RESET = 'bot5/RESET',
 
-  // WAKEUP = 'bot5-assistant/WAKEUP',
-  ERROR = 'bot5-assistant/ERROR',
-  // CHECK = 'bot5-assistant/CHECK',
+  // WAKEUP = 'bot5/WAKEUP',
+  ERROR = 'bot5/ERROR',
+  // CHECK = 'bot5/CHECK',
 
-  FEEDBACK = 'bot5-assistant/FEEDBACK',
+  FEEDBACK = 'bot5/FEEDBACK',
 
   /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
    */
-  FINISH = 'bot5-assistant/FINISH',
-  COMPLETE = 'bot5-assistant/COMPLETE',
+  FINISH = 'bot5/FINISH',
+  COMPLETE = 'bot5/COMPLETE',
 
   /**
    * Abort v.s. Cancel
  *  @see https://stackoverflow.com/a/9838022/1123955
    */
-  ABORT = 'bot5-assistant/ABORT',
-  CANCEL = 'bot5-assistant/CANCEL',
+  ABORT = 'bot5/ABORT',
+  CANCEL = 'bot5/CANCEL',
 
-  WECHATY = 'bot5-assistant/WECHATY',
-  WECHATY_ADDRESS = 'bot5-assistant/WECHATY_ADDRESS',
+  WECHATY = 'bot5/WECHATY',
+  WECHATY_ADDRESS = 'bot5/WECHATY_ADDRESS',
 
-  DELIVER = 'bot5-assistant/DELIVER',
-
+  DELIVER = 'bot5/DELIVER',
+  INTENTS = 'bot5/INTENTS',
 
 }
 

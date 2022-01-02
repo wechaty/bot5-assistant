@@ -38,9 +38,16 @@ const clientConfig = {
 // 实例化要请求产品(以cvm为例)的client对象
 const client = new AsrClient(clientConfig)
 
-async function stt (
-  fileBox: FileBoxInterface,
+async function speechToText (
+  fileBox?: FileBoxInterface | Promise<FileBoxInterface>,
 ): Promise<string> {
+  if (!fileBox) {
+    return ''
+  }
+
+  if (fileBox instanceof Promise) {
+    fileBox = await fileBox
+  }
 
   let voiceFormat = fileBox.name.split('.').pop()
   if (!voiceFormat) {
@@ -135,5 +142,5 @@ async function stt (
 }
 
 export {
-  stt,
+  speechToText,
 }
