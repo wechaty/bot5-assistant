@@ -23,7 +23,7 @@ const wechaty = {
 const intent = {
   actor: Mailbox.address(intentMachine),
   id: 'intent',
-}
+} as const
 
 export {
   register,
