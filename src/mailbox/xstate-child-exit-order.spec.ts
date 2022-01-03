@@ -14,7 +14,7 @@ import {
   ActorRef,
 }                   from 'xstate'
 
-test('spyActionsMachine actions order testing', async t => {
+test('xstate machine with spawn-ed & invoked child machine order testing for entry/exit orders', async t => {
   const sandbox = sinon.createSandbox()
   const spy = sandbox.spy()
 
