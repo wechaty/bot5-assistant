@@ -67,7 +67,7 @@
     "tencentcloud-sdk-nodejs": "^4.0.246",
     "typesafe-actions": "^5.1.0",
     "uuid": "^8.3.2",
-    "xstate": "^4.26.1"
+    "xstate": "^4.27.0"
   },
   "git": {
     "scripts": {
