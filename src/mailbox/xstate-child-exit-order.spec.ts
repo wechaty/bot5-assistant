@@ -60,10 +60,7 @@ test('xstate machine with spawn-ed & invoked child machine order testing for ent
   interpreter.stop()
   t.same(spy.args.map(a => a[0]), [
     'parentMachine.exit',
-    'parentMachine.exit',
     'spawn childMachine.exit',
-    'spawn childMachine.exit',
-    'invoke childMachine.exit',
     'invoke childMachine.exit',
   ], 'should call exit actions in order')
 
