@@ -1,5 +1,5 @@
 import {
-  address,
+  Mailbox,
 }           from './mailbox.js'
 import { States } from './states.js'
 import { Types } from './types.js'
@@ -8,7 +8,7 @@ import { Actions } from './actions.js'
 import { validate } from './validate.js'
 
 export {
-  address,
+  Mailbox,
   validate,
   Actions,
   Types,

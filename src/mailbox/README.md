@@ -14,6 +14,10 @@ Mailbox is a NPM module built on top of XState Actor, by adding a message queue 
 > if you send 3 messages to the same actor, it will just execute one at a time.  
 > &mdash; [The actor model in 10 minutes - Actors have mailboxes](https://www.brianstorti.com/the-actor-model/)
 
+The design of Mailbox is very like the the Akka Actor Model:
+
+- [Introduction to Akka Actor Model](https://tech401.com/2018/05/31/2018/2018-05-31-introduction_to_akka_model/)
+
 ## TODO
 
 - [ ] Publish to NPM

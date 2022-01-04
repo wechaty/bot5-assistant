@@ -1,5 +1,3 @@
-const CHILD_MACHINE_ID = 'mailbox-address-child-machind-id'
-
 enum Types {
   /**
    * sub state types of: child
@@ -37,5 +35,4 @@ const isMailboxType = (type?: null | string): boolean => !!type && Object.values
 export {
   Types,
   isMailboxType,
-  CHILD_MACHINE_ID,
 }

@@ -15,9 +15,11 @@ import {
 
 import { Events }     from './events.js'
 import {
-  CHILD_MACHINE_ID,
   isMailboxType,
 }                     from './types.js'
+import {
+  CHILD_MACHINE_ID,
+}                     from './mailbox-options.js'
 
 const metaSymKey = Symbol('meta')
 

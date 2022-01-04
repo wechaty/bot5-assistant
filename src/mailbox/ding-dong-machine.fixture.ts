@@ -31,6 +31,7 @@ type Event =
 const MAX_DELAY_MS = 10
 
 const machine = createMachine<Context, Event>({
+  id: 'ding-dong',
   initial: States.idle,
   context: {
     i: -1,

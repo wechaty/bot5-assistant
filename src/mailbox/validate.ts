@@ -152,6 +152,8 @@ function validateSkipMailboxEvents (
 }
 
 /**
+ * Throw if the machine is not a valid Mailbox-addressable machine
+ *
  * Validate a state machine for satisfying the Mailbox address protocol:
  *  1. skip all EVENTs send from mailbox itself (Mailbox.Types.*)
  *  2. send parent `Mailbox.Events.RECEIVE()` event after each received events and back to the idle state
