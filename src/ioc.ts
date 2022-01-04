@@ -5,10 +5,7 @@ import type {
 }                 from 'xstate'
 import type { Wechaty } from 'wechaty'
 
-import {
-  Mailbox,
-  type Address,
-}                     from './mailbox/mod.js'
+import * as Mailbox from './mailbox/mod.js'
 import * as actors from './actors/mod.js'
 import { Events } from './schemas/mod.js'
 
@@ -35,7 +32,7 @@ enum InjectorToken {
 function wechatyActorAddress (wechaty: Wechaty) {
   const mailbox = Mailbox.from(actors.wechatyMachine)
   mailbox.start()
-  mailbox.send(Events.WECHATY(wechaty))
+  mailbox.address.send(Events.WECHATY(wechaty))
   return mailbox.address
 }
 wechatyActorAddress.inject = [InjectorToken.Wechaty] as const
@@ -47,8 +44,8 @@ const actorAddress = (machine: StateMachine<any, any, any>) => () => {
 }
 
 function assistantActor (
-  wechatyAddress: Address,
-  intentAddress: Address,
+  wechatyAddress: Mailbox.Address,
+  intentAddress: Mailbox.Address,
 ) {
   console.info('wechaty', '' + wechatyAddress)
   console.info('intent', '' + intentAddress)

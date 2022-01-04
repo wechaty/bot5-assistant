@@ -34,29 +34,25 @@ import type * as contexts      from './contexts.js'
 import type {
   Event,
 }                         from './events.js'
-import { validate }       from './validate.js'
-import { wrap }           from './wrap.js'
-
 import type { MailboxOptions } from './mailbox-options.js'
-import { Address }  from './address.js'
-import { Events }   from './events.js'
-import { Actions }  from './actions.js'
-import { States }   from './states.js'
+import {
+  AddressImpl,
+  type Address,
+}                   from './address.js'
 import {
   isMailboxType,
   Types,
 }                   from './types.js'
+import { wrap }     from './wrap.js'
 
-class Mailbox<TEvent extends EventObject> extends EventEmitter {
+interface Mailbox<TEvent extends EventObject = EventObject> {
+  address: Address<TEvent>
+  on (name: 'event', listener: (event: TEvent) => void): void
+  start (): void
+  stop (): void
+}
 
-  static Actions = Actions
-  static Address = Address
-  static Events  = Events
-  static States  = States
-  static Types   = Types
-
-  static validate = validate
-  static wrap     = wrap
+class MailboxImpl<TEvent extends EventObject> extends EventEmitter implements Mailbox {
 
   static from<
     TContext extends {},
@@ -68,8 +64,8 @@ class Mailbox<TEvent extends EventObject> extends EventEmitter {
       TEvent
     >,
     options?: MailboxOptions,
-  ) {
-    const wrappedMachine = this.wrap(childMachine, options)
+  ): Mailbox<TEvent> {
+    const wrappedMachine = wrap(childMachine, options)
     return new this(wrappedMachine)
   }
 
@@ -97,7 +93,7 @@ class Mailbox<TEvent extends EventObject> extends EventEmitter {
   ) {
     super()
     this._interpreter = interpret(this._wrappedMachine)
-    this.address      = new Address(this._interpreter.sessionId)
+    this.address      = AddressImpl.from(this._interpreter.sessionId)
 
     this._interpreter.onEvent(event => {
       if (/^xstate\./i.test(event.type)) {
@@ -129,5 +125,6 @@ class Mailbox<TEvent extends EventObject> extends EventEmitter {
 }
 
 export {
-  Mailbox,
+  type Mailbox,
+  MailboxImpl,
 }

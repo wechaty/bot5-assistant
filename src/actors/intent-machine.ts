@@ -6,7 +6,7 @@ import {
 }                   from 'xstate'
 import { textToIntents } from '../machines/message-to-intents.js'
 
-import { Mailbox } from '../mailbox/mod.js'
+import * as Mailbox from '../mailbox/mod.js'
 
 import {
   Events,

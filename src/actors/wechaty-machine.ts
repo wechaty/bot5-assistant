@@ -17,7 +17,7 @@ import {
   States,
   Types,
 }                     from '../schemas/mod.js'
-import { Mailbox }   from '../mailbox/mod.js'
+import * as Mailbox   from '../mailbox/mod.js'
 
 export interface Context {
   wechaty?: Wechaty

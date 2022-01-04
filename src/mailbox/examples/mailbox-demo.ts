@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-import { Mailbox } from '../mod.js'
+import * as Mailbox from '../mod.js'
 import {
   actions,
   createMachine,
@@ -74,7 +74,7 @@ const machine = demoMachine(false)
 /**
  * machine with Mailbox (async queue protocol support)
  */
-const actor = Mailbox.address(demoMachine(true))
+const actor = Mailbox.from(demoMachine(true))
 
 /**
  * send two events to the machine

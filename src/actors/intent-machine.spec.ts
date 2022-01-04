@@ -13,7 +13,7 @@ import {
 
 import { createFixture } from 'wechaty-mocker'
 
-import { Mailbox } from '../mailbox/mod.js'
+import * as Mailbox from '../mailbox/mod.js'
 
 import { intentMachine }  from './intent-machine.js'
 import {

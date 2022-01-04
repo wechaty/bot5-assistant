@@ -23,7 +23,7 @@ import {
   States,
 }                 from '../schemas/mod.js'
 
-import { Mailbox } from '../mailbox/mod.js'
+import * as Mailbox from '../mailbox/mod.js'
 import {
   registerMachine,
 }                   from './register-machine.js'

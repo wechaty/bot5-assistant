@@ -9,7 +9,8 @@ import {
   actions,
 }                   from 'xstate'
 
-import { Mailbox } from './mod.js'
+import { Types } from './types.js'
+import { Events } from './events.js'
 import * as contexts from './contexts.js'
 import { isMailboxType } from './types.js'
 /**
@@ -68,7 +69,7 @@ function validateInitializing (
 
   const EXPECTED_INIT_EVENT_TYPES = [
     'xstate.init',
-    Mailbox.Types.CHILD_IDLE,
+    Types.CHILD_IDLE,
   ]
   // console.info(eventList)
   const actualInitEvents = eventList
@@ -98,8 +99,8 @@ function validateReceiveFormOtherEvent (
 
   const actualIdleEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.CHILD_IDLE)
-  const EXPECTED_RECEIVE_EVENTS = [Mailbox.Types.CHILD_IDLE]
+    .filter(t => t === Types.CHILD_IDLE)
+  const EXPECTED_RECEIVE_EVENTS = [Types.CHILD_IDLE]
   assert.deepEqual(
     actualIdleEvents,
     EXPECTED_RECEIVE_EVENTS,
@@ -123,16 +124,16 @@ function validateReceiveFormOtherEvents (
     ))
   const EXPECTED_RECEIVE_EVENTS = Array
     .from({ length: TOTAL_EVENT_NUM })
-    .fill(Mailbox.Types.CHILD_IDLE)
+    .fill(Types.CHILD_IDLE)
   interpreter.send(randomEvents)
   const actualIdelEvents = eventList
     .map(e => e.type)
-    .filter(t => t === Mailbox.Types.CHILD_IDLE)
+    .filter(t => t === Types.CHILD_IDLE)
   assert.deepEqual(actualIdelEvents, EXPECTED_RECEIVE_EVENTS, `should send ${TOTAL_EVENT_NUM} RECEIVE events to parent when it has finished process ${TOTAL_EVENT_NUM} of other events`)
 }
 
 /**
- * Mailbox.Events.* is only for Mailbox system.
+ * Events.* is only for Mailbox system.
  *  They should not be sent to child machine.
  */
 function validateSkipMailboxEvents (
@@ -140,7 +141,7 @@ function validateSkipMailboxEvents (
   eventList: AnyEventObject[],
 ): void {
   const mailboxEventList = Object
-    .values(Mailbox.Events)
+    .values(Events)
     .map(e => e())
 
   mailboxEventList.forEach(mailboxEvent => {
@@ -155,8 +156,8 @@ function validateSkipMailboxEvents (
  * Throw if the machine is not a valid Mailbox-addressable machine
  *
  * Validate a state machine for satisfying the Mailbox address protocol:
- *  1. skip all EVENTs send from mailbox itself (Mailbox.Types.*)
- *  2. send parent `Mailbox.Events.RECEIVE()` event after each received events and back to the idle state
+ *  1. skip all EVENTs send from mailbox itself (Mailbox.*)
+ *  2. send parent `Events.RECEIVE()` event after each received events and back to the idle state
  *
  * @returns
  *  Success: will return true
@@ -188,7 +189,7 @@ function validate (
   validateReceiveFormOtherEvents(interpreter, eventList)
 
   /**
-   * child machine should not reply any Mailbox.Events.* events
+   * child machine should not reply any Events.* events
    */
   validateSkipMailboxEvents(interpreter, eventList)
 

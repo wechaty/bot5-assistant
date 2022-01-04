@@ -30,7 +30,7 @@ import {
   interpret,
 }                   from 'xstate'
 
-import { Mailbox }  from './mailbox.js'
+import * as Mailbox  from './mod.js'
 import * as Baby   from './baby-machine.fixture.js'
 import * as DingDong from './ding-dong-machine.fixture.js'
 
@@ -51,7 +51,7 @@ test('Mailbox.from() smoke testing', async t => {
   ], 'should received DEAD_LETTER with PLAY event')
 
   eventList.length = 0
-  mailbox.send(Baby.Events.SLEEP(10))
+  mailbox.address.send(Baby.Events.SLEEP(10))
   t.same(eventList, [
     Baby.Events.SLEEP(10),
     Mailbox.Events.DEAD_LETTER(Baby.Events.REST(), 'message baby/REST@x:1 dropped'),
@@ -101,7 +101,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   mailbox.start()
 
   eventList.length = 0
-  mailbox.send(Baby.Events.SLEEP(10))
+  mailbox.address.send(Baby.Events.SLEEP(10))
 
   t.same(eventList, [
     Baby.Events.SLEEP(10),
@@ -115,7 +115,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     ),
   ], 'should received DEAD_LETTER with REST and DREAM event')
 
-  mailbox.send(Baby.Events.SLEEP(20))
+  mailbox.address.send(Baby.Events.SLEEP(20))
 
   /**
    * Finish 1st (will right enter the 2nd)
@@ -192,7 +192,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
 
   Array.from({ length: 3 }).forEach(_ => {
     // console.info('EVENT: sleep sending...')
-    mailbox.send(Baby.Events.SLEEP(10))
+    mailbox.address.send(Baby.Events.SLEEP(10))
     // console.info('EVENT: sleep sending... done')
   })
 

@@ -14,7 +14,7 @@ import {
 }                   from 'xstate'
 
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
-import { Mailbox } from './mod.js'
+import * as Mailbox from './mod.js'
 
 test('CoffeeMaker.machine smoke testing', async t => {
   const CUSTOMER = 'John'

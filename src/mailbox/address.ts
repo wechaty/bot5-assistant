@@ -3,7 +3,7 @@ import { log } from 'brolog'
 import type { EventObject } from "xstate"
 import { registry } from 'xstate/lib/registry.js'
 
-interface Address <TEvent> {
+interface Address <TEvent extends EventObject = EventObject> {
   send (event: TEvent): void
 }
 
@@ -47,5 +47,6 @@ class AddressImpl <TEvent extends EventObject = EventObject> implements Address<
 }
 
 export {
-  AddressImpl as Address,
+  type Address,
+  AddressImpl,
 }
