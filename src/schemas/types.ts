@@ -40,11 +40,12 @@ enum Types {
   CANCEL = 'bot5/CANCEL',
 
   WECHATY = 'bot5/WECHATY',
-  WECHATY_ADDRESS = 'bot5/WECHATY_ADDRESS',
+  // WECHATY_ADDRESS = 'bot5/WECHATY_ADDRESS',
 
   DELIVER = 'bot5/DELIVER',
   INTENTS = 'bot5/INTENTS',
 
+  INTRODUCE = 'bot5/INTROCUDUCE',
 }
 
 export {

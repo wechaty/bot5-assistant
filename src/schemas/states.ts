@@ -6,6 +6,15 @@ enum States {
   idle = 'bot5/idle',
   busy = 'bot5-assisstant/busy',
 
+  /**
+   * Huan(202112): Recommended states transition for actors with Mailbox
+   *  1. initializing / onDone: idle
+   *  2. idle
+   *    - RESET: resetting -> initializing
+   *    - *: idle (make sure it's an external transition)
+   */
+  initializing  = 'bot5/initializing',
+
   unknown = 'bot5-assisstant/unknown',
 
   listening = 'bot5/listening',
@@ -35,20 +44,10 @@ enum States {
    * Which one is better: errored v.s. failed?
    *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
    */
-  errored = 'bot5/errored',
-  failed = 'bot5/failed',
+  errored  = 'bot5/errored',
   erroring = 'bot5/erroring',
+  failed   = 'bot5/failed',
 
-  /**
-   * Huan(202112): Recommended states transition for actors with Mailbox
-   *  1. initial: initializing / onDone: inactive
-   *  2. start/stop:
-   *    2.1 START: starting / onDone: active (validating might be required)
-   *    2.2 STOP: stopping / onDone: inactive
-   *  3. RESET: resetting
-   *  4. ABORT: ???
-   */
-  initializing  = 'bot5/initializing',
   starting  = 'bot5/starting',
   stopping  = 'bot5/stopping',
 
@@ -71,6 +70,10 @@ enum States {
   updating = 'bot5/updating',
   confirming = 'bot5/confirming',
   understanding = 'bot5/understanding',
+
+  introducing = 'bot5/introducing',
+  selecting = 'bot5/selecting',
+  scheduling = 'bot5/scheduling',
 }
 
 export {

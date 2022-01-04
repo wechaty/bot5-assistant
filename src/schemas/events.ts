@@ -31,7 +31,7 @@ const payloadContacts  = (contacts: Contact[]) => ({ contacts })
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[]) => ({ conversation, mentions, text })
 const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
-const payloadWechatyAddress   = (address: string) => ({ address })
+// const payloadWechatyAddress   = (address: string) => ({ address })
 
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
@@ -42,6 +42,7 @@ const payloadData      = (data: any) => ({ data })
 const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
 const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
+const payloadIntroduce = () => ({})
 
 const payloadEmpty     = () => ({})
 
@@ -74,7 +75,7 @@ const Events = {
   INTENTS: createAction(Types.INTENTS, payloadIntents)(),
 
   WECHATY : createAction(Types.WECHATY, payloadWechaty)(),
-  WECHATY_ADDRESS : createAction(Types.WECHATY_ADDRESS, payloadWechatyAddress)(),
+  // WECHATY_ADDRESS : createAction(Types.WECHATY_ADDRESS, payloadWechatyAddress)(),
 
   /**
    * Complete v.s. Finish
@@ -82,6 +83,8 @@ const Events = {
    */
   FINISH : createAction(Types.FINISH, payloadData)(),
   COMPLETE : createAction(Types.COMPLETE, payloadData)(),
+
+  INTRODUCE: createAction(Types.INTRODUCE, payloadIntroduce)(),
 } as const
 
 type EventPayloads = {
