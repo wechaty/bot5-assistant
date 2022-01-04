@@ -17,9 +17,9 @@ import {
   States,
   Types,
 }                     from '../schemas/mod.js'
-import * as Mailbox   from '../mailbox/mod.js'
+import { Mailbox }   from '../mailbox/mod.js'
 
-interface Context {
+export interface Context {
   wechaty?: Wechaty
   gerror?: string
 }

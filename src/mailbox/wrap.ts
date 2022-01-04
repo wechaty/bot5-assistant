@@ -201,7 +201,7 @@ function wrap <
               [Types.NEW_MESSAGE]: {
                 actions: [
                   actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug}`, MAILBOX_ADDRESS_NAME),
-                  actions.send(Events.DISPATCH(Types.NEW_MESSAGE)),
+                  actions.send(_ => Events.DISPATCH(Types.NEW_MESSAGE)),
                 ],
               },
             },

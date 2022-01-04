@@ -17,7 +17,7 @@ import {
   States,
   Types,
 }                   from '../schemas/mod.js'
-import * as Mailbox from '../mailbox/mod.js'
+import { Mailbox } from '../mailbox/mod.js'
 
 import { messageToText }  from '../to-text/mod.js'
 

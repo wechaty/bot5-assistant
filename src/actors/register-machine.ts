@@ -9,7 +9,7 @@ import type {
 }                 from 'wechaty'
 import { GError } from 'gerror'
 
-import * as Mailbox from '../mailbox/mod.js'
+import { Mailbox } from '../mailbox/mod.js'
 import {
   Events,
   States,

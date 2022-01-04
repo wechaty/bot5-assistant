@@ -13,7 +13,7 @@ import {
 }                   from 'xstate'
 
 import * as DingDong  from './ding-dong-machine.fixture.js'
-import * as Mailbox   from './mod.js'
+import { Mailbox }   from './mod.js'
 
 test('DingDong.machine process one DING event', async t => {
   const sandbox = sinon.createSandbox({

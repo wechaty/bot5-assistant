@@ -9,7 +9,7 @@ import {
   actions,
 }                   from 'xstate'
 
-import * as Mailbox from './mod.js'
+import { Mailbox } from './mod.js'
 import * as contexts from './contexts.js'
 import { isMailboxType } from './types.js'
 /**

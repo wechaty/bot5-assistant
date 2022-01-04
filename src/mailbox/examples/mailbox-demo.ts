@@ -1,5 +1,5 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-import * as Mailbox from '../mod.js'
+import { Mailbox } from '../mod.js'
 import {
   actions,
   createMachine,

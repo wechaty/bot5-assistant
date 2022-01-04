@@ -6,7 +6,7 @@ import {
 }                   from 'xstate'
 import { textToIntents } from '../machines/message-to-intents.js'
 
-import * as Mailbox from '../mailbox/mod.js'
+import { Mailbox } from '../mailbox/mod.js'
 
 import {
   Events,
@@ -17,7 +17,7 @@ import {
 
 import { speechToText } from '../to-text/mod.js'
 
-interface Context {
+export interface Context {
   message?: WECHATY.Message
   text?: string
   gerror?: string

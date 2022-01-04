@@ -14,7 +14,7 @@ import {
   // spawn,
 }                   from 'xstate'
 
-import * as Mailbox     from './mod.js'
+import { Mailbox }     from './mod.js'
 import * as DingDong    from './ding-dong-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 

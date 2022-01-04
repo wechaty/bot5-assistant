@@ -1,11 +1,19 @@
 import { log } from 'brolog'
 
-import type { AnyEventObject } from "xstate"
+import type { EventObject } from "xstate"
 import { registry } from 'xstate/lib/registry.js'
 
-class Address <TEvent extends AnyEventObject = AnyEventObject> {
+interface Address <TEvent> {
+  send (event: TEvent): void
+}
 
-  constructor (
+class AddressImpl <TEvent extends EventObject = EventObject> implements Address<TEvent> {
+
+  static from <TEvent extends EventObject = EventObject>(address: string): Address<TEvent> {
+    return new AddressImpl<TEvent>(address)
+  }
+
+  protected constructor (
     protected _address: string,
   ) {
   }
@@ -39,5 +47,5 @@ class Address <TEvent extends AnyEventObject = AnyEventObject> {
 }
 
 export {
-  Address,
+  AddressImpl as Address,
 }

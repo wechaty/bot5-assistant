@@ -4,7 +4,7 @@ import {
   actions,
 }                   from 'xstate'
 
-import * as Mailbox from './mod.js'
+import { Mailbox } from './mod.js'
 
 enum States {
   idle = 'ding-dong/idle',

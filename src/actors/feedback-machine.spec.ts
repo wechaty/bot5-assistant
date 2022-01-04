@@ -25,7 +25,7 @@ import {
 import { createFixture } from 'wechaty-mocker'
 import type { mock } from 'wechaty-puppet-mock'
 
-import * as Mailbox from '../mailbox/mod.js'
+import { Mailbox } from '../mailbox/mod.js'
 
 import {
   Events,

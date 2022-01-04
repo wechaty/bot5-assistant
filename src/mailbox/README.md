@@ -115,13 +115,13 @@ Then use `mailboxAddress` instead.
 
 ## Quick Start
 
-1. `import * as Mailbox from 'mailbox'`
+1. `import { Mailbox } from 'mailbox'`
 1. Add `Mailbox.Actions.idle('child-id')` to the `entry` of state of your machine which it accepting new messages, to let the Mailbox continue sending new messages from other actors.
 1. Use `Mailbox.Actions.reply('YOUR_EVENT')` to reply event messages to other actors.
 1. Use `const actor = Mailbox.address(yourMachine)` to wrap your actor with mailbox address. The mailbox address is a parent XState machine which will invok your machine as child and add message queue to the child machine.
 
 ```ts
-import * as Mailbox from 'mailbox'
+import { Mailbox } from 'mailbox'
 import { createMachine } from 'xstate'
 
 const machine = createMachine({

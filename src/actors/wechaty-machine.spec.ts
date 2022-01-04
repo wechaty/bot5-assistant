@@ -23,7 +23,7 @@ import {
 import {
   wechatyMachine,
 }                   from './wechaty-machine.js'
-import * as Mailbox from '../mailbox/mod.js'
+import { Mailbox } from '../mailbox/mod.js'
 
 test('wechatyMachine transition smoke testing', async t => {
   let nextState = wechatyMachine.transition(wechatyMachine.initialState, Events.START())
