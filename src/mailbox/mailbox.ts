@@ -41,6 +41,7 @@ import type { MailboxOptions } from './mailbox-options.js'
 import { Address }  from './address.js'
 import { Events }   from './events.js'
 import { Actions }  from './actions.js'
+import { States }   from './states.js'
 import {
   isMailboxType,
   Types,
@@ -51,6 +52,7 @@ class Mailbox<TEvent extends EventObject> extends EventEmitter {
   static Actions = Actions
   static Address = Address
   static Events  = Events
+  static States  = States
   static Types   = Types
 
   static validate = validate
