@@ -1,11 +1,34 @@
-import { feedbackMachine }  from './feedback-machine.js'
-import { intentMachine }    from './intent-machine.js'
-import { registerMachine }  from './register-machine.js'
-import { wechatyMachine }   from './wechaty-machine.js'
+import type { ActionCreator } from 'typesafe-actions'
+import type { StateMachine }  from 'xstate'
+
+import type * as Mailbox from '../mailbox/mod.js'
+
+import * as feedback  from './feedback-actor.js'
+import * as intent    from './intent-actor.js'
+import * as register  from './register-actor.js'
+import * as wechaty   from './wechaty-actor.js'
+
+interface ActorModel {
+  mailboxFactory: (...args: any[]) => Mailbox.Mailbox
+  machineFactory: (...args: any[]) => StateMachine<any, any, any>
+  Events: {
+    [key: string]: ActionCreator,
+  }
+}
+
+const actors: {
+  [key: string]: ActorModel,
+} = {
+  feedback,
+  intent,
+  register,
+  wechaty,
+}
+void actors // for typing testing only
 
 export {
-  feedbackMachine,
-  intentMachine,
-  registerMachine,
-  wechatyMachine,
+  feedback,
+  intent,
+  register,
+  wechaty,
 }

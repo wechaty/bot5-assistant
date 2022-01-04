@@ -34,10 +34,12 @@ import {
 }           from '../schemas/mod.js'
 
 import {
-  feedbackMachine,
-}                   from './feedback-machine.js'
+  machineFactory,
+  mailboxFactory,
+}                   from './feedback-actor.js'
 
 import { audioFixtures } from '../to-text/mod.js'
+import { isMailboxType } from '../mailbox/types.js'
 
 const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
   const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
@@ -46,11 +48,11 @@ const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => 
 }
 
 test('feedbackMachine smoke testing', async t => {
-  const CHILD_ID = 'child-id'
+  const CHILD_ID = 'testing-child-id'
   const testMachine = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: feedbackMachine,
+      src: machineFactory({ send: () => {} }),
     },
   })
 
@@ -250,13 +252,11 @@ test('feedbackMachine smoke testing', async t => {
 })
 
 test('feedbackActor smoke testing', async t => {
-  // const sandbox = sinon.createSandbox({
-  //   useFakeTimers: true,
-  // })
 
-  const feedbackActor = Mailbox.address(feedbackMachine)
+  const feedbackMachine = machineFactory({ send: _ => {} })
+  const feedbackActor = Mailbox.wrap(feedbackMachine)
 
-  const CHILD_ID = 'child-id'
+  const CHILD_ID = 'testing-child-id'
   const testMachine = createMachine({
     invoke: {
       id: CHILD_ID,
@@ -331,7 +331,9 @@ test('feedbackActor smoke testing', async t => {
     ].forEach(e => interpreter.send(e))
 
     t.same(
-      eventList.map(e => e.type),
+      eventList
+        .filter(e => !isMailboxType(e.type))
+        .map(e => e.type),
       [
         Types.CONTACTS,
         Types.ROOM,
@@ -384,7 +386,7 @@ test('feedbackActor smoke testing', async t => {
     eventList.length = 0
     await firstValueFrom(
       from(interpreter).pipe(
-        // tap(x => console.info('tap event:', x.event.type)),
+        tap(x => console.info('tap event:', x.event.type)),
         filter(s => s.event.type === Types.FEEDBACK),
       ),
     )

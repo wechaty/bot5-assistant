@@ -13,35 +13,30 @@ import type {
 import { GError }   from 'gerror'
 
 import {
-  Events,
+  Events as Bot5Events,
   States,
   Types,
 }                     from '../schemas/mod.js'
 import * as Mailbox   from '../mailbox/mod.js'
+import { InjectionToken } from '../ioc/tokens.js'
 
 export interface Context {
-  wechaty?: Wechaty
   gerror?: string
 }
 
-type Event =
-  | ReturnType<typeof Events.MESSAGE>
-  | ReturnType<typeof Events.START>
-  | ReturnType<typeof Events.STOP>
-  | ReturnType<typeof Events.ABORT>
-  | ReturnType<typeof Events.RESET>
-  | ReturnType<typeof Events.WECHATY>
-  | ReturnType<typeof Events.SAY>
+const Events = {
+  MESSAGE : Bot5Events.MESSAGE,
+  RESET   : Bot5Events.RESET,
+  SAY     : Bot5Events.SAY,
+} as const
 
-// const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
-// const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
+type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 /**
  * use JSON.parse() to prevent the initial context from being changed
  */
 function initialContext (): Context {
   const context: Context = {
-    wechaty: undefined,
     gerror: undefined,
   }
   return JSON.parse(JSON.stringify(context))
@@ -49,7 +44,10 @@ function initialContext (): Context {
 
 const MACHINE_NAME = 'WechatyMachine'
 
-const wechatyMachine = createMachine<Context, Event>({
+const machineFactory = (
+  wechaty: Wechaty,
+) => createMachine<Context, Event>({
+  id: MACHINE_NAME,
   context: initialContext(),
   /**
    * Issue statelyai/xstate#2891:
@@ -69,15 +67,7 @@ const wechatyMachine = createMachine<Context, Event>({
         Mailbox.Actions.idle('wechatyActor.idle'),
       ],
       on: {
-        [Types.WECHATY]: {
-          actions: [
-            actions.log((_, e) => `state.idle.on.WECHATY wechaty id ${(e as ReturnType<typeof Events.WECHATY>).payload.wechaty.id}`, MACHINE_NAME),
-            actions.assign({
-              wechaty: (_, e) => (e as ReturnType<typeof Events.WECHATY>).payload.wechaty,
-            }),
-          ],
-          target: States.idle,
-        },
+        '*': States.idle, // must have a external transition for all events
         [Types.RESET]: {
           actions: actions.assign(initialContext()) as any,
           target: States.initializing,
@@ -86,7 +76,7 @@ const wechatyMachine = createMachine<Context, Event>({
       },
     },
     [States.erroring]: {
-      entry: Mailbox.Actions.reply(ctx => Events.ERROR(ctx.gerror!)),
+      entry: Mailbox.Actions.reply(ctx => Bot5Events.ERROR(ctx.gerror!)),
       exit: actions.assign({ gerror: _ => undefined }),
       always: States.idle,
     },
@@ -95,15 +85,11 @@ const wechatyMachine = createMachine<Context, Event>({
         actions.log((_, e) => `state.busy.entry ${e.type}`, MACHINE_NAME),
       ],
       invoke: {
-        src: async (ctx, e) => {
+        src: async (_, e) => {
           log.verbose(MACHINE_NAME, 'state.busy.invoke %s', e.type)
 
-          if (!ctx.wechaty) {
-            throw new Error('WechatyActor: no ctx.wechaty')
-          }
-
           if (isActionOf(Events.SAY, e)) {
-            await ctx.wechaty.puppet.messageSendText(
+            await wechaty.puppet.messageSendText(
               e.payload.conversation,
               e.payload.text,
               e.payload.mentions,
@@ -124,7 +110,21 @@ const wechatyMachine = createMachine<Context, Event>({
   },
 })
 
+mailboxFactory.inject = [
+  InjectionToken.Wechaty,
+] as const
+function mailboxFactory (
+  wechaty: Wechaty,
+) {
+  const machine = machineFactory(wechaty)
+  const mailbox = Mailbox.from(machine)
+  mailbox.start()
+  return mailbox
+}
+
 export {
-  wechatyMachine,
+  machineFactory,
+  mailboxFactory,
+  Events,
   initialContext,
 }

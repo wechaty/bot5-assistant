@@ -15,7 +15,7 @@ import { createFixture } from 'wechaty-mocker'
 
 import * as Mailbox from '../mailbox/mod.js'
 
-import { intentMachine }  from './intent-machine.js'
+import { machineFactory }  from './intent-actor.js'
 import {
   Events,
   Intent,
@@ -33,7 +33,7 @@ test('intentMachine happy path smoke testing', async t => {
   const parentMachine = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: intentMachine,
+      src: machineFactory,
     },
     on: {
       '*': {

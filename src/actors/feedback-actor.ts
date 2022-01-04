@@ -7,19 +7,20 @@ import {
 import type {
   Message,
   Contact,
+  Wechaty,
   // Room,
 }                       from 'wechaty'
 import { GError } from 'gerror'
 
 import {
-  Events,
-  EventPayloads,
+  Events as Bot5Events,
   States,
   Types,
 }                   from '../schemas/mod.js'
 import * as Mailbox from '../mailbox/mod.js'
 
 import { messageToText }  from '../to-text/mod.js'
+import { InjectionToken } from '../ioc/tokens.js'
 
 type Context = {
   admins    : Contact[]
@@ -34,11 +35,14 @@ type Context = {
   gerror?    : string,
 }
 
-type Event =
-  | EventPayloads['MESSAGE']
-  | EventPayloads['CONTACTS']
-  | EventPayloads['RESET']
-  | EventPayloads['ADMINS']
+const Events = {
+  ADMINS   : Bot5Events.ADMINS,
+  CONTACTS : Bot5Events.CONTACTS,
+  MESSAGE  : Bot5Events.MESSAGE,
+  RESET    : Bot5Events.RESET,
+} as const
+
+type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 // const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
 // const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
@@ -66,8 +70,10 @@ function initialContext (): Context {
 
 const MACHINE_NAME = 'FeedbackMachine'
 
-const feedbackMachine = createMachine<Context, Event>(
-  {
+function machineFactory (
+  wechatyAddress: Mailbox.Address,
+) {
+  const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
     context: initialContext(),
     /**
@@ -148,7 +154,7 @@ const feedbackMachine = createMachine<Context, Event>(
       [States.erroring]: {
         entry: [
           actions.log('states.error.entry', MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => Events.ERROR(ctx.gerror!)),
+          Mailbox.Actions.reply(ctx => Bot5Events.ERROR(ctx.gerror!)),
         ],
         exit: [
           actions.assign({ gerror: _ => undefined }),
@@ -218,14 +224,30 @@ const feedbackMachine = createMachine<Context, Event>(
       [States.feedbacked]: {
         entry: [
           actions.log('states.feedbacked.entry', MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => Events.FEEDBACK(ctx.feedbacks)),
+          Mailbox.Actions.reply(ctx => Bot5Events.FEEDBACK(ctx.feedbacks)),
         ],
         always: States.idle,
       },
     },
-  },
-)
+  })
+  return machine
+}
+
+mailboxFactory.inject = [
+  InjectionToken.WechatyMailbox,
+] as const
+function mailboxFactory (
+  wechatyMailbox: Mailbox.Mailbox,
+) {
+  const machine = machineFactory(wechatyMailbox.address)
+  const mailbox = Mailbox.from(machine)
+  mailbox.start
+  return mailbox
+}
 
 export {
-  feedbackMachine,
+  machineFactory,
+  mailboxFactory,
+  Events,
+  initialContext,
 }

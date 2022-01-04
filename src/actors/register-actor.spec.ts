@@ -25,10 +25,14 @@ import {
 
 import * as Mailbox from '../mailbox/mod.js'
 import {
-  registerMachine,
-}                   from './register-machine.js'
+  machineFactory,
+}                   from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
+  const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
+  wechatyMailbox.start()
+
+  const registerMachine = machineFactory(wechatyMailbox.address)
   const CHILD_ID = 'child-id'
   const parentTester = createMachine({
     invoke: {
@@ -79,6 +83,7 @@ test('registerMachine smoke testing', async t => {
       mocker.player.id,
     ]
 
+    //   Events.MESSAGE(mention
     const meetingRoom = mocker.mocker.createRoom({
       memberIdList: MEMBER_ID_LIST,
     })
@@ -116,7 +121,7 @@ test('registerMachine smoke testing', async t => {
 
     snapshot = childRef.getSnapshot()
     t.equal(snapshot.value, States.idle, 'should be back to idle state')
-    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5-assistant/updating:invocation[0]', 'should be done.invoke.RegisterMachine.bot5-assistant/updating:invocation[0] event')
+    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/updating:invocation[0]', 'should be done.invoke.RegisterMachine.bot5/updating:invocation[0] event')
     t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
@@ -162,7 +167,7 @@ test('registerMachine smoke testing', async t => {
 
     snapshot = childRef.getSnapshot()
     t.equal(snapshot.value, States.idle, 'should be in idle state')
-    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5-assistant/updating:invocation[0]', 'should got done.invoke.RegisterMachine.bot5-assistant/updating:invocation[0] event')
+    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/updating:invocation[0]', 'should got done.invoke.RegisterMachine.bot5/updating:invocation[0] event')
     t.same(
       snapshot.context.contacts.map(c => c.id),
       MENTION_LIST.map(c =>  c.id),
@@ -170,15 +175,22 @@ test('registerMachine smoke testing', async t => {
     )
   }
 
+  wechatyMailbox.stop()
   interpreter.stop()
 })
 
 test('registerActor smoke testing', async t => {
-  const CHILD_ID = 'child-id'
+  const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
+  wechatyMailbox.start()
+
+  const registerMachine = machineFactory(wechatyMailbox.address)
+  const registerActor = Mailbox.wrap(registerMachine)
+
+  const CHILD_ID = 'testing-child-id'
   const parentTester = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: registerMachine,
+      src: registerActor,
     },
     on: {
       '*': {
@@ -250,19 +262,21 @@ test('registerActor smoke testing', async t => {
 
     eventList.length = 0
     const idleFuture = new Promise<void>(resolve =>
-      interpreter.onEvent(e =>
-        e.type === Mailbox.Types.CHILD_REPLY && resolve(),
-      ),
+      interpreter.onEvent(e => {
+        // console.info('event:', e)
+        if (e.type === Types.CONTACTS) {
+         resolve()
+        }
+      }),
     )
     const CONTACT_MENTION_LIST = await Promise.all(
       MENTION_LIST
         .map(c => wechaty.wechaty.Contact.find({ id: c.id })),
     ) as WECHATY.Contact[]
     await idleFuture
-    t.same(eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY), [
-      Mailbox.Events.CHILD_REPLY(
-        Events.CONTACTS(CONTACT_MENTION_LIST),
-      ),
+    // console.info(eventList)
+    t.same(eventList, [
+      Events.CONTACTS(CONTACT_MENTION_LIST),
     ], 'should get CONTACT events with mention list')
   }
 

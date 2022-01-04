@@ -21,40 +21,11 @@ import {
 }           from '../schemas/mod.js'
 
 import {
-  wechatyMachine,
-}                   from './wechaty-machine.js'
+  machineFactory,
+}                   from './wechaty-actor.js'
 import * as Mailbox from '../mailbox/mod.js'
 
-test('wechatyMachine transition smoke testing', async t => {
-  let nextState = wechatyMachine.transition(wechatyMachine.initialState, Events.START())
-  // console.info('nextState:', nextState.value)
-  // console.info('nextState:', nextState.event.type)
-
-  t.equal(nextState.value, States.idle, 'should idle after start')
-  t.equal(nextState.event.type, Types.START, 'should get START event')
-
-  const DUMMY_WECHATY = {} as any
-  nextState = wechatyMachine.transition(nextState, Events.WECHATY(DUMMY_WECHATY as any))
-
-  t.same(nextState.context, {
-    wechaty: DUMMY_WECHATY,
-  }, 'should have wechaty context after received WECHATY event')
-  t.equal(nextState.event.type, Types.WECHATY, 'should get WECHATY event')
-})
-
 test('wechatyActor SAY with concurrency', async t => {
-  const WECHATY_MACHINE_ID = 'wechaty-machine-id'
-
-  const testActor = createMachine({
-    invoke: {
-      src: Mailbox.address(wechatyMachine),
-      id: WECHATY_MACHINE_ID,
-    },
-    on: { '*': {
-      actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
-    }},
-  })
-
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
       wechaty,
@@ -62,6 +33,19 @@ test('wechatyActor SAY with concurrency', async t => {
       player,
       room,
     }         = WECHATY_FIXTURES.wechaty
+
+    const wechatyMachine = machineFactory(wechaty)
+    const WECHATY_MACHINE_ID = 'wechaty-machine-id'
+
+    const testActor = createMachine({
+      invoke: {
+        src: Mailbox.wrap(wechatyMachine),
+        id: WECHATY_MACHINE_ID,
+      },
+      on: { '*': {
+        actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
+      }},
+    })
 
     const EXPECTED_TEXT = 'hello world'
 
@@ -97,31 +81,6 @@ test('wechatyActor SAY with concurrency', async t => {
 test('wechatyMachine interpreter smoke testing', async t => {
   const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
-  const testMachine = createMachine({
-    invoke: {
-      src: wechatyMachine,
-      id: WECHATY_MACHINE_ID,
-    },
-    on: {
-      '*': {
-        actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
-      },
-    },
-  })
-
-  const eventList: AnyEventObject[] = []
-  const interpreter = interpret(testMachine)
-    .onTransition(s => eventList.push(s.event))
-    .start()
-  let snapshot = interpreter.getSnapshot()
-
-  // interpreter.subscribe(s => {
-  //   console.info('[new transition]')
-  //   console.info('  state ->', s.value)
-  //   console.info('  event ->', s.event.type)
-  //   console.info('')
-  // })
-
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
       wechaty,
@@ -129,6 +88,26 @@ test('wechatyMachine interpreter smoke testing', async t => {
       player,
       room,
     }         = WECHATY_FIXTURES.wechaty
+
+    const wechatyMachine = machineFactory(wechaty)
+
+    const testMachine = createMachine({
+      invoke: {
+        src: wechatyMachine,
+        id: WECHATY_MACHINE_ID,
+      },
+      on: {
+        '*': {
+          actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
+        },
+      },
+    })
+
+    const eventList: AnyEventObject[] = []
+    const interpreter = interpret(testMachine)
+      .onTransition(s => eventList.push(s.event))
+      .start()
+    let snapshot = interpreter.getSnapshot()
 
     interpreter.send([
       Events.WECHATY(wechaty),
@@ -145,7 +124,8 @@ test('wechatyMachine interpreter smoke testing', async t => {
     )
     const message = await future
     t.equal(message.text(), EXPECTED_TEXT, `should get said message "${EXPECTED_TEXT}"`)
+
+    interpreter.stop()
   }
 
-  interpreter.stop()
 })
