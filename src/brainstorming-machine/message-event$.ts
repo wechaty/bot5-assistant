@@ -1,7 +1,4 @@
-import {
-  Message,
-  types,
-}             from 'wechaty'
+import * as WECHATY from 'wechaty'
 import {
   fromEvent,
   from,
@@ -17,31 +14,25 @@ import {
   textToIntents,
 }                 from '../machines/message-to-intents.js'
 
-import * as events  from './events.js'
+import { Events }  from '../schemas/mod.js'
 
-const roomMessage$ = (message: Message) => fromEvent<Message>(message.wechaty, 'message').pipe(
-  mergeMap(m => {
-    if (m.self()) {
-      return EMPTY
-    }
+const roomMessage$ = (room?: WECHATY.Room) => !room
+  ? EMPTY
+  : fromEvent<WECHATY.Message>(room, 'message').pipe(
+    mergeMap(msg => msg.self()
+        ? EMPTY
+        : of(msg),
+    ),
+  )
 
-    const room = m.room()
-    if (!room || room.id !== message.room()?.id) {
-      return EMPTY
-    }
-
-    return of(m)
-  }),
-)
-
-const messageToEvent = async (message: Message) => {
+const messageToEvent = async (message: WECHATY.Message) => {
   const msgType = message.type()
 
   const intentList: Intent[] = []
   let entities = {}
 
   switch (msgType) {
-    case types.Message.Text:
+    case WECHATY.types.Message.Text:
       intentList.push(
         ...await textToIntents(
           await message.mentionText(),
@@ -60,11 +51,11 @@ const messageToEvent = async (message: Message) => {
     entities,
     intents: intentList,
     message,
-    type: events.MESSAGE,
+    type: Events.MESSAGE,
   }
 }
 
-const messageEvent$ = (message: Message) => roomMessage$(message).pipe(
+const messageEvent$ = (message: WECHATY.Message) => roomMessage$(message.room()).pipe(
   mergeMap(m => from(messageToEvent(m))),
 )
 

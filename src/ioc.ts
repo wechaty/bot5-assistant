@@ -9,7 +9,7 @@ import * as Mailbox from './mailbox/mod.js'
 import * as actors from './actors/mod.js'
 import { Events } from './schemas/mod.js'
 
-enum InjectorToken {
+enum InjectionToken {
   Wechaty = 'wechaty',
   WechatyActorAddress = 'wechaty-actor-address',
   IntentActorAddress = 'intent-actor-address',
@@ -29,13 +29,13 @@ enum InjectorToken {
   IntentMachine = 'intent-machine',
 }
 
+wechatyActorAddress.inject = [InjectionToken.Wechaty] as const
 function wechatyActorAddress (wechaty: Wechaty) {
   const mailbox = Mailbox.from(actors.wechatyMachine)
   mailbox.start()
   mailbox.address.send(Events.WECHATY(wechaty))
   return mailbox.address
 }
-wechatyActorAddress.inject = [InjectorToken.Wechaty] as const
 
 const actorAddress = (machine: StateMachine<any, any, any>) => () => {
   const mailbox = Mailbox.from(machine)
@@ -43,6 +43,10 @@ const actorAddress = (machine: StateMachine<any, any, any>) => () => {
   return mailbox.address
 }
 
+assistantActor.inject = [
+  InjectionToken.WechatyActorAddress,
+  InjectionToken.IntentActorAddress,
+] as const
 function assistantActor (
   wechatyAddress: Mailbox.Address,
   intentAddress: Mailbox.Address,
@@ -50,20 +54,16 @@ function assistantActor (
   console.info('wechaty', '' + wechatyAddress)
   console.info('intent', '' + intentAddress)
 }
-assistantActor.inject = [
-  InjectorToken.WechatyActorAddress,
-  InjectorToken.IntentActorAddress,
-] as const
 
 function bootstrap (wechaty: Wechaty) {
 
   const assistantInjector = createInjector()
-    .provideValue(InjectorToken.Wechaty, wechaty)
-    .provideFactory(InjectorToken.WechatyActorAddress, wechatyActorAddress)
+    .provideValue(InjectionToken.Wechaty, wechaty)
+    .provideFactory(InjectionToken.WechatyActorAddress, wechatyActorAddress)
     //
-    .provideFactory(InjectorToken.IntentActorAddress,   actorAddress(actors.intentMachine))
-    .provideFactory(InjectorToken.FeedbackActorAddress, actorAddress(actors.feedbackMachine))
-    .provideFactory(InjectorToken.RegisterActorAddress, actorAddress(actors.registerMachine))
+    .provideFactory(InjectionToken.IntentActorAddress,   actorAddress(actors.intentMachine))
+    .provideFactory(InjectionToken.FeedbackActorAddress, actorAddress(actors.feedbackMachine))
+    .provideFactory(InjectionToken.RegisterActorAddress, actorAddress(actors.registerMachine))
 
   assistantInjector.injectFunction(assistantActor)
 }
