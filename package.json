@@ -65,6 +65,7 @@
     "lru-cache": "^6.0.0",
     "request": "^2.88.2",
     "tencentcloud-sdk-nodejs": "^4.0.246",
+    "typed-inject": "^3.0.1",
     "typesafe-actions": "^5.1.0",
     "uuid": "^8.3.2",
     "xstate": "^4.27.0"
