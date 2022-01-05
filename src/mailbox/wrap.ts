@@ -78,6 +78,7 @@ function wrap <
   const normalizedOptions: Required<MailboxOptions> = {
     id       : MAILBOX_ADDRESS_NAME,
     capacity : Infinity,
+    logger   : () => {},
     ...options,
   }
 

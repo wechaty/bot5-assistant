@@ -6,6 +6,7 @@ import * as feedback  from './feedback-actor.js'
 import * as intent    from './intent-actor.js'
 import * as register  from './register-actor.js'
 import * as wechaty   from './wechaty-actor.js'
+import * as brainstorming from './brainstorming-actor.js'
 
 interface ActorModel {
   mailboxFactory: (...args: any[]) => Mailbox.Mailbox
@@ -22,6 +23,7 @@ const actors: {
   intent,
   register,
   wechaty,
+  brainstorming,
 }
 void actors // for typing testing only
 
@@ -30,4 +32,5 @@ export {
   intent,
   register,
   wechaty,
+  brainstorming,
 }

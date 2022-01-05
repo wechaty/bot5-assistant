@@ -46,7 +46,7 @@ const MACHINE_NAME = 'WechatyMachine'
 
 const machineFactory = (
   wechaty : Wechaty,
-  log     : Logger,
+  logger  : Mailbox.MailboxOptions['logger'],
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   context: initialContext(),
@@ -87,8 +87,6 @@ const machineFactory = (
       ],
       invoke: {
         src: async (_, e) => {
-          log.verbose(MACHINE_NAME, 'state.busy.invoke %s', e.type)
-
           if (isActionOf(Events.SAY, e)) {
             await wechaty.puppet.messageSendText(
               e.payload.conversation,
@@ -96,7 +94,7 @@ const machineFactory = (
               e.payload.mentions,
             )
           } else {
-            log.error(MACHINE_NAME, 'state.busy.invoke unknown event type: %s', e.type)
+            logger && logger(MACHINE_NAME + ' state.busy.invoke unknown event type: ' + e.type)
           }
         },
         onDone: States.idle,
@@ -117,10 +115,10 @@ mailboxFactory.inject = [
 ] as const
 function mailboxFactory (
   wechaty: Wechaty,
-  log: Logger,
+  logger: Mailbox.MailboxOptions['logger'],
 ) {
-  const machine = machineFactory(wechaty, log)
-  const mailbox = Mailbox.from(machine)
+  const machine = machineFactory(wechaty, logger)
+  const mailbox = Mailbox.from(machine, { logger })
 
   mailbox.acquire()
   return mailbox

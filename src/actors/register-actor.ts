@@ -8,7 +8,6 @@ import type {
   Contact,
 }                 from 'wechaty'
 import { GError } from 'gerror'
-import type { Logger } from 'brolog'
 
 import * as Mailbox from '../mailbox/mod.js'
 import {
@@ -53,7 +52,7 @@ const MACHINE_NAME = 'RegisterMachine'
 
 const machineFactory = (
   wechatyAddress: Mailbox.Address,
-  log: Logger,
+  logger: Mailbox.MailboxOptions['logger'],
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   initial: States.initializing,
@@ -186,10 +185,11 @@ mailboxFactory.inject = [
 ] as const
 function mailboxFactory (
   wechatyMailbox: Mailbox.Mailbox,
-  log: Logger,
+  logger: Mailbox.MailboxOptions['logger'],
 ) {
-  const machine = machineFactory(wechatyMailbox.address, log)
-  const mailbox = Mailbox.from(machine)
+  const machine = machineFactory(wechatyMailbox.address, logger)
+  const mailbox = Mailbox.from(machine, { logger })
+
   mailbox.acquire()
   return mailbox
 }

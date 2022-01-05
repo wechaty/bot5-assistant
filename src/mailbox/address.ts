@@ -1,16 +1,24 @@
-import { log } from 'brolog'
+import {
+  EventObject,
+  actions,
+  AnyEventObject,
+  Event,
+  SendExpr,
+  SendActionOptions,
+  SendAction,
+}                   from "xstate"
 
-import type { EventObject } from "xstate"
-import { registry } from 'xstate/lib/registry.js'
-
-interface Address <TEvent extends EventObject = EventObject> {
-  send (event: TEvent): void
+interface Address {
+  send<TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
+    event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+    options?: SendActionOptions<TContext, TEvent>,
+  ): SendAction<TContext, TEvent, TSentEvent>
 }
 
-class AddressImpl <TEvent extends EventObject = EventObject> implements Address<TEvent> {
+class AddressImpl implements Address {
 
-  static from <TEvent extends EventObject = EventObject>(address: string): Address<TEvent> {
-    return new AddressImpl<TEvent>(address)
+  static from (address: string): Address {
+    return new AddressImpl(address)
   }
 
   protected constructor (
@@ -23,25 +31,16 @@ class AddressImpl <TEvent extends EventObject = EventObject> implements Address<
   }
 
   /**
-   * Send event to address
-   *
-   * TODO: design this API carefully
-   *  1. should we allow sending event to the mailbox?
-   *  2. how can we send event to the address by specifing the origin/source address?
+   * The same API with XState `actions.send` method, but only for the current address.
    */
-  send (event: TEvent): void {
-    const interpreter = registry.get(this._address)
-
-    if (!interpreter) {
-      log.warn('Address', 'send({type: %s}) - no actor found for %s', event.type, this._address)
-      // Huan(202201): TODO: send to DLQ if address not found
-      return
-    }
-
-    // console.info('SENDING event', event)
-    // console.info('TO interpreter', interpreter)
-
-    interpreter.send(event)
+  send<TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
+    event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+    options?: SendActionOptions<TContext, TEvent>,
+  ): SendAction<TContext, TEvent, TSentEvent> {
+    return actions.send(event, {
+      ...options,
+      to: this._address,
+    })
   }
 
 }

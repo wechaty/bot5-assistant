@@ -4,7 +4,6 @@ import {
   createMachine,
   actions,
 }                   from 'xstate'
-import type { Logger } from 'brolog'
 
 import { textToIntents } from '../machines/message-to-intents.js'
 
@@ -42,7 +41,7 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 const MACHINE_NAME = 'IntentMachine'
 
-function machineFactory (log: Logger) {
+function machineFactory (logger: Mailbox.MailboxOptions['logger']) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
     initial: States.idle,
@@ -155,9 +154,12 @@ function machineFactory (log: Logger) {
 mailboxFactory.inject = [
   InjectionToken.Logger,
 ] as const
-function mailboxFactory (log: Logger) {
-  const machine = machineFactory(log)
-  const mailbox = Mailbox.from(machine)
+function mailboxFactory (
+  logger: Mailbox.MailboxOptions['logger'],
+) {
+  const machine = machineFactory(logger)
+  const mailbox = Mailbox.from(machine, { logger })
+
   mailbox.acquire()
   return mailbox
 }

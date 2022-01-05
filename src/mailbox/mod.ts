@@ -2,6 +2,9 @@ import {
   type Mailbox,
   MailboxImpl,
 }               from './mailbox.js'
+import type {
+  MailboxOptions,
+}                 from './mailbox-options.js'
 import {
   type Address,
   AddressImpl,
@@ -20,6 +23,7 @@ const from: typeof MailboxImpl.from = (machine) =>
 export {
   type Address,
   type Mailbox,
+  type MailboxOptions,
   //
   from,
   MailboxImpl,

@@ -1,6 +1,9 @@
+import type { InterpreterOptions } from 'xstate'
+
 interface MailboxOptions {
-  id?: string
-  capacity?: number
+  id?       : string
+  capacity? : number
+  logger?   : InterpreterOptions['logger'],
 }
 
 const CHILD_MACHINE_ID = 'mailbox-address-child-machind-id'

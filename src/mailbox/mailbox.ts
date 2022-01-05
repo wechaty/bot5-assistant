@@ -29,6 +29,7 @@ import {
   EventObject,
   Interpreter,
   interpret,
+  InterpreterOptions,
 }                   from 'xstate'
 
 import type * as contexts      from './contexts.js'
@@ -47,7 +48,7 @@ import {
 import { wrap }     from './wrap.js'
 
 interface Mailbox<TEvent extends EventObject = EventObject> {
-  address: Address<TEvent>
+  address: Address
   on (name: 'event', listener: (event: TEvent) => void): void
   acquire (): void
   dispose (): void
@@ -70,7 +71,7 @@ class MailboxImpl<TEvent extends EventObject>
     options?: MailboxOptions,
   ): Mailbox<TEvent> {
     const wrappedMachine = wrap(childMachine, options)
-    return new this(wrappedMachine)
+    return new this(wrappedMachine, options)
   }
 
   /**
@@ -85,7 +86,7 @@ class MailboxImpl<TEvent extends EventObject>
   /**
    * Address of the Mailbox
    */
-  readonly address: Address<TEvent>
+  readonly address: Address
 
   protected constructor (
     protected _wrappedMachine: StateMachine<
@@ -94,9 +95,19 @@ class MailboxImpl<TEvent extends EventObject>
       Event | { type: TEvent['type'] },
       any
     >,
+    options: MailboxOptions = {},
   ) {
     super()
-    this._interpreter = interpret(this._wrappedMachine)
+    // console.info('MailboxOptions', options)
+
+    const interpretOptions: Partial<InterpreterOptions> = {}
+    if (typeof options.logger === 'function') {
+      // If the `logger` key has been set, then the value must be function
+      // The interpret function can not accept a { logger: undefined } option
+      interpretOptions.logger = options.logger
+    }
+
+    this._interpreter = interpret(this._wrappedMachine, interpretOptions)
     this.address      = AddressImpl.from(this._interpreter.sessionId)
 
     this._interpreter.onEvent(event => {

@@ -73,7 +73,7 @@ const MACHINE_NAME = 'FeedbackMachine'
 
 function machineFactory (
   wechatyAddress: Mailbox.Address,
-  log: Logger,
+  logger: Mailbox.MailboxOptions['logger'],
 ) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
@@ -241,10 +241,10 @@ mailboxFactory.inject = [
 ] as const
 function mailboxFactory (
   wechatyMailbox: Mailbox.Mailbox,
-  log: Logger,
+  logger: Mailbox.MailboxOptions['logger'],
 ) {
-  const machine = machineFactory(wechatyMailbox.address, log)
-  const mailbox = Mailbox.from(machine)
+  const machine = machineFactory(wechatyMailbox.address, logger)
+  const mailbox = Mailbox.from(machine, { logger })
 
   mailbox.acquire()
   return mailbox
