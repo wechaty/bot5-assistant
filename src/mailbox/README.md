@@ -20,7 +20,7 @@ The design of Mailbox is very like the the Akka Actor Model:
 
 ## Features
 
-- Build on top of the powerful Finite State Machine (FSM) with [XState](https://xstate.js.org/) library.
+- Build on top of the powerful Finite State Machine (FSM) with [XState](https://xstate.js.org/docs/guides/introduction-to-state-machines-and-statecharts/) library.
 - Implemented Mailbox pattern for [Actor Model](https://en.wikipedia.org/wiki/Actor_model): process one message at a time, with a message queue
 - [Typed Inject](https://github.com/nicojs/typed-inject) native support: `dispose()` method to dispose the mailbox
 - Address has been abstracted by a `Address` class for actors
