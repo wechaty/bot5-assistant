@@ -4,6 +4,8 @@ import {
   createMachine,
   actions,
 }                   from 'xstate'
+import type { Logger } from 'brolog'
+
 import { textToIntents } from '../machines/message-to-intents.js'
 
 import * as Mailbox from '../mailbox/mod.js'
@@ -15,6 +17,7 @@ import {
 }                     from '../schemas/mod.js'
 
 import { speechToText } from '../to-text/mod.js'
+import { InjectionToken } from '../ioc/tokens.js'
 
 export interface Context {
   message?: WECHATY.Message
@@ -39,7 +42,7 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 const MACHINE_NAME = 'IntentMachine'
 
-function machineFactory () {
+function machineFactory (log: Logger) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
     initial: States.idle,
@@ -149,11 +152,13 @@ function machineFactory () {
   return machine
 }
 
-
-function mailboxFactory () {
-  const machine = machineFactory()
+mailboxFactory.inject = [
+  InjectionToken.Logger,
+] as const
+function mailboxFactory (log: Logger) {
+  const machine = machineFactory(log)
   const mailbox = Mailbox.from(machine)
-  mailbox.start
+  mailbox.aquire()
   return mailbox
 }
 

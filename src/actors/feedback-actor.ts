@@ -11,6 +11,7 @@ import type {
   // Room,
 }                       from 'wechaty'
 import { GError } from 'gerror'
+import type { Logger } from 'brolog'
 
 import {
   Events as Bot5Events,
@@ -72,6 +73,7 @@ const MACHINE_NAME = 'FeedbackMachine'
 
 function machineFactory (
   wechatyAddress: Mailbox.Address,
+  log: Logger,
 ) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
@@ -235,13 +237,16 @@ function machineFactory (
 
 mailboxFactory.inject = [
   InjectionToken.WechatyMailbox,
+  InjectionToken.Logger,
 ] as const
 function mailboxFactory (
   wechatyMailbox: Mailbox.Mailbox,
+  log: Logger,
 ) {
-  const machine = machineFactory(wechatyMailbox.address)
+  const machine = machineFactory(wechatyMailbox.address, log)
   const mailbox = Mailbox.from(machine)
-  mailbox.start
+
+  mailbox.aquire()
   return mailbox
 }
 

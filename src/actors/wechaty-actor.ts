@@ -6,7 +6,7 @@ import {
 import {
   isActionOf,
 }                   from 'typesafe-actions'
-import { log }      from 'wechaty-puppet'
+import type { Logger } from 'brolog'
 import type {
   Wechaty,
 }                   from 'wechaty'
@@ -45,7 +45,8 @@ function initialContext (): Context {
 const MACHINE_NAME = 'WechatyMachine'
 
 const machineFactory = (
-  wechaty: Wechaty,
+  wechaty : Wechaty,
+  log     : Logger,
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   context: initialContext(),
@@ -112,13 +113,16 @@ const machineFactory = (
 
 mailboxFactory.inject = [
   InjectionToken.Wechaty,
+  InjectionToken.Logger,
 ] as const
 function mailboxFactory (
   wechaty: Wechaty,
+  log: Logger,
 ) {
-  const machine = machineFactory(wechaty)
+  const machine = machineFactory(wechaty, log)
   const mailbox = Mailbox.from(machine)
-  mailbox.start()
+
+  mailbox.aquire()
   return mailbox
 }
 

@@ -1,5 +1,4 @@
 import type { ActionCreator } from 'typesafe-actions'
-import type { StateMachine }  from 'xstate'
 
 import type * as Mailbox from '../mailbox/mod.js'
 
@@ -10,7 +9,7 @@ import * as wechaty   from './wechaty-actor.js'
 
 interface ActorModel {
   mailboxFactory: (...args: any[]) => Mailbox.Mailbox
-  machineFactory: (...args: any[]) => StateMachine<any, any, any>
+  // machineFactory: (...args: any[]) => StateMachine<any, any, any>
   Events: {
     [key: string]: ActionCreator,
   }

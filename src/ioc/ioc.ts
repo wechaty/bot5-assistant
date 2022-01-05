@@ -1,6 +1,14 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-import { createInjector } from 'typed-inject'
+import {
+  createInjector,
+  Disposable,
+}                       from 'typed-inject'
 import type { Wechaty } from 'wechaty'
+import {
+  log,
+  Logger,
+  getLogger,
+}               from 'brolog'
 
 import type * as Mailbox from '../mailbox/mod.js'
 import * as actors from '../actors/mod.js'
@@ -19,9 +27,10 @@ function assistantActor (
   console.info('intent', '' + intentMailbox.address)
 }
 
-function bootstrap (wechaty: Wechaty) {
+async function bootstrap (wechaty: Wechaty, logger: Logger) {
 
   const assistantInjector = createInjector()
+    .provideFactory(InjectionToken.Logger, () => getLogger(logger))
     .provideValue(InjectionToken.Wechaty, wechaty)
     .provideFactory(InjectionToken.WechatyMailbox, actors.wechaty.mailboxFactory)
     //
@@ -30,6 +39,8 @@ function bootstrap (wechaty: Wechaty) {
     .provideFactory(InjectionToken.RegisterMailbox, actors.register.mailboxFactory)
 
   assistantInjector.injectFunction(assistantActor)
+
+  await assistantInjector.dispose()
 }
 
-bootstrap({} as any)
+await bootstrap({} as any, log)

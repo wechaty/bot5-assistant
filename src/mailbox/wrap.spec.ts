@@ -45,7 +45,6 @@ test('wrap() transition nextState smoke testing', async t => {
   const mailbox = wrap(Baby.machine)
 
   // console.info('initialState:', actor.initialState)
-  const NEW_MESSAGE_EVENT = Types.NEW_MESSAGE
   const SLEEP_EVENT = Baby.Events.SLEEP(10)
 
   let nextState = mailbox.transition(mailbox.initialState, SLEEP_EVENT)
@@ -55,13 +54,14 @@ test('wrap() transition nextState smoke testing', async t => {
     nextState.actions
       .filter(a => a.type === 'xstate.send' && a['event'].type === Types.NEW_MESSAGE)
       .map(a => a['event'].type),
-    [NEW_MESSAGE_EVENT],
-    'should have triggered NEW_MESSAGE event by sending SLEEP event',
+    [Types.NEW_MESSAGE],
+    'should have NEW_MESSAGE event',
   )
-  t.same(nextState.context.queue, [SLEEP_EVENT], 'should have NEW_MESSAGEd the event')
+  t.same(nextState.context.queue, [SLEEP_EVENT], 'should have no MESSAGE in queue')
 
   nextState = mailbox.transition(nextState, Baby.Events.SLEEP(10))
-  t.equal(nextState.context.queue.length, 2, 'should have 2 event in queue after sent two SLEEP event')
+  // console.info(nextState.actions)
+  t.equal(nextState.context.queue.length, 2, 'should have 0 event in queue after sent two SLEEP event')
   t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
 })
 

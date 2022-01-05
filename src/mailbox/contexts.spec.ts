@@ -3,15 +3,19 @@
 
 import {
   test,
+  sinon,
 }                   from 'tstest'
-import type {
+import {
+  actions,
   ActorRef,
+  createMachine,
   GuardMeta,
+  interpret,
   SCXML,
 }                 from 'xstate'
 
 import * as contexts from './contexts.js'
-import { CHILD_MACHINE_ID } from './types.js'
+import { CHILD_MACHINE_ID } from './mailbox-options.js'
 
 test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
@@ -89,4 +93,50 @@ test('condEventSentFromChildOf', async t => {
   META._event.origin = undefined
   t.notOk(contexts.condEventSentFromChildOf(CHILD_MACHINE_ID)(META), 'should return false if the event origin is undefined')
   t.notOk(contexts.condEventSentFromChildOf()(META), 'should return false if the event origin is undefined (with empty child id for using the default value)')
+})
+
+
+test('condEventCanBeAcceptedByChildOf()', async t => {
+  const CHILD_ID = 'child-id-testing'
+
+  const childMachine = createMachine({
+    on: {
+      CHILD_TEST: {
+        actions: actions.log('EVENT:CHILD_TEST'),
+      },
+      // '*': {
+      //   actions: actions.log('EVENT:*')
+      // }
+    },
+  })
+
+  const spy = sinon.spy()
+  const parentMachine = createMachine({
+    invoke: {
+      src: childMachine,
+      id: CHILD_ID,
+    },
+    on: {
+      PARENT_TEST: {
+        actions: actions.choose([
+          {
+            cond: (_, __, { state }) => contexts.condEventCanBeAcceptedByChildOf(CHILD_ID)(state, 'UNKNOWN'),
+            actions: () => spy('UNKONWN'),
+          },
+          {
+            cond: (_, __, { state }) => contexts.condEventCanBeAcceptedByChildOf(CHILD_ID)(state, 'CHILD_TEST'),
+            actions: () => spy('CHILD_TEST'),
+          },
+        ]),
+      },
+    },
+  })
+
+  const interpreter = interpret(parentMachine)
+
+  interpreter.start()
+  interpreter.send('PARENT_TEST')
+
+  t.ok(spy.calledOnce, 'should be called once')
+  t.equal(spy.args[0]![0], 'CHILD_TEST', 'should choose the CHILD_TEST')
 })

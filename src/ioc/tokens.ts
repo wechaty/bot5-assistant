@@ -1,4 +1,6 @@
 enum InjectionToken {
+  Logger = 'Logger',
+  //
   Wechaty = 'Wechaty',
   //
   WechatyMailbox  = 'WechatyMailbox',

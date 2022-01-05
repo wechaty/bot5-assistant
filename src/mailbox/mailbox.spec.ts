@@ -33,6 +33,7 @@ import {
 import * as Mailbox  from './mod.js'
 import * as Baby   from './baby-machine.fixture.js'
 import * as DingDong from './ding-dong-machine.fixture.js'
+import { isActionOf } from 'typesafe-actions'
 
 test('Mailbox.from() smoke testing', async t => {
   const sandbox = sinon.createSandbox({
@@ -44,19 +45,37 @@ test('Mailbox.from() smoke testing', async t => {
   const eventList: AnyEventObject[] = []
 
   mailbox.on('event', e => eventList.push(e))
-  mailbox.start()
+  mailbox.aquire()
 
-  t.same(eventList, [
-    Mailbox.Events.DEAD_LETTER(Baby.Events.PLAY(), 'message baby/PLAY@x:1 dropped'),
-  ], 'should received DEAD_LETTER with PLAY event')
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Mailbox.Events.DEAD_LETTER(Baby.Events.PLAY()),
+    ],
+    'should received DEAD_LETTER with PLAY event',
+  )
 
   eventList.length = 0
   mailbox.address.send(Baby.Events.SLEEP(10))
-  t.same(eventList, [
-    Baby.Events.SLEEP(10),
-    Mailbox.Events.DEAD_LETTER(Baby.Events.REST(), 'message baby/REST@x:1 dropped'),
-    Mailbox.Events.DEAD_LETTER(Baby.Events.DREAM(), 'message baby/DREAM@x:1 dropped'),
-  ], 'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep')
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Baby.Events.SLEEP(10),
+      Mailbox.Events.DEAD_LETTER(Baby.Events.REST()),
+      Mailbox.Events.DEAD_LETTER(Baby.Events.DREAM()),
+    ],
+    'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep',
+  )
 
   // // console.info(
   // //   eventList
@@ -65,26 +84,41 @@ test('Mailbox.from() smoke testing', async t => {
   // // )
   eventList.length = 0
   await sandbox.clock.tickAsync(9)
-  t.same(eventList, [
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.CRY(),
-      'message baby/CRY@x:1 dropped',
-    ),
-  ], 'should receive event child.Types.CRY after before wakeup')
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.CRY(),
+      ),
+    ],
+    'should receive event child.Types.CRY after before wakeup',
+  )
 
   eventList.length = 0
   await sandbox.clock.tickAsync(1)
-  t.same(eventList, [
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PEE(),
-      'message baby/PEE@x:1 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PLAY(),
-      'message baby/PLAY@x:1 dropped',
-    ),
-  ], 'should get one dead letter with PEE&PLAY event after sleep')
-  mailbox.stop()
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PEE(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PLAY(),
+      ),
+    ],
+    'should get one dead letter with PEE&PLAY event after sleep',
+  )
+  mailbox.dispose()
   sandbox.restore()
 })
 
@@ -98,53 +132,66 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   const eventList: AnyEventObject[] = []
 
   mailbox.on('event', e => eventList.push(e))
-  mailbox.start()
+  mailbox.aquire()
 
   eventList.length = 0
   mailbox.address.send(Baby.Events.SLEEP(10))
 
-  t.same(eventList, [
-    Baby.Events.SLEEP(10),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.REST(),
-      'message baby/REST@x:3 dropped'
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.DREAM(),
-      'message baby/DREAM@x:3 dropped',
-    ),
-  ], 'should received DEAD_LETTER with REST and DREAM event')
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Baby.Events.SLEEP(10),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.REST(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.DREAM(),
+      ),
+    ],
+    'should received DEAD_LETTER with REST and DREAM event',
+  )
 
+  eventList.length = 0
   mailbox.address.send(Baby.Events.SLEEP(20))
+  t.same(eventList, [Baby.Events.SLEEP(20)], 'should received SLEEP event')
 
   /**
    * Finish 1st (will right enter the 2nd)
    */
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
-  t.same(eventList, [
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.CRY(),
-      'message baby/CRY@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PEE(),
-      'message baby/PEE@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PLAY(),
-      'message baby/PLAY@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.REST(),
-      'message baby/REST@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.DREAM(),
-      'message baby/DREAM@x:3 dropped',
-    ),
-  ], 'should right enter 2nd SLEEP after 10 ms')
-  // console.info('#### queue:', snapshot.context.queue)
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.CRY(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PEE(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PLAY(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.REST(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.DREAM(),
+      ),
+    ],
+    'should right enter 2nd SLEEP after 10 ms',
+  )
+  // // console.info('#### queue:', snapshot.context.queue)
 
   /**
    * Finish 2nd
@@ -152,20 +199,26 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(20)
 
-  t.same(eventList, [
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.CRY(),
-      'message baby/CRY@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PEE(),
-      'message baby/PEE@x:3 dropped',
-    ),
-    Mailbox.Events.DEAD_LETTER(
-      Baby.Events.PLAY(),
-      'message baby/PLAY@x:3 dropped',
-    ),
-  ], 'should right enter 3rd SLEEP after another 20 ms')
+  t.same(
+    eventList.map(e => {
+      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
+        e. payload.debug = undefined
+      }
+      return e
+    }),
+    [
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.CRY(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PEE(),
+      ),
+      Mailbox.Events.DEAD_LETTER(
+        Baby.Events.PLAY(),
+      ),
+    ],
+    'should right enter 3rd SLEEP after another 20 ms',
+  )
 
   /**
    * Finish 3rd
@@ -174,7 +227,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   await sandbox.clock.tickAsync(30)
   t.same(eventList, [], 'should be empty')
 
-  mailbox.stop()
+  mailbox.dispose()
   sandbox.restore()
 })
 
@@ -188,7 +241,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   const eventList: AnyEventObject[] = []
   mailbox.on('event', (e => eventList.push(e)))
   // console.info('initialState:', actor.initialState)
-  mailbox.start()
+  mailbox.aquire()
 
   Array.from({ length: 3 }).forEach(_ => {
     // console.info('EVENT: sleep sending...')
@@ -245,7 +298,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     'should receive event child.events.PLAY after 3rd 10 ms',
   )
 
-  mailbox.stop()
+  mailbox.dispose()
   sandbox.restore()
 })
 
@@ -271,7 +324,7 @@ test('Mailbox Address smoke testing', async t => {
   })
 
   const interpreter = interpret(testMachine)
-  dingDong.start()
+  dingDong.aquire()
   interpreter.start()
 
   interpreter.send('TEST')
@@ -279,7 +332,7 @@ test('Mailbox Address smoke testing', async t => {
   t.ok(spy.calledOnce, 'should be called once')
 
   interpreter.stop()
-  dingDong.stop()
+  dingDong.dispose()
 
   sandbox.restore()
 })

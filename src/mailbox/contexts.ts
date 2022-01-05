@@ -11,9 +11,13 @@ import {
   ActorRef,
   Interpreter,
   GuardMeta,
+  StateNode,
+  State,
+  EventObject,
 }                     from 'xstate'
 
 import { Events }     from './events.js'
+import { States }     from './states.js'
 import {
   isMailboxType,
 }                     from './types.js'
@@ -99,14 +103,14 @@ const unwrapEvent = (e: AnyEventObjectExt): AnyEventObject => {
  *
  *********************/
 
-const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children?: Record<string, ActorRef<any, any>>) => {
+const childSessionIdOf = (childId: string) => (children?: Record<string, ActorRef<any, any>>) => {
   if (!children) {
     return undefined
   }
 
   const child = children[childId] as undefined | Interpreter<any>
   if (!child) {
-    throw new Error('can not found child id ' + CHILD_MACHINE_ID)
+    throw new Error('can not found child id ' + childId)
   }
 
   if (!child.sessionId) {
@@ -123,8 +127,20 @@ const childSessionIdOf = (childId = CHILD_MACHINE_ID) => (children?: Record<stri
   return child.sessionId
 }
 
+const childSnapshotOf = (childId: string) => (state: State<Context, EventObject, any, any>) => {
+  const child = state.children[childId]
+  if (!child) {
+    throw new Error('can not found child id ' + childId)
+  }
+
+  return child.getSnapshot()
+}
+
 const condEventSentFromChildOf = (childId = CHILD_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
   !!(meta._event.origin) && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
+
+const condEventCanBeAcceptedByChildOf = (childId = CHILD_MACHINE_ID) => (state: State<any, EventObject, any, any>, event: string) =>
+  !!childSnapshotOf(childId)(state).can(event)
 
 /**
  * send the CHILD_RESPONSE.payload.message to the child message origin
@@ -212,7 +228,20 @@ const queueAcceptingMessageWithCapacity = (capacity = Infinity) => actions.choos
   },
   {
     /**
-     * 3. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
+     * 3. Send to child if the child is busy and can accept this new arrived event
+     *  - this case is specially for the busy child machine
+     *      for prevent deaadlock when child actor want to receive events at BUSY state.
+     *  - if child is idle, then we just enqueue it
+     */
+    cond: (_, e, { state }) => state.matches({ child: States.busy }) && condEventCanBeAcceptedByChildOf(CHILD_MACHINE_ID)(state, e.type),
+    actions: [
+      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity send ${e.type} to child because it can accept it`, 'Mailbox'),
+      actions.send((_, e) => e, { to: CHILD_MACHINE_ID }),
+    ],
+  },
+  {
+    /**
+     * 4. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
      */
     cond: ctx => queueSize(ctx) > capacity,
     actions: [
@@ -222,7 +251,7 @@ const queueAcceptingMessageWithCapacity = (capacity = Infinity) => actions.choos
   },
   {
     /**
-     * 4. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
+     * 5. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
      */
     actions: [
       actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity ${e.type}@${_event.origin || ''}`, 'Mailbox') as any,
@@ -296,4 +325,5 @@ export {
    * cond: ...
    */
   condEventSentFromChildOf,
+  condEventCanBeAcceptedByChildOf,
   }

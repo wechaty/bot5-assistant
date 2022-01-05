@@ -22,6 +22,7 @@
 
 /* eslint-disable sort-keys */
 import EventEmitter from 'events'
+import type { Disposable } from 'typed-inject'
 
 import {
   StateMachine,
@@ -48,11 +49,14 @@ import { wrap }     from './wrap.js'
 interface Mailbox<TEvent extends EventObject = EventObject> {
   address: Address<TEvent>
   on (name: 'event', listener: (event: TEvent) => void): void
-  start (): void
-  stop (): void
+  aquire (): void
+  dispose (): void
 }
 
-class MailboxImpl<TEvent extends EventObject> extends EventEmitter implements Mailbox {
+class MailboxImpl<TEvent extends EventObject>
+  extends EventEmitter
+  implements Mailbox, Disposable
+{
 
   static from<
     TContext extends {},
@@ -115,11 +119,11 @@ class MailboxImpl<TEvent extends EventObject> extends EventEmitter implements Ma
     this.address.send(event)
   }
 
-  start (): void {
+  aquire (): void {
     this._interpreter.start()
   }
 
-  stop (): void {
+  dispose (): void {
     this._interpreter.stop()
   }
 }
