@@ -122,7 +122,7 @@ function mailboxFactory (
   const machine = machineFactory(wechaty, log)
   const mailbox = Mailbox.from(machine)
 
-  mailbox.aquire()
+  mailbox.acquire()
   return mailbox
 }
 

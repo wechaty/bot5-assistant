@@ -49,7 +49,7 @@ import { wrap }     from './wrap.js'
 interface Mailbox<TEvent extends EventObject = EventObject> {
   address: Address<TEvent>
   on (name: 'event', listener: (event: TEvent) => void): void
-  aquire (): void
+  acquire (): void
   dispose (): void
 }
 
@@ -119,7 +119,7 @@ class MailboxImpl<TEvent extends EventObject>
     this.address.send(event)
   }
 
-  aquire (): void {
+  acquire (): void {
     this._interpreter.start()
   }
 

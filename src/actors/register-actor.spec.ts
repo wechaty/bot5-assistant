@@ -30,7 +30,7 @@ import {
 
 test('registerMachine smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
-  wechatyMailbox.aquire()
+  wechatyMailbox.acquire()
 
   const registerMachine = machineFactory(wechatyMailbox.address)
   const CHILD_ID = 'child-id'
@@ -181,7 +181,7 @@ test('registerMachine smoke testing', async t => {
 
 test('registerActor smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
-  wechatyMailbox.aquire()
+  wechatyMailbox.acquire()
 
   const registerMachine = machineFactory(wechatyMailbox.address)
   const registerActor = Mailbox.wrap(registerMachine)

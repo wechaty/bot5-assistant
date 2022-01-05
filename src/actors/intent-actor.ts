@@ -158,7 +158,7 @@ mailboxFactory.inject = [
 function mailboxFactory (log: Logger) {
   const machine = machineFactory(log)
   const mailbox = Mailbox.from(machine)
-  mailbox.aquire()
+  mailbox.acquire()
   return mailbox
 }
 

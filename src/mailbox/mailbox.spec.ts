@@ -45,7 +45,7 @@ test('Mailbox.from() smoke testing', async t => {
   const eventList: AnyEventObject[] = []
 
   mailbox.on('event', e => eventList.push(e))
-  mailbox.aquire()
+  mailbox.acquire()
 
   t.same(
     eventList.map(e => {
@@ -132,7 +132,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   const eventList: AnyEventObject[] = []
 
   mailbox.on('event', e => eventList.push(e))
-  mailbox.aquire()
+  mailbox.acquire()
 
   eventList.length = 0
   mailbox.address.send(Baby.Events.SLEEP(10))
@@ -241,7 +241,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   const eventList: AnyEventObject[] = []
   mailbox.on('event', (e => eventList.push(e)))
   // console.info('initialState:', actor.initialState)
-  mailbox.aquire()
+  mailbox.acquire()
 
   Array.from({ length: 3 }).forEach(_ => {
     // console.info('EVENT: sleep sending...')
@@ -324,7 +324,7 @@ test('Mailbox Address smoke testing', async t => {
   })
 
   const interpreter = interpret(testMachine)
-  dingDong.aquire()
+  dingDong.acquire()
   interpreter.start()
 
   interpreter.send('TEST')
