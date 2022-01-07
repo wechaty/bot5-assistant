@@ -39,7 +39,7 @@ const machine = createMachine<Context, Event>({
   states: {
     [States.idle]: {
       entry: [
-        Mailbox.Actions.idle('ding-dong'),
+        Mailbox.Actions.idle('DingDongMachine')('idle'),
       ],
       on: {
         '*': States.idle,

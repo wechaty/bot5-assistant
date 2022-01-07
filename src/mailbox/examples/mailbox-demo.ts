@@ -33,7 +33,7 @@ const demoMachine = (withMailbox = false) => createMachine<{}>({
        *  so that the Mailbox can know the machine are ready to receive new messages from other actors.
        */
       entry: actions.choose([{ cond: _ => withMailbox,
-        actions: Mailbox.Actions.idle('machine-name'),
+        actions: Mailbox.Actions.idle('DemoMachine')('idle'),
       }]),
       on: {
         '*': {

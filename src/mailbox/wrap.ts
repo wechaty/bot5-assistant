@@ -120,7 +120,7 @@ function wrap <
         initial: States.listening,
         on: {
           '*': {
-            actions: contexts.queueAcceptingMessageWithCapacity(normalizedOptions.capacity),
+            actions: contexts.queueAcceptingMessageWithCapacity(MAILBOX_ADDRESS_NAME)(normalizedOptions.capacity),
           },
         },
         states: {
@@ -177,7 +177,7 @@ function wrap <
            */
           [Types.CHILD_REPLY]: {
             actions: [
-              contexts.sendChildReply,
+              contexts.sendChildReply(MAILBOX_ADDRESS_NAME),
             ],
           },
         },

@@ -7,28 +7,32 @@ import { Events }         from './events.js'
 import { isMailboxType }  from './types.js'
 import * as contexts      from './contexts.js'
 
-const idle = (info: string) => actions.choose([
-  {
-    /**
-     * If the transition event is a Mailbox type events (system messages):
-     *  then do not trigger DISPATCH event
-     *  because only non-mailbox-type events need to check QUEUE
-     */
-    cond: (_, e) => isMailboxType(e.type),
-    actions: [
-      actions.log((_, e) => `actions.idle skip for MailboxType ${e.type}`, 'Mailbox'),
-    ],
-  },
-  {
-    /**
-     * send RECEIVE event to the mailbox for receiving new messages
-     */
-    actions: [
-      actions.log((_, e) => `actions.idle triggered by ${e.type}`, 'Mailbox'),
-      actions.sendParent(_ => Events.CHILD_IDLE(info)),
-    ],
-  },
-]) as any
+const idle = (name: string) => (info: string) => {
+  const moduleName = `Mailbox<${name}>`
+
+  return actions.choose([
+    {
+      /**
+       * If the transition event is a Mailbox type events (system messages):
+       *  then do not trigger DISPATCH event
+       *  because only non-mailbox-type events need to check QUEUE
+       */
+      cond: (_, e) => isMailboxType(e.type),
+      actions: [
+        actions.log((_, e) => `actions.idle skip for MailboxType ${e.type}`, moduleName),
+      ],
+    },
+    {
+      /**
+       * send RECEIVE event to the mailbox for receiving new messages
+       */
+      actions: [
+        actions.log((_, _e) => `actions.idle ${info}`, moduleName),
+        actions.sendParent(_ => Events.CHILD_IDLE(info)),
+      ],
+    },
+  ]) as any
+}
 
 /**
  * Huan(202112): for child, respond the mailbox implict or explicit?
@@ -68,24 +72,27 @@ const reply: typeof actions.sendParent = (event, options) => {
  *  1. Mailbox type
  *  2. send from Child
  */
-const proxyToChild = (childId: string) => actions.choose([
-  {
-    // 1. Mailbox.Types.* is system messages, skip them
-    cond: (_, e) => isMailboxType(e.type),
-    actions: [],  // skip
-  },
-  {
-    // 2. Child events (origin from child machine) are handled by child machine, skip them
-    cond: (_, __, meta) => contexts.condEventSentFromChildOf(childId)(meta),
-    actions: [],  // skip
-  },
-  {
-    actions: [
-      actions.send((_, e) => e, { to: childId }),
-      actions.log((_, e, { _event }) => `actions.proxyToChild ${e.type}@${_event.origin || ''} -> ${childId}`, 'Mailbox'),
-    ],
-  },
-])
+const proxyToChild = (name: string) => (childId: string) => {
+  const moduleName = `Mailbox<${name}>`
+  return actions.choose([
+    {
+      // 1. Mailbox.Types.* is system messages, skip them
+      cond: (_, e) => isMailboxType(e.type),
+      actions: [],  // skip
+    },
+    {
+      // 2. Child events (origin from child machine) are handled by child machine, skip them
+      cond: (_, __, meta) => contexts.condEventSentFromChildOf(childId)(meta),
+      actions: [],  // skip
+    },
+    {
+      actions: [
+        actions.send((_, e) => e, { to: childId }),
+        actions.log((_, e, { _event }) => `actions.proxyToChild ${e.type}@${_event.origin || ''} -> ${childId}`, moduleName),
+      ],
+    },
+  ])
+}
 
 const Actions = {
   idle,

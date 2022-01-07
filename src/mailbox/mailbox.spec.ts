@@ -41,38 +41,37 @@ test('Mailbox.from() smoke testing', async t => {
   })
 
   const mailbox = Mailbox.from(Baby.machine)
-
-  const eventList: AnyEventObject[] = []
-
-  mailbox.on('event', e => eventList.push(e))
   mailbox.acquire()
 
-  t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
-    [
-      Mailbox.Events.DEAD_LETTER(Baby.Events.PLAY()),
-    ],
-    'should received DEAD_LETTER with PLAY event',
-  )
+  const testMachine = createMachine({
+    on: {
+      '*': {
+        actions: actions.choose([
+          {
+            cond: (_, __, { _event }) => _event.origin !== String(mailbox.address),
+            actions: [
+              mailbox.address.send((_, e) => e),
+            ],
+          }
+        ]),
+      },
+    },
+  })
+
+  const eventList: AnyEventObject[] = []
+  const interpreter = interpret(testMachine)
+  interpreter
+    .onEvent(e => eventList.push(e))
+    .start()
 
   eventList.length = 0
-  mailbox.address.send(Baby.Events.SLEEP(10))
+  interpreter.send(Baby.Events.SLEEP(10))
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
       Baby.Events.SLEEP(10),
-      Mailbox.Events.DEAD_LETTER(Baby.Events.REST()),
-      Mailbox.Events.DEAD_LETTER(Baby.Events.DREAM()),
+      Baby.Events.REST(),
+      Baby.Events.DREAM(),
     ],
     'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep',
   )
@@ -85,16 +84,9 @@ test('Mailbox.from() smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(9)
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.CRY(),
-      ),
+      Baby.Events.CRY(),
     ],
     'should receive event child.Types.CRY after before wakeup',
   )
@@ -102,19 +94,10 @@ test('Mailbox.from() smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(1)
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PEE(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PLAY(),
-      ),
+      Baby.Events.PEE(),
+      Baby.Events.PLAY(),
     ],
     'should get one dead letter with PEE&PLAY event after sleep',
   )
@@ -128,36 +111,43 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   })
 
   const mailbox = Mailbox.from(Baby.machine)
-
-  const eventList: AnyEventObject[] = []
-
-  mailbox.on('event', e => eventList.push(e))
   mailbox.acquire()
 
-  eventList.length = 0
-  mailbox.address.send(Baby.Events.SLEEP(10))
+  const testMachine = createMachine({
+    on: {
+      '*': {
+        actions: actions.choose([
+          {
+            cond: (_, __, { _event }) => _event.origin !== String(mailbox.address),
+            actions: [
+              mailbox.address.send((_, e) => e),
+            ],
+          }
+        ]),
+      },
+    },
+  })
 
+  const eventList: AnyEventObject[] = []
+  const interpreter = interpret(testMachine)
+  interpreter
+    .onEvent(e => eventList.push(e))
+    .start()
+
+  eventList.length = 0
+  interpreter.send(Baby.Events.SLEEP(10))
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
       Baby.Events.SLEEP(10),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.REST(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.DREAM(),
-      ),
+      Baby.Events.REST(),
+      Baby.Events.DREAM(),
     ],
     'should received DEAD_LETTER with REST and DREAM event',
   )
 
   eventList.length = 0
-  mailbox.address.send(Baby.Events.SLEEP(20))
+  interpreter.send(Baby.Events.SLEEP(20))
   t.same(eventList, [Baby.Events.SLEEP(20)], 'should received SLEEP event')
 
   /**
@@ -166,56 +156,29 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.CRY(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PEE(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PLAY(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.REST(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.DREAM(),
-      ),
+      Baby.Events.CRY(),
+      Baby.Events.PEE(),
+      Baby.Events.PLAY(),
+      Baby.Events.REST(),
+      Baby.Events.DREAM(),
     ],
     'should right enter 2nd SLEEP after 10 ms',
   )
-  // // console.info('#### queue:', snapshot.context.queue)
+  // console.info('#### queue:', snapshot.context.queue)
 
   /**
    * Finish 2nd
    */
   eventList.length = 0
   await sandbox.clock.tickAsync(20)
-
   t.same(
-    eventList.map(e => {
-      if (isActionOf(Mailbox.Events.DEAD_LETTER)(e)) {
-        e. payload.debug = undefined
-      }
-      return e
-    }),
+    eventList,
     [
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.CRY(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PEE(),
-      ),
-      Mailbox.Events.DEAD_LETTER(
-        Baby.Events.PLAY(),
-      ),
+      Baby.Events.CRY(),
+      Baby.Events.PEE(),
+      Baby.Events.PLAY(),
     ],
     'should right enter 3rd SLEEP after another 20 ms',
   )
@@ -237,15 +200,32 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   })
 
   const mailbox = Mailbox.from(Baby.machine)
+  mailbox.acquire()
+
+  const testMachine = createMachine({
+    on: {
+      '*': {
+        actions: actions.choose([
+          {
+            cond: (_, __, { _event }) => _event.origin !== String(mailbox.address),
+            actions: [
+              mailbox.address.send((_, e) => e),
+            ],
+          }
+        ]),
+      },
+    },
+  })
 
   const eventList: AnyEventObject[] = []
-  mailbox.on('event', (e => eventList.push(e)))
-  // console.info('initialState:', actor.initialState)
-  mailbox.acquire()
+  const interpreter = interpret(testMachine)
+  interpreter
+    .onEvent(e => eventList.push(e))
+    .start()
 
   Array.from({ length: 3 }).forEach(_ => {
     // console.info('EVENT: sleep sending...')
-    mailbox.address.send(Baby.Events.SLEEP(10))
+    interpreter.send(Baby.Events.SLEEP(10))
     // console.info('EVENT: sleep sending... done')
   })
 
@@ -253,8 +233,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   await sandbox.clock.tickAsync(10)
   t.same(
     eventList
-      .filter(e => e.type === Mailbox.Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Mailbox.Events.DEAD_LETTER>).payload.message.type)
+      .map(e => e.type)
       .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
       Baby.Types.CRY,
@@ -270,8 +249,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   await sandbox.clock.tickAsync(10)
   t.same(
     eventList
-    .filter(e => e.type === Mailbox.Types.DEAD_LETTER)
-    .map(e => (e as ReturnType<typeof Mailbox.Events.DEAD_LETTER>).payload.message.type)
+    .map(e => e.type)
     .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
       Baby.Types.CRY,
@@ -287,8 +265,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   await sandbox.clock.tickAsync(10)
   t.same(
     eventList
-    .filter(e => e.type === Mailbox.Types.DEAD_LETTER)
-    .map(e => (e as ReturnType<typeof Mailbox.Events.DEAD_LETTER>).payload.message.type)
+    .map(e => e.type)
     .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
       Baby.Types.CRY,
