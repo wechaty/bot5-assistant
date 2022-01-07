@@ -38,7 +38,7 @@ test('intentMachine happy path smoke testing', async t => {
     on: {
       '*': {
         actions: [
-          Mailbox.Actions.proxyToChild(CHILD_ID),
+          Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
         ],
       },
     },

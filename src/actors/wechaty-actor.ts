@@ -64,8 +64,8 @@ const machineFactory = (
     },
     [States.idle]: {
       entry: [
-        actions.log('state.idle', MACHINE_NAME),
-        Mailbox.Actions.idle('wechatyActor.idle'),
+        actions.log('state.idle.entry', MACHINE_NAME),
+        Mailbox.Actions.idle(MACHINE_NAME)('idle'),
       ],
       on: {
         '*': States.idle, // must have a external transition for all events

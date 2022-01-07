@@ -116,7 +116,7 @@ function machineFactory (
       [States.idle]: {
         entry: [
           actions.log('states.idle.entry' , MACHINE_NAME),
-          Mailbox.Actions.idle(MACHINE_NAME),
+          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           '*': States.idle,

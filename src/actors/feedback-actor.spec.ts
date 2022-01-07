@@ -264,7 +264,7 @@ test('feedbackActor smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild(CHILD_ID),
+        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
       }
     }
   })

@@ -70,7 +70,7 @@ const machineFactory = (
     },
     [States.idle]: {
       entry: [
-        Mailbox.Actions.idle(MACHINE_NAME),
+        Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         actions.choose([
           {
             cond: ctx => !!ctx.addresses.wechaty && !!ctx.message?.room(),

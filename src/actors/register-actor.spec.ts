@@ -32,7 +32,7 @@ test('registerMachine smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
   wechatyMailbox.acquire()
 
-  const registerMachine = machineFactory(wechatyMailbox.address)
+  const registerMachine = machineFactory(wechatyMailbox.address, () => {})
   const CHILD_ID = 'child-id'
   const parentTester = createMachine({
     invoke: {
@@ -41,7 +41,7 @@ test('registerMachine smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild(CHILD_ID),
+        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
       },
     },
   })
@@ -114,7 +114,7 @@ test('registerMachine smoke testing', async t => {
         Mailbox.Events.CHILD_REPLY(
           Events.CONTACTS([]),
         ),
-        Mailbox.Events.CHILD_IDLE('RegisterMachine'),
+        Mailbox.Events.CHILD_IDLE('idle'),
       ],
       'should have 2 events after one message, with empty contacts listfor non-mention message',
     )
@@ -160,7 +160,7 @@ test('registerMachine smoke testing', async t => {
         Mailbox.Events.CHILD_REPLY(
           Events.CONTACTS(CONTACT_MENTION_LIST),
         ),
-        Mailbox.Events.CHILD_IDLE('RegisterMachine'),
+        Mailbox.Events.CHILD_IDLE('idle'),
       ],
       'should have 2 events after one message with contacts list for mention message',
     )
@@ -183,7 +183,7 @@ test('registerActor smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
   wechatyMailbox.acquire()
 
-  const registerMachine = machineFactory(wechatyMailbox.address)
+  const registerMachine = machineFactory(wechatyMailbox.address, () => {})
   const registerActor = Mailbox.wrap(registerMachine)
 
   const CHILD_ID = 'testing-child-id'
@@ -194,7 +194,7 @@ test('registerActor smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild(CHILD_ID),
+        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
       },
     },
   })

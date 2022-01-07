@@ -43,6 +43,7 @@ import { audioFixtures } from '../to-text/mod.js'
 import { isMailboxType } from '../mailbox/types.js'
 
 import { createBot5Injector } from '../ioc/ioc.js'
+import { isActionOf } from 'typesafe-actions'
 
 const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
   const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
@@ -78,7 +79,10 @@ test('Brainstorming actor smoke testing', async t => {
       MEMBER_ID_LIST.map(id => wechaty.wechaty.Contact.find({ id })),
     )).filter(Boolean) as WECHATY.Contact[]
 
-    const rename = async (contactId: string, name: string) => wechaty.wechaty.Contact.find({ id: contactId }).then(contact => (contact as any)._payload.name = name)
+    const rename = async (contactId: string, name: string) =>
+      wechaty.wechaty.Contact.find({ id: contactId })
+        .then(contact => (contact as any)._payload.name = name)
+
     rename(mary.id, 'Mary')
     rename(mike.id, 'Mike')
     rename(wechaty.player.id, 'Player')
@@ -117,20 +121,18 @@ test('Brainstorming actor smoke testing', async t => {
       }
     })
 
-
     const eventList: AnyEventObject[] = []
 
     const interpreter = interpret(testMachine)
       .onEvent(e => eventList.push(e))
       .onTransition(s => {
-        console.info('  transition:', s.value, s.event.type)
+        // console.info('  transition:', s.value, s.event.type)
         // console.info('event:', s.event.type)
       })
       .start()
 
-    wechaty.wechaty.on('message', msg => {
-      console.info('- [wechaty message]:', msg._payload)
-      console.info('- [wechaty message talker]:', msg.talker()?.name())
+    wechaty.wechaty.on('message', async msg => {
+      console.info('XXX wechaty.wechaty.on(message)', String(msg))
       if (msg.self()) {
         return
       }
@@ -140,8 +142,9 @@ test('Brainstorming actor smoke testing', async t => {
     })
 
     interpreter.send(Events.ROOM(FIXTURES.room))
+    await new Promise(setImmediate)
 
-    console.info(eventList)
+    // console.info('eventList', eventList)
 
     eventList.length = 0
     /**
@@ -155,11 +158,21 @@ test('Brainstorming actor smoke testing', async t => {
     ]
       .map(Events.MESSAGE)
       .forEach(e => interpreter.send(e))
-    t.same(
-      eventList.map(e => e.type),
-      Array(4).fill(Types.MESSAGE),
-      'should get 4 message events',
-    )
+
+    eventList.forEach(e => {
+      if (isActionOf(Events.MESSAGE)(e)) {
+        console.info(e.payload.message)
+      } else {
+        console.info(e)
+      }
+    })
+
+    console.info('##################################\n\n\n')
+    // t.same(
+    //   eventList.map(e => e.type),
+    //   Array(4).fill(Types.MESSAGE),
+    //   'should get 4 message events',
+    // )
 
     // eventList.length = 0
     // // eventList.forEach(e => console.info(e))

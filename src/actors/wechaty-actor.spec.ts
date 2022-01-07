@@ -43,7 +43,7 @@ test('wechatyActor SAY with concurrency', async t => {
         id: WECHATY_MACHINE_ID,
       },
       on: { '*': {
-        actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
+        actions: Mailbox.Actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
       }},
     })
 
@@ -98,7 +98,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
       },
       on: {
         '*': {
-          actions: Mailbox.Actions.proxyToChild(WECHATY_MACHINE_ID),
+          actions: Mailbox.Actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
         },
       },
     })

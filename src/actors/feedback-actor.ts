@@ -92,7 +92,7 @@ function machineFactory (
       },
       [States.idle]: {
         entry: [
-          Mailbox.Actions.idle(MACHINE_NAME),
+          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           /**
