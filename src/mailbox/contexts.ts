@@ -60,7 +60,7 @@ interface Context {
 /**
  * use JSON.parse() to prevent the initial context from being changed
  */
- const initialContext: () => Context = () => {
+ function initialContext (): Context {
   const context: Context = {
     message  : undefined,
     queue    : [],

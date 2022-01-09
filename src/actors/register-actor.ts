@@ -30,11 +30,9 @@ interface Context {
 }
 
 const Events = {
-  MENTIONS   : Bot5Events.MENTIONS,
   MESSAGE    : Bot5Events.MESSAGE,
-  NO_MENTION : Bot5Events.NO_MENTION,
   RESET      : Bot5Events.RESET,
-  START      : Bot5Events.START,
+  REPORT     : Bot5Events.REPORT,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -75,16 +73,13 @@ const machineFactory = (
         Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         actions.choose([
           {
-            cond: ctx => !!ctx.addresses.wechaty && !!ctx.message?.room(),
-            actions: actions.send(
+            cond: ctx => !!ctx.message?.room(),
+            actions: wechatyAddress.send(
               ctx => actors.wechaty.Events.SAY(
                 'Register all members by mention them in one messsage.',
                 ctx.message!.room()!.id,
                 ctx.chairs.map(c => c.id),
               ),
-              {
-                to: ctx => ctx.addresses.wechaty!,
-              },
             ),
           },
         ])
@@ -92,9 +87,15 @@ const machineFactory = (
       on: {
         [Types.MESSAGE]: {
           actions: [
-            actions.assign({ message:  (_, e) => e.payload.message }),
+            actions.assign({ message: (_, e) => e.payload.message }),
           ],
           target: States.mentioning,
+        },
+        [Types.REPORT]: {
+          actions: [
+            actions.log('states.idle.on.REPORT', MACHINE_NAME),
+          ],
+          target: States.updating,
         },
         [Types.RESET]: {
           actions: actions.assign({ contacts: _ => [] }),

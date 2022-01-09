@@ -8,7 +8,7 @@ import { isMailboxType }  from './types.js'
 import * as contexts      from './contexts.js'
 
 const idle = (name: string) => (info: string) => {
-  const moduleName = `Mailbox<${name}>`
+  const moduleName = `${name}<Mailbox>`
 
   return actions.choose([
     {

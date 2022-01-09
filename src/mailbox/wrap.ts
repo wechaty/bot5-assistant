@@ -73,7 +73,7 @@ function wrap <
 
   // console.info('TESTING:', targetMachine.id, new Error().stack)
 
-  const MAILBOX_ADDRESS_NAME = `${MAILBOX_NAME}<${targetMachine.id}>`
+  const MAILBOX_ADDRESS_NAME = `${targetMachine.id}<${MAILBOX_NAME}>`
 
   const normalizedOptions: Required<MailboxOptions> = {
     id       : MAILBOX_ADDRESS_NAME,

@@ -95,7 +95,7 @@ function validateReceiveFormOtherEvent (
   eventList.length = 0
   interpreter.send(String(Math.random()))
 
-  console.info('eventList:', eventList)
+  // console.info('eventList:', eventList)
 
   const actualIdleEvents = eventList
     .map(e => e.type)

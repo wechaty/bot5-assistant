@@ -41,6 +41,7 @@ const Events = {
   CONTACTS : Bot5Events.CONTACTS,
   MESSAGE  : Bot5Events.MESSAGE,
   RESET    : Bot5Events.RESET,
+  REPORT   : Bot5Events.REPORT,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -73,6 +74,7 @@ const MACHINE_NAME = 'FeedbackMachine'
 
 function machineFactory (
   wechatyAddress: Mailbox.Address,
+  registerAddress: Mailbox.Address,
   logger: Mailbox.MailboxOptions['logger'],
 ) {
   const machine = createMachine<Context, Event>({
@@ -101,39 +103,11 @@ function machineFactory (
            *  so that the Mailbox.Actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
            */
           '*': States.idle,
-          //
-          [Types.CONTACTS]: {
+          [Types.REPORT]: {
             actions: [
-              actions.log('states.idle.on.CONTACTS', MACHINE_NAME),
-              actions.assign({
-                contacts: (ctx, e)  => [
-                  ...ctx.contacts,
-                  ...e.payload.contacts,
-                ],
-              }),
+              actions.log('states.idle.on.REPORT', MACHINE_NAME),
             ],
-            target: States.idle,
-          },
-          // [Types.ROOM]: {
-          //   actions: [
-          //     actions.log('states.idle.on.ROOM', MACHINE_NAME),
-          //     actions.assign({
-          //       room: (_, e) => e.payload.room,
-          //     }),
-          //   ],
-          //   target: States.idle,
-          // },
-          [Types.ADMINS]: {
-            actions: [
-              actions.log('states.idle.on.ADMINS', MACHINE_NAME),
-              actions.assign({
-                admins: (ctx, e) => [
-                  ...ctx.admins,
-                  ...e.payload.contacts,
-                ],
-              }),
-            ],
-            target: States.idle,
+            target: States.checking,
           },
           [Types.RESET]: {
             actions: [
@@ -209,9 +183,37 @@ function machineFactory (
           }
         ],
       },
+      [States.registering]: {
+        entry: [
+          actions.log('states.registering.entry', MACHINE_NAME),
+          registerAddress.send(Events.REPORT),
+        ],
+        on: {
+          [Types.MESSAGE]: {
+            actions: [
+              registerAddress.send((_, e) => e),
+            ],
+          },
+          [Types.CONTACTS]: {
+            actions: [
+              actions.assign({
+                contacts: (_, e) => e.payload.contacts,
+              }),
+            ],
+            target: States.checking,
+          },
+        },
+      },
       [States.checking]: {
         entry: actions.log('states.checking.entry', MACHINE_NAME),
         always: [
+          {
+            cond: ctx => ctx.contacts.length <= 0,
+            actions:[
+              actions.log('states.checking.always no contacts', MACHINE_NAME),
+            ],
+            target: States.registering,
+          },
           { // everyone feedback-ed
             cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.contacts.length,
             actions: actions.log(ctx => `states.checking.always contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, MACHINE_NAME),
@@ -237,13 +239,19 @@ function machineFactory (
 
 mailboxFactory.inject = [
   InjectionToken.WechatyMailbox,
+  InjectionToken.RegisterMailbox,
   InjectionToken.Logger,
 ] as const
 function mailboxFactory (
   wechatyMailbox: Mailbox.Mailbox,
+  registerMailbox: Mailbox.Mailbox,
   logger: Mailbox.MailboxOptions['logger'],
 ) {
-  const machine = machineFactory(wechatyMailbox.address, logger)
+  const machine = machineFactory(
+    wechatyMailbox.address,
+    registerMailbox.address,
+    logger
+  )
   const mailbox = Mailbox.from(machine, { logger })
 
   mailbox.acquire()

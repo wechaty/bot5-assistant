@@ -131,7 +131,9 @@ test('Brainstorming actor smoke testing', async t => {
       })
       .start()
 
+    const messageList: WECHATY.Message[] = []
     wechaty.wechaty.on('message', async msg => {
+      messageList.push(msg)
       console.info('XXX wechaty.wechaty.on(message)', String(msg))
       if (msg.self()) {
         return
@@ -142,12 +144,19 @@ test('Brainstorming actor smoke testing', async t => {
     })
 
     actorInterpreter.send(Events.ROOM(FIXTURES.room))
-    let targetContext = mailbox.debug.target.interpreter!.getSnapshot().context
+    let targetSnapshot = mailbox.debug.target.interpreter!.getSnapshot()
     t.equal(
-      targetContext.room.id,
+      targetSnapshot.context.room.id,
       FIXTURES.room.id,
       'should set room to context',
     )
+    t.equal(targetSnapshot.value, States.registering, 'should in state.registering')
+
+
+    mocker.player.say('hello, no mention to anyone', []).to(mockMeetingRoom)
+    await new Promise(setImmediate)
+    targetSnapshot = mailbox.debug.target.interpreter!.getSnapshot()
+    t.equal(targetSnapshot.value, States.registering, 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
 
@@ -157,55 +166,43 @@ test('Brainstorming actor smoke testing', async t => {
      */
     mocker.player.say(FIXTURES.feedbacks.player, [mary, mike]).to(mockMeetingRoom)
     await new Promise(setImmediate)
-    targetContext = mailbox.debug.target.interpreter!.getSnapshot().context
+    targetSnapshot = mailbox.debug.target.interpreter!.getSnapshot()
     t.same(
-      targetContext.contacts.map(c => c.id),
+      targetSnapshot.context.contacts.map(c => c.id),
       [mary.id, mike.id],
       'should set contacts to mary, mike',
     )
-    actorEventList.forEach(e => {
-      // if (isActionOf(Events.MESSAGE)(e)) {
-      //   console.info(e.payload.message)
-      // } else {
-      console.info('actorEvent:', e)
-      // }
-    })
-    targetEventList.forEach(e => {
-      console.info('stormingEvent:', e)
-    })
+    t.equal(targetSnapshot.value, States.feedbacking, 'should in state.feedbacking')
 
-    // const snapshot = stormingInterpreter.getSnapshot()
-    // console.info(snapshot.context)
-    // console.info('##################################\n\n\n')
+    mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom)
+    await new Promise(setImmediate)
+    targetSnapshot = mailbox.debug.target.interpreter!.getSnapshot()
+    t.same(
+      targetSnapshot.context.feedbacks,
+      {},
+      'should no feedbacks because it will updated only all members have replied',
+    )
+    t.equal(targetSnapshot.value, States.feedbacking, 'should in state.feedbacking')
 
+    mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)
+    await new Promise(setImmediate)
+    targetSnapshot = mailbox.debug.target.interpreter!.getSnapshot()
+    t.same(
+      targetSnapshot.context.feedbacks,
+      {
+        [mary.id] : FIXTURES.feedbacks.mary,
+        [mike.id] : FIXTURES.feedbacks.mike,
+      },
+      'should get feedbacks because it will updated only all members have replied',
+    )
+    t.equal(targetSnapshot.value, States.finished, 'should in state.feedbacking')
 
-    // t.same(
-    //   eventList.map(e => e.type),
-    //   Array(4).fill(Types.MESSAGE),
-    //   'should get 4 message events',
-    // )
-
-    // eventList.length = 0
-    // // eventList.forEach(e => console.info(e))
-    // await firstValueFrom(
-    //   from(interpreter).pipe(
-    //     // tap(x => console.info('tap event:', x.event.type)),
-    //     filter(s => s.event.type === Types.FEEDBACK),
-    //   ),
-    // )
     // const EXPECTED_FEEDBACKS = {
     //   [mary.id]          : FIXTURES.feedbacks.mary,
     //   [mocker.bot.id]    : FIXTURES.feedbacks.bot,
     //   [mike.id]          : FIXTURES.feedbacks.mike,
     //   [mocker.player.id] : FIXTURES.feedbacks.player,
     // }
-    // t.same(
-    //   eventList,
-    //   [
-    //     Events.FEEDBACK(EXPECTED_FEEDBACKS),
-    //   ],
-    //   'should get FEEDBACKS event',
-    // )
 
     // const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
     // interpreter.send(Events.MESSAGE(msg))
@@ -227,5 +224,19 @@ test('Brainstorming actor smoke testing', async t => {
     //   'should get FEEDBACKS event immediately after mary said mike feedback once again',
     // )
     // interpreter.stop()
+
+    console.info('Room message log:')
+    for (const msg of messageList) {
+      const mentionText = (await msg.mentionList())
+        .map(c => '@' + c.name()).join(' ')
+
+      console.info(
+        '-------\n',
+        msg.talker().name(),
+        ':',
+        mentionText,
+        msg.text(),
+      )
+    }
   }
 })

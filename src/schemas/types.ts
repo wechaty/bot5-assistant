@@ -46,6 +46,7 @@ enum Types {
   INTENTS = 'bot5/INTENTS',
 
   INTRODUCE = 'bot5/INTROCUDUCE',
+  REPORT = 'bot5/REPORT',
 }
 
 export {

@@ -43,6 +43,7 @@ const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
 const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadIntroduce = () => ({})
+const payloadReport    = () => ({})
 
 const payloadEmpty     = () => ({})
 
@@ -85,6 +86,7 @@ const Events = {
   COMPLETE : createAction(Types.COMPLETE, payloadData)(),
 
   INTRODUCE: createAction(Types.INTRODUCE, payloadIntroduce)(),
+  REPORT: createAction(Types.REPORT, payloadReport)(),
 } as const
 
 type EventPayloads = {
