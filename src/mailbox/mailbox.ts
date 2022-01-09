@@ -112,11 +112,12 @@ class MailboxImpl<
    * Debug only
    */
   readonly debug: {
-    interpreter: Interpreter<any, any>,
-    machine: StateMachine<any, any, any>,
+    interpreter? : Interpreter<any,  any>,
+    machine      : StateMachine<any, any,  any>,
+
     target: {
-      machine: StateMachine<any, any, any>,
-      interpreter: Interpreter<any, any>,
+      interpreter? : Interpreter<any,  any>,
+      machine      : StateMachine<any, any,  any>,
     },
   }
 
@@ -160,10 +161,8 @@ class MailboxImpl<
     })
 
     this.debug = {
-      interpreter: this._interpreter,
       machine: this._wrappedMachine,
       target: {
-        interpreter: this._interpreter.children.get(MAILBOX_TARGET_MACHINE_ID) as Interpreter<any>,
         machine: this._targetMachine,
       }
     }
@@ -178,10 +177,17 @@ class MailboxImpl<
 
   acquire (): void {
     this._interpreter.start()
+
+    this.debug.interpreter        = this._interpreter
+    this.debug.target.interpreter = this._interpreter
+      .children.get(MAILBOX_TARGET_MACHINE_ID) as Interpreter<any>
   }
 
   dispose (): void {
     this._interpreter.stop()
+
+    this.debug.interpreter        = undefined
+    this.debug.target.interpreter = undefined
   }
 
 }

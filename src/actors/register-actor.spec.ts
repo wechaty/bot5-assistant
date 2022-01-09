@@ -103,7 +103,7 @@ test('registerMachine smoke testing', async t => {
     t.equal(eventList.length, 0, 'should has no message sent to parent right after message')
 
     snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.updating, 'should be in updating state')
+    t.equal(snapshot.value, States.mentioning, 'should be in mentioning state')
     t.equal(snapshot.event.type, Types.MESSAGE, 'should be MESSAGE event')
     t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -111,17 +111,14 @@ test('registerMachine smoke testing', async t => {
     t.same(
       eventList,
       [
-        Mailbox.Events.CHILD_REPLY(
-          Events.CONTACTS([]),
-        ),
         Mailbox.Events.CHILD_IDLE('idle'),
       ],
-      'should have 2 events after one message, with empty contacts listfor non-mention message',
+      'should have 1 idle event after one message, with empty contacts listfor non-mention message',
     )
 
     snapshot = childRef.getSnapshot()
     t.equal(snapshot.value, States.idle, 'should be back to idle state')
-    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/updating:invocation[0]', 'should be done.invoke.RegisterMachine.bot5/updating:invocation[0] event')
+    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]', 'should be done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
     t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
@@ -142,7 +139,7 @@ test('registerMachine smoke testing', async t => {
     t.equal(eventList.length, 0, 'should has no message sent to parent right after message')
 
     snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.updating, 'should be updating state')
+    t.equal(snapshot.value, States.mentioning, 'should be mentioning state')
     t.equal(snapshot.event.type, Types.MESSAGE, 'should got MESSAGE event')
     t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -167,7 +164,11 @@ test('registerMachine smoke testing', async t => {
 
     snapshot = childRef.getSnapshot()
     t.equal(snapshot.value, States.idle, 'should be in idle state')
-    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/updating:invocation[0]', 'should got done.invoke.RegisterMachine.bot5/updating:invocation[0] event')
+    t.equal(
+      snapshot.event.type,
+      'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]',
+      'should got done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event',
+    )
     t.same(
       snapshot.context.contacts.map(c => c.id),
       MENTION_LIST.map(c =>  c.id),

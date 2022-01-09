@@ -184,7 +184,9 @@ function machineFactory (
 
           },
           [Types.CONTACTS]: {
-            actions: actions.assign({ contacts: (_, e) => e.payload.contacts }),
+            actions: [
+              actions.assign({ contacts: (_, e) => e.payload.contacts }),
+            ],
             target: States.registered,
           },
         },

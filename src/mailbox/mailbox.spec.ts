@@ -313,3 +313,21 @@ test('Mailbox Address smoke testing', async t => {
 
   sandbox.restore()
 })
+
+test('Mailbox debug properties smoke testing', async t => {
+  const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
+  t.ok(mailbox.debug.machine, 'should has machine')
+  t.same(mailbox.debug.target.machine, DingDong.machine, 'should has target machine')
+
+  t.notOk(mailbox.debug.interpreter, 'should has no interpreter initialized before acquire()')
+  t.notOk(mailbox.debug.target.interpreter, 'should has no target interpreter initialized before acquire()')
+
+  mailbox.acquire()
+
+  t.ok(mailbox.debug.interpreter, 'should has interpreter after acquire()')
+  t.ok(mailbox.debug.target.interpreter, 'should has target interpreter after acquire()')
+
+  mailbox.dispose()
+  t.notOk(mailbox.debug.interpreter, 'should has no interpreter initialized after dispose()')
+  t.notOk(mailbox.debug.target.interpreter, 'should has no target interpreter initialized after dispose()')
+})

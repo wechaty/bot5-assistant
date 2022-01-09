@@ -13,6 +13,7 @@ import {
   Interpreter,
   EventObject,
   // spawn,
+  actions,
 }                   from 'xstate'
 import * as WECHATY from 'wechaty'
 import {
@@ -63,7 +64,8 @@ test('Brainstorming actor smoke testing', async t => {
 
     const listenMessage = awaitMessageWechaty(wechaty.wechaty)
 
-    const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
+    const mary = mocker.mocker.createContact({ name: 'Mary' })
+    const mike = mocker.mocker.createContact({ name: 'Mike' })
 
     const MEMBER_ID_LIST = [
       mary.id,
@@ -78,15 +80,6 @@ test('Brainstorming actor smoke testing', async t => {
     const MEMBER_LIST = (await Promise.all(
       MEMBER_ID_LIST.map(id => wechaty.wechaty.Contact.find({ id })),
     )).filter(Boolean) as WECHATY.Contact[]
-
-    const rename = async (contactId: string, name: string) =>
-      wechaty.wechaty.Contact.find({ id: contactId })
-        .then(contact => (contact as any)._payload.name = name)
-
-    rename(mary.id, 'Mary')
-    rename(mike.id, 'Mike')
-    rename(wechaty.player.id, 'Player')
-    rename(wechaty.bot.id, 'Bot')
 
     const MEETING_ROOM = await wechaty.wechaty.Room.find({ id: mockMeetingRoom.id })
     if (!MEETING_ROOM) {
@@ -111,22 +104,29 @@ test('Brainstorming actor smoke testing', async t => {
       logger: (...args: any[]) => WECHATY.log.verbose(args.join(' ')),
     })
 
-    const mailbox = injector.injectFunction(mailboxFactory)
+    const mailbox = injector.injectFunction(mailboxFactory) as Mailbox.MailboxImpl
 
-    const testMachine = createMachine<any>({
+    const targetEventList: EventObject[] = []
+    mailbox.debug.target.interpreter!.onEvent(e => targetEventList.push(e))
+
+    const actorMachine = createMachine<any>({
       on: {
         '*': {
-          actions: mailbox.address.send((_: any, e: EventObject) => e),
-        }
-      }
+          actions: actions.choose([
+            {
+              cond: mailbox.address.condNotOrigin(),
+              actions: mailbox.address.send((_, e) => e),
+            },
+          ]),
+        },
+      },
     })
 
-    const eventList: AnyEventObject[] = []
-
-    const interpreter = interpret(testMachine)
-      .onEvent(e => eventList.push(e))
+    const actorEventList: AnyEventObject[] = []
+    const actorInterpreter = interpret(actorMachine)
+      .onEvent(e => actorEventList.push(e))
       .onTransition(s => {
-        // console.info('  transition:', s.value, s.event.type)
+        console.info('####  transition:', s.value, s.event.type)
         // console.info('event:', s.event.type)
       })
       .start()
@@ -136,38 +136,49 @@ test('Brainstorming actor smoke testing', async t => {
       if (msg.self()) {
         return
       }
-      interpreter.send(
+      actorInterpreter.send(
         Events.MESSAGE(msg),
       )
     })
 
-    interpreter.send(Events.ROOM(FIXTURES.room))
-    await new Promise(setImmediate)
+    actorInterpreter.send(Events.ROOM(FIXTURES.room))
+    let targetContext = mailbox.debug.target.interpreter!.getSnapshot().context
+    t.equal(
+      targetContext.room.id,
+      FIXTURES.room.id,
+      'should set room to context',
+    )
 
     // console.info('eventList', eventList)
 
-    eventList.length = 0
+    actorEventList.length = 0
     /**
      * Send MESSAGE event
      */
-    ;[
-      await listenMessage(() => mary.say(FIXTURES.feedbacks.mary).to(mockMeetingRoom)),
-      // await listenMessage(() => mike.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom)),
-      // await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
-      // await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom)),
-    ]
-      .map(Events.MESSAGE)
-      .forEach(e => interpreter.send(e))
-
-    eventList.forEach(e => {
-      if (isActionOf(Events.MESSAGE)(e)) {
-        console.info(e.payload.message)
-      } else {
-        console.info(e)
-      }
+    mocker.player.say(FIXTURES.feedbacks.player, [mary, mike]).to(mockMeetingRoom)
+    await new Promise(setImmediate)
+    targetContext = mailbox.debug.target.interpreter!.getSnapshot().context
+    t.same(
+      targetContext.contacts.map(c => c.id),
+      [mary.id, mike.id],
+      'should set contacts to mary, mike',
+    )
+    actorEventList.forEach(e => {
+      // if (isActionOf(Events.MESSAGE)(e)) {
+      //   console.info(e.payload.message)
+      // } else {
+      console.info('actorEvent:', e)
+      // }
+    })
+    targetEventList.forEach(e => {
+      console.info('stormingEvent:', e)
     })
 
-    console.info('##################################\n\n\n')
+    // const snapshot = stormingInterpreter.getSnapshot()
+    // console.info(snapshot.context)
+    // console.info('##################################\n\n\n')
+
+
     // t.same(
     //   eventList.map(e => e.type),
     //   Array(4).fill(Types.MESSAGE),

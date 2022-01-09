@@ -20,6 +20,7 @@ import * as actors from './mod.js'
 
 interface Context {
   message?: Message
+  mentions: Contact[]
   contacts: Contact[]
   chairs:   Contact[]
   gerror?:  string
@@ -41,6 +42,7 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 function initialContext (): Context {
   const context: Context = {
     message  : undefined,
+    mentions: [],
     contacts : [],
     chairs   : [],
     gerror   : undefined,
@@ -89,23 +91,10 @@ const machineFactory = (
       ],
       on: {
         [Types.MESSAGE]: {
-          actions: actions.choose<Context, ReturnType<typeof Events.MESSAGE>>([
-            {
-              cond: (_, e) => e.payload.message.self(),
-              actions: actions.log((_, e) => `states.idle.on.message skip self messsage ${e.payload.message}`, MACHINE_NAME),
-            },
-            {
-              cond: (_, e) => !e.payload.message.room(),
-              actions: actions.log((_, e) => `states.idle.on.message skip non-room message ${e.payload.message}`, MACHINE_NAME),
-            },
-            {
-              actions: [
-                actions.assign({ message:  (_, e) => e.payload.message }),
-                actions.log((_, e) => 'states.idle.on.message received ' + `"${e.payload.message}"`, MACHINE_NAME),
-              ],
-            },
-          ]),
-          target: States.checking,
+          actions: [
+            actions.assign({ message:  (_, e) => e.payload.message }),
+          ],
+          target: States.mentioning,
         },
         [Types.RESET]: {
           actions: actions.assign({ contacts: _ => [] }),
@@ -113,39 +102,51 @@ const machineFactory = (
         },
       },
     },
-    [States.checking]: {
+    [States.mentioning]: {
       entry: [
-        actions.log('states.checking.entry', MACHINE_NAME),
+        actions.log('states.mentioning.entry', MACHINE_NAME),
       ],
-      always: [
-        {
-          cond: ctx => !ctx.message,
-          actions: actions.log('states.checking.always skip without message', MACHINE_NAME),
-          target: States.idle,
+      invoke: {
+        src: async ctx => {
+          if (!ctx.message) {
+            return []
+          }
+          // if (ctx.message.self()) {
+          //   return []
+          // }
+          return ctx.message.mentionList()
         },
-        {
+        onDone: {
+          actions: [
+            actions.assign({ mentions: (_, e) => e.data }),
+          ],
           target: States.updating,
         },
-      ],
+        onError: {
+          actions: actions.assign({ gerror: (_, e) => GError.stringify(e.data) }),
+          target: States.idle,
+        },
+      },
     },
     [States.updating]: {
       entry: actions.log('states.updating.entry', MACHINE_NAME),
-      invoke: {
-        src: ctx => ctx.message!.mentionList(),
-        onDone: {
+      always: [
+        {
+          cond: ctx => ctx.mentions.length > 0,
+          actions: [
+            actions.assign({
+              contacts: ctx => [
+                ...ctx.contacts,
+                ...ctx.mentions,
+              ],
+            }),
+          ],
           target: States.confirming,
-          actions: actions.assign({
-            contacts: (ctx, e)  => [
-              ...ctx.contacts,
-              ...e.data,
-            ],
-          }),
         },
-        onError: {
-          target: States.erroring,
-          actions: actions.assign({ gerror: (_, e) => GError.stringify(e.data) }),
+        {
+          target: States.idle,
         },
-      },
+      ],
     },
     [States.confirming]: {
       entry: actions.log('states.confirming.entry', MACHINE_NAME),
@@ -166,7 +167,7 @@ const machineFactory = (
         actions.send(
           ctx => actors.wechaty.Events.SAY(
             `
-              注册成功！
+              系统【注册】恭喜 ${ctx.contacts.map(c => c.name()).join('，')} 注册成功！
             `,
             ctx.message!.room()!.id,
             ctx.contacts.map(c => c.id),
