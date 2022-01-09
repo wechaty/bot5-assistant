@@ -15,6 +15,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
+
 /**
  * Mailbox provides the address for XState Actors:
  *  @see https://xstate.js.org/docs/guides/actors.html#actor-api
@@ -36,7 +37,10 @@ import type * as contexts      from './contexts.js'
 import type {
   Event,
 }                         from './events.js'
-import type { MailboxOptions } from './mailbox-options.js'
+import {
+  MailboxOptions,
+  MAILBOX_TARGET_MACHINE_ID,
+}                             from './mailbox-options.js'
 import {
   AddressImpl,
   type Address,
@@ -47,49 +51,82 @@ import {
 }                   from './types.js'
 import { wrap }     from './wrap.js'
 
-interface Mailbox<TEvent extends EventObject = EventObject> {
+/**
+ * The Interface
+ */
+interface Mailbox<
+  TEvent extends EventObject = EventObject,
+> {
   address: Address
   on (name: 'event', listener: (event: TEvent) => void): void
   acquire (): void
   dispose (): void
 }
 
-class MailboxImpl<TEvent extends EventObject>
+/**
+ * The Class
+ */
+class MailboxImpl<
+  TContext extends {} = {},
+  TEvent extends EventObject = EventObject,
+>
   extends EventEmitter
   implements Mailbox, Disposable
 {
 
+  /**
+   * Create a Mailbox for the target machine
+   *
+   * @param targetMachine the target machine that conform to the Mailbox Actor Message Queue API
+   */
   static from<
     TContext extends {},
     TEvent extends EventObject,
   > (
-    childMachine: StateMachine<
+    targetMachine: StateMachine<
       TContext,
       any,
       TEvent
     >,
     options?: MailboxOptions,
   ): Mailbox<TEvent> {
-    const wrappedMachine = wrap(childMachine, options)
-    return new this(wrappedMachine, options)
+    const wrappedMachine = wrap(targetMachine, options)
+    return new this(targetMachine, wrappedMachine, options)
   }
 
   /**
    * XState interpreter
    */
-  protected _interpreter: Interpreter<
+  protected readonly _interpreter: Interpreter<
     contexts.Context,
     any,
-    Event | { type: TEvent['type'] },
-    any
+    Event | { type: TEvent['type'] }
   >
+
   /**
    * Address of the Mailbox
    */
   readonly address: Address
 
+  /**
+   * Debug only
+   */
+  readonly debug: {
+    interpreter: Interpreter<any, any>,
+    machine: StateMachine<any, any, any>,
+    target: {
+      machine: StateMachine<any, any, any>,
+      interpreter: Interpreter<any, any>,
+    },
+  }
+
   protected constructor (
-    protected _wrappedMachine: StateMachine<
+    protected readonly _targetMachine: StateMachine<
+      TContext,
+      any,
+      TEvent
+    >,
+    protected readonly _wrappedMachine: StateMachine<
       contexts.Context,
       any,
       Event | { type: TEvent['type'] },
@@ -121,13 +158,22 @@ class MailboxImpl<TEvent extends EventObject>
       // 3. propagate event to the Mailbox
       this.emit('event', event)
     })
+
+    this.debug = {
+      interpreter: this._interpreter,
+      machine: this._wrappedMachine,
+      target: {
+        interpreter: this._interpreter.children.get(MAILBOX_TARGET_MACHINE_ID) as Interpreter<any>,
+        machine: this._targetMachine,
+      }
+    }
   }
 
   /**
    * Send EVENT to the Mailbox Address
    */
   send (event: TEvent): void {
-    this.address.send(event)
+    this._interpreter.send(event)
   }
 
   acquire (): void {
@@ -137,6 +183,7 @@ class MailboxImpl<TEvent extends EventObject>
   dispose (): void {
     this._interpreter.stop()
   }
+
 }
 
 export {

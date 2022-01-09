@@ -6,11 +6,12 @@ interface MailboxOptions {
   logger?   : InterpreterOptions['logger'],
 }
 
-const CHILD_MACHINE_ID = 'mailbox-address-child-machind-id'
-const MAILBOX_NAME     = 'Mailbox'
+const MAILBOX_TARGET_MACHINE_ID = 'mailbox-target-machind-id'
+
+const MAILBOX_NAME = 'Mailbox'
 
 export {
   type MailboxOptions,
-  CHILD_MACHINE_ID,
+  MAILBOX_TARGET_MACHINE_ID,
   MAILBOX_NAME,
 }

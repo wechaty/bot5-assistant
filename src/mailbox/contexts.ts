@@ -21,7 +21,7 @@ import {
   isMailboxType,
 }                     from './types.js'
 import {
-  CHILD_MACHINE_ID,
+  MAILBOX_TARGET_MACHINE_ID,
 }                     from './mailbox-options.js'
 
 const metaSymKey = Symbol('meta')
@@ -135,54 +135,50 @@ const childSnapshotOf = (childId: string) => (state: State<Context, EventObject,
   return child.getSnapshot()
 }
 
-const condEventSentFromChildOf = (childId = CHILD_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
+const condEventSentFromChildOf = (childId = MAILBOX_TARGET_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
   !!(meta._event.origin) && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
 
-const condEventCanBeAcceptedByChildOf = (childId = CHILD_MACHINE_ID) => (state: State<any, EventObject, any, any>, event: string) =>
+const condEventCanBeAcceptedByChildOf = (childId = MAILBOX_TARGET_MACHINE_ID) => (state: State<any, EventObject, any, any>, event: string) =>
   !!childSnapshotOf(childId)(state).can(event)
 
 /**
  * send the CHILD_RESPONSE.payload.message to the child message origin
  */
-const sendChildReply = (name: string) => {
-  const moduleName = `Mailbox<${name}>`
-
-  return actions.choose<Context, ReturnType<typeof Events.CHILD_REPLY>>([
-    {
-      /**
-       * I. validate the event, make it as the reply of actor if it valid
-       */
-      cond: (ctx, _, { _event, state }) =>
-        true
-        // 1. current event is sent from CHILD_MACHINE_ID
-        && (!!_event.origin && _event.origin === childSessionIdOf(CHILD_MACHINE_ID)(state.children))
-        // // 2. has a message for which we are going to reply to
-        // && !!childMessage(ctx)
-        // 3. the message has valid origin for which we are going to reply to
-        && !!childMessageOrigin(ctx)
-      ,
-      actions: [
-        actions.log((ctx, e) => `contexts.sendChildReply event ${e.payload.message.type} to message ${childMessage(ctx)?.type}@${childMessageOrigin(ctx)}`, moduleName),
-        actions.send(
-          (_, e) => e.payload.message,
-          { to: ctx => childMessageOrigin(ctx)! },
-        ),
-      ],
-    },
+const sendChildReply = (machineName: string) => actions.choose<Context, ReturnType<typeof Events.CHILD_REPLY>>([
+  {
     /**
-     * II. send invalid event to Dead Letter Queue (DLQ)
+     * I. validate the event, make it as the reply of actor if it valid
      */
-    {
-      actions: [
-        actions.log((_, e, { _event }) => `contexts.sendChildReply dead letter ${e.payload.message.type}@${_event.origin || ''}`, moduleName),
-        actions.send((_, e, { _event }) => Events.DEAD_LETTER(
-          e.payload.message,
-          `message ${e.payload.message.type}@${_event.origin || ''} dropped`,
-        )),
-      ],
-    },
-  ]) as any
-}
+    cond: (ctx, _, { _event, state }) =>
+      true
+      // 1. current event is sent from CHILD_MACHINE_ID
+      && (!!_event.origin && _event.origin === childSessionIdOf(MAILBOX_TARGET_MACHINE_ID)(state.children))
+      // // 2. has a message for which we are going to reply to
+      // && !!childMessage(ctx)
+      // 3. the message has valid origin for which we are going to reply to
+      && !!childMessageOrigin(ctx)
+    ,
+    actions: [
+      actions.log((ctx, e) => `contexts.sendChildReply event ${e.payload.message.type} to message ${childMessage(ctx)?.type}@${childMessageOrigin(ctx)}`, machineName),
+      actions.send(
+        (_, e) => e.payload.message,
+        { to: ctx => childMessageOrigin(ctx)! },
+      ),
+    ],
+  },
+  /**
+   * II. send invalid event to Dead Letter Queue (DLQ)
+   */
+  {
+    actions: [
+      actions.log((_, e, { _event }) => `contexts.sendChildReply dead letter ${e.payload.message.type}@${_event.origin || ''}`, machineName),
+      actions.send((_, e, { _event }) => Events.DEAD_LETTER(
+        e.payload.message,
+        `message ${e.payload.message.type}@${_event.origin || ''} dropped`,
+      )),
+    ],
+  },
+]) as any
 
 /**************************
  *
@@ -218,55 +214,51 @@ const queueMessage       = (ctx: Context) => ctx.queue[ctx.index]
 const queueMessageType   = (ctx: Context) => ctx.queue[ctx.index]?.type
 const queueMessageOrigin = (ctx: Context) => metaOrigin(ctx.queue[ctx.index])
 
-const queueAcceptingMessageWithCapacity = (name: string) => (capacity = Infinity) => {
-  const moduleName = `Mailbox<${name}>`
-
-  return actions.choose<Context, AnyEventObject>([
-    {
-      // 1. Mailbox.Types.* is system messages, skip them
-      cond: (_, e) => isMailboxType(e.type),
-      actions: [],  // skip
-    },
-    {
-      // 2. Child events (origin from child machine) are handled by child machine, skip them
-      cond: (_, __, meta) => condEventSentFromChildOf()(meta),
-      actions: [],  // skip
-    },
-    {
-      /**
-       * 3. Send to child if the child is busy and can accept this new arrived event
-       *  - this case is specially for the busy child machine
-       *      for prevent deaadlock when child actor want to receive events at BUSY state.
-       *  - if child is idle, then we just enqueue it
-       */
-      cond: (_, e, { state }) => state.matches({ child: States.busy }) && condEventCanBeAcceptedByChildOf(CHILD_MACHINE_ID)(state, e.type),
-      actions: [
-        actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send ${e.type} to child because it can accept it`, moduleName),
-        actions.send((_, e) => e, { to: CHILD_MACHINE_ID }),
-      ],
-    },
-    {
-      /**
-       * 4. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
-       */
-      cond: ctx => queueSize(ctx) > capacity,
-      actions: [
-        actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, moduleName),
-        actions.send((ctx, e) => Events.DEAD_LETTER(e, `queueSize(${queueSize(ctx)} out of capacity(${capacity})`)),
-      ],
-    },
-    {
-      /**
-       * 5. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
-       */
-      actions: [
-        actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) ${e.type}@${_event.origin || ''}`, moduleName),
-        assignEnqueue,
-        actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
-      ],
-    },
-  ]) as any
-}
+const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = Infinity) => actions.choose<Context, AnyEventObject>([
+  {
+    // 1. Mailbox.Types.* is system messages, skip them
+    cond: (_, e) => isMailboxType(e.type),
+    actions: [],  // skip
+  },
+  {
+    // 2. Child events (origin from child machine) are handled by child machine, skip them
+    cond: (_, __, meta) => condEventSentFromChildOf()(meta),
+    actions: [],  // skip
+  },
+  {
+    /**
+     * 3. Send to child if the child is busy and can accept this new arrived event
+     *  - this case is specially for the busy child machine
+     *      for prevent deaadlock when child actor want to receive events at BUSY state.
+     *  - if child is idle, then we just enqueue it
+     */
+    cond: (_, e, { state }) => state.matches({ child: States.busy }) && condEventCanBeAcceptedByChildOf(MAILBOX_TARGET_MACHINE_ID)(state, e.type),
+    actions: [
+      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send ${e.type} to child because it can accept it`, machineName),
+      actions.send((_, e) => e, { to: MAILBOX_TARGET_MACHINE_ID }),
+    ],
+  },
+  {
+    /**
+     * 4. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
+     */
+    cond: ctx => queueSize(ctx) > capacity,
+    actions: [
+      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, machineName),
+      actions.send((ctx, e) => Events.DEAD_LETTER(e, `queueSize(${queueSize(ctx)} out of capacity(${capacity})`)),
+    ],
+  },
+  {
+    /**
+     * 5. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
+     */
+    actions: [
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) ${e.type}@${_event.origin || ''}`, machineName),
+      assignEnqueue,
+      actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
+    ],
+  },
+]) as any
 
 /**************************
  *
@@ -287,7 +279,7 @@ const assignChildMessage = actions.assign<Context, ReturnType<typeof Events.DEQU
  */
 const sendChildMessage = actions.send<Context, any>(
   ctx => childMessage(ctx)!,
-  { to: CHILD_MACHINE_ID },
+  { to: MAILBOX_TARGET_MACHINE_ID },
 ) as any
 
 /**************

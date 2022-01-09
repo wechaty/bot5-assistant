@@ -42,22 +42,22 @@ import { validate }       from './validate.js'
 
 import {
   type MailboxOptions,
-  CHILD_MACHINE_ID,
+  MAILBOX_TARGET_MACHINE_ID,
   MAILBOX_NAME,
 }                           from './mailbox-options.js'
 
 /**
- * Add Mailbox Queue to the childMachine
+ * Add Mailbox Queue to the targetMachine
  *
- * @param childMachine
+ * @param targetMachine
  * @param options
- * @returns Wrapped childMachine with Mailbox Queue
+ * @returns Wrapped targetMachine with Mailbox Queue
  */
 function wrap <
   TEvent extends EventObject,
   TContext extends {},
 >(
-  childMachine: StateMachine<
+  targetMachine: StateMachine<
     TContext,
     any,
     TEvent
@@ -65,15 +65,15 @@ function wrap <
   options?: MailboxOptions,
 ) {
   /**
-   * when in developement mode, we will validate the childMachine
+   * when in developement mode, we will validate the targetMachine
    */
-  if (IS_DEVELOPMENT && !validate(childMachine)) {
-    throw new Error('Mailbox.address: childMachine is not valid')
+  if (IS_DEVELOPMENT && !validate(targetMachine)) {
+    throw new Error('Mailbox.address: targetMachine is not valid')
   }
 
-  // console.info('TESTING:', childMachine.id, new Error().stack)
+  // console.info('TESTING:', targetMachine.id, new Error().stack)
 
-  const MAILBOX_ADDRESS_NAME = `${MAILBOX_NAME}<${childMachine.id}>`
+  const MAILBOX_ADDRESS_NAME = `${MAILBOX_NAME}<${targetMachine.id}>`
 
   const normalizedOptions: Required<MailboxOptions> = {
     id       : MAILBOX_ADDRESS_NAME,
@@ -95,8 +95,8 @@ function wrap <
   >({
     id: normalizedOptions.id,
     invoke: {
-      id: CHILD_MACHINE_ID,
-      src: childMachine,
+      id: MAILBOX_TARGET_MACHINE_ID,
+      src: targetMachine,
     },
     type: 'parallel',
     /**

@@ -15,7 +15,7 @@ import {
 }                 from 'xstate'
 
 import * as contexts from './contexts.js'
-import { CHILD_MACHINE_ID } from './mailbox-options.js'
+import { MAILBOX_TARGET_MACHINE_ID } from './mailbox-options.js'
 
 test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
@@ -77,7 +77,7 @@ test('condEventSentFromChildOf', async t => {
   } as any as SCXML.Event<any>
 
   const CHILDREN: Record<string, ActorRef<any, any>> = {
-    [CHILD_MACHINE_ID]: {
+    [MAILBOX_TARGET_MACHINE_ID]: {
       sessionId: SESSION_ID,
     } as any as ActorRef<any, any>,
   }
@@ -87,11 +87,11 @@ test('condEventSentFromChildOf', async t => {
     state: { children: CHILDREN }
   } as GuardMeta<any, any>
 
-  t.ok(contexts.condEventSentFromChildOf(CHILD_MACHINE_ID)(META), 'should return true if the event origin is the child session id')
+  t.ok(contexts.condEventSentFromChildOf(MAILBOX_TARGET_MACHINE_ID)(META), 'should return true if the event origin is the child session id')
   t.ok(contexts.condEventSentFromChildOf()(META), 'should return true if the event origin is the child session id (with empty child id for using the default value)')
 
   META._event.origin = undefined
-  t.notOk(contexts.condEventSentFromChildOf(CHILD_MACHINE_ID)(META), 'should return false if the event origin is undefined')
+  t.notOk(contexts.condEventSentFromChildOf(MAILBOX_TARGET_MACHINE_ID)(META), 'should return false if the event origin is undefined')
   t.notOk(contexts.condEventSentFromChildOf()(META), 'should return false if the event origin is undefined (with empty child id for using the default value)')
 })
 
