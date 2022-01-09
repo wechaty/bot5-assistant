@@ -7,6 +7,8 @@ import {
   SendActionOptions,
   SendAction,
   GuardMeta,
+  createMachine,
+  interpret,
 }                   from "xstate"
 
 interface Address {
@@ -63,7 +65,23 @@ class AddressImpl implements Address {
 
 }
 
+const nullMachine = createMachine<{}>({})
+const nullInterpreter = interpret(nullMachine)
+nullInterpreter.start()
+
+const nullAddress: Address = {
+  send: <TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
+    event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+    _options?: SendActionOptions<TContext, TEvent>
+  ) => actions.send(event, {
+    to: nullInterpreter.sessionId,
+  }),
+  condNotOrigin: () => () => false,
+}
+
 export {
   type Address,
   AddressImpl,
+  nullAddress,
+  nullInterpreter,
 }

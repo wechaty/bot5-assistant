@@ -19,9 +19,10 @@ import {
   Types,
 }                   from '../schemas/mod.js'
 import * as Mailbox from '../mailbox/mod.js'
-
 import { messageToText }  from '../to-text/mod.js'
 import { InjectionToken } from '../ioc/tokens.js'
+
+import * as actors  from './mod.js'
 
 type Context = {
   admins    : Contact[]
@@ -88,6 +89,15 @@ function machineFactory (
      */
     preserveActionOrder: true,
     initial: States.initializing,
+    on: {
+      [Types.CONTACTS]: {
+        actions: [
+          actions.assign({
+            contacts: (_, e) => e.payload.contacts,
+          }),
+        ],
+      },
+    },
     states: {
       [States.initializing]: {
         always: States.idle,
@@ -103,6 +113,13 @@ function machineFactory (
            *  so that the Mailbox.Actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
            */
           '*': States.idle,
+          [Types.CONTACTS]: {
+            actions: [
+              actions.assign({
+                contacts: (_, e) => e.payload.contacts,
+              }),
+            ],
+          },
           [Types.REPORT]: {
             actions: [
               actions.log('states.idle.on.REPORT', MACHINE_NAME),
@@ -162,7 +179,16 @@ function machineFactory (
       [States.recognized]: {
         entry: [
           actions.log(ctx => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, MACHINE_NAME),
-          actions.log(ctx => `states.recognized.entry next feedbacker ${nextAttendee(ctx)}`, MACHINE_NAME),
+          wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+            `
+              收到${ctx.message!.talker().name()}的反馈：
+                ${ctx.feedback}
+
+              下一位：@${nextAttendee(ctx)?.name()}
+            `,
+            ctx.message!.room()!.id,
+            nextAttendee(ctx)?.id ? [nextAttendee(ctx)!.id] : [],
+          )),
         ],
         always: [
           {

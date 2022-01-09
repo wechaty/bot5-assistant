@@ -52,7 +52,11 @@ test('feedbackMachine smoke testing', async t => {
   const testMachine = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: machineFactory({ send: () => {} }),
+      src: machineFactory(
+        Mailbox.nullAddress,
+        Mailbox.nullAddress,
+        Mailbox.nullLogger,
+      ),
     },
   })
 
@@ -126,7 +130,6 @@ test('feedbackMachine smoke testing', async t => {
     t.same(
       eventList.map(e => e.type),
       [
-        Mailbox.Types.CHILD_IDLE,
         Types.CONTACTS,
       ],
       'should get CONTACT event',
@@ -136,6 +139,7 @@ test('feedbackMachine smoke testing', async t => {
     // console.info(snapshot.history)
     t.equal(snapshot.event.type, Types.CONTACTS, 'should get CONTACTS event')
     t.equal(snapshot.value, States.idle, 'should be state idle')
+    t.same(snapshot.context.contacts.map(c => c.id), FIXTURES.members.map(c => c.id), 'should get context contacts list')
 
     /**
      * Send ROOM event
@@ -253,7 +257,11 @@ test('feedbackMachine smoke testing', async t => {
 
 test('feedbackActor smoke testing', async t => {
 
-  const feedbackMachine = machineFactory({ send: _ => {} })
+  const feedbackMachine = machineFactory(
+    Mailbox.nullAddress,
+    Mailbox.nullAddress,
+    Mailbox.nullLogger,
+  )
   const feedbackActor = Mailbox.wrap(feedbackMachine)
 
   const CHILD_ID = 'testing-child-id'

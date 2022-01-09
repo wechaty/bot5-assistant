@@ -8,6 +8,8 @@ import type {
 import {
   type Address,
   AddressImpl,
+  nullAddress,
+  nullInterpreter,
 }                   from './address.js'
 import { Actions }  from './actions.js'
 import { Events }   from './events.js'
@@ -18,6 +20,8 @@ import { validate }   from './validate.js'
 import { wrap }       from './wrap.js'
 import { from }       from './from.js'
 
+const nullLogger: Options['logger'] = () => {}
+
 export {
   type Address,
   type Interface,
@@ -26,6 +30,9 @@ export {
   from,
   MailboxImpl,
   AddressImpl,
+  nullAddress,
+  nullInterpreter,
+  nullLogger,
   //
   Actions,
   Events,
