@@ -1,29 +1,27 @@
 import {
-  type Mailbox,
+  type Interface,
   MailboxImpl,
 }               from './mailbox.js'
 import type {
-  MailboxOptions,
-}                 from './mailbox-options.js'
+  Options,
+}                 from './options.js'
 import {
   type Address,
   AddressImpl,
-}               from './address.js'
-import { Actions } from './actions.js'
-import { Events } from './events.js'
-import { States } from './states.js'
-import { Types } from './types.js'
+}                   from './address.js'
+import { Actions }  from './actions.js'
+import { Events }   from './events.js'
+import { States }   from './states.js'
+import { Types }    from './types.js'
 
-import { validate }       from './validate.js'
-import { wrap }           from './wrap.js'
-
-const from: typeof MailboxImpl.from = (machine) =>
-  MailboxImpl.from(machine)
+import { validate }   from './validate.js'
+import { wrap }       from './wrap.js'
+import { from }       from './from.js'
 
 export {
   type Address,
-  type Mailbox,
-  type MailboxOptions,
+  type Interface,
+  type Options,
   //
   from,
   MailboxImpl,

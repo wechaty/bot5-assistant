@@ -75,7 +75,7 @@ const MACHINE_NAME = 'FeedbackMachine'
 function machineFactory (
   wechatyAddress: Mailbox.Address,
   registerAddress: Mailbox.Address,
-  logger: Mailbox.MailboxOptions['logger'],
+  logger: Mailbox.Options['logger'],
 ) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
@@ -243,9 +243,9 @@ mailboxFactory.inject = [
   InjectionToken.Logger,
 ] as const
 function mailboxFactory (
-  wechatyMailbox: Mailbox.Mailbox,
-  registerMailbox: Mailbox.Mailbox,
-  logger: Mailbox.MailboxOptions['logger'],
+  wechatyMailbox: Mailbox.Interface,
+  registerMailbox: Mailbox.Interface,
+  logger: Mailbox.Options['logger'],
 ) {
   const machine = machineFactory(
     wechatyMailbox.address,

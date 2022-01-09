@@ -62,7 +62,7 @@ function machineFactory (
   feedbackAddress : Mailbox.Address,
   registerAddress : Mailbox.Address,
   wechatyAddress  : Mailbox.Address,
-  logger: Mailbox.MailboxOptions['logger'],
+  logger: Mailbox.Options['logger'],
 ) {
   void logger
   const machine = createMachine<Context, Event>({
@@ -259,10 +259,10 @@ mailboxFactory.inject = [
 ] as const
 
 function mailboxFactory (
-  feedbackMailbox: Mailbox.Mailbox,
-  registerMailbox: Mailbox.Mailbox,
-  wechatyMailbox:  Mailbox.Mailbox,
-  logger: Mailbox.MailboxOptions['logger'],
+  feedbackMailbox: Mailbox.Interface,
+  registerMailbox: Mailbox.Interface,
+  wechatyMailbox:  Mailbox.Interface,
+  logger: Mailbox.Options['logger'],
 ) {
   const machine = machineFactory(
     feedbackMailbox.address,
@@ -272,8 +272,8 @@ function mailboxFactory (
   )
 
   const mailbox = Mailbox.from(machine, { logger })
-
   mailbox.acquire()
+
   return mailbox
 }
 

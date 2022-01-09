@@ -41,10 +41,10 @@ import {
 import { validate }       from './validate.js'
 
 import {
-  type MailboxOptions,
+  type Options,
   MAILBOX_TARGET_MACHINE_ID,
   MAILBOX_NAME,
-}                           from './mailbox-options.js'
+}                           from './options.js'
 
 /**
  * Add Mailbox Queue to the targetMachine
@@ -62,7 +62,7 @@ function wrap <
     any,
     TEvent
   >,
-  options?: MailboxOptions,
+  options?: Options,
 ) {
   /**
    * when in developement mode, we will validate the targetMachine
@@ -75,7 +75,7 @@ function wrap <
 
   const MAILBOX_ADDRESS_NAME = `${targetMachine.id}<${MAILBOX_NAME}>`
 
-  const normalizedOptions: Required<MailboxOptions> = {
+  const normalizedOptions: Required<Options> = {
     id       : MAILBOX_ADDRESS_NAME,
     capacity : Infinity,
     logger   : () => {},

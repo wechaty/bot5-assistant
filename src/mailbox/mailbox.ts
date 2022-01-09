@@ -38,9 +38,9 @@ import type {
   Event,
 }                         from './events.js'
 import {
-  MailboxOptions,
+  Options,
   MAILBOX_TARGET_MACHINE_ID,
-}                             from './mailbox-options.js'
+}                             from './options.js'
 import {
   AddressImpl,
   type Address,
@@ -49,12 +49,10 @@ import {
   isMailboxType,
   Types,
 }                   from './types.js'
-import { wrap }     from './wrap.js'
-
 /**
  * The Interface
  */
-interface Mailbox<
+interface Interface<
   TEvent extends EventObject = EventObject,
 > {
   address: Address
@@ -71,28 +69,8 @@ class MailboxImpl<
   TEvent extends EventObject = EventObject,
 >
   extends EventEmitter
-  implements Mailbox, Disposable
+  implements Interface, Disposable
 {
-
-  /**
-   * Create a Mailbox for the target machine
-   *
-   * @param targetMachine the target machine that conform to the Mailbox Actor Message Queue API
-   */
-  static from<
-    TContext extends {},
-    TEvent extends EventObject,
-  > (
-    targetMachine: StateMachine<
-      TContext,
-      any,
-      TEvent
-    >,
-    options?: MailboxOptions,
-  ): Mailbox<TEvent> {
-    const wrappedMachine = wrap(targetMachine, options)
-    return new this(targetMachine, wrappedMachine, options)
-  }
 
   /**
    * XState interpreter
@@ -121,7 +99,7 @@ class MailboxImpl<
     },
   }
 
-  protected constructor (
+  constructor (
     protected readonly _targetMachine: StateMachine<
       TContext,
       any,
@@ -133,7 +111,7 @@ class MailboxImpl<
       Event | { type: TEvent['type'] },
       any
     >,
-    options: MailboxOptions = {},
+    options: Options = {},
   ) {
     super()
     // console.info('MailboxOptions', options)
@@ -193,6 +171,6 @@ class MailboxImpl<
 }
 
 export {
-  type Mailbox,
+  type Interface,
   MailboxImpl,
 }

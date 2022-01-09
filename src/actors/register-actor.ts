@@ -52,7 +52,7 @@ const MACHINE_NAME = 'RegisterMachine'
 
 const machineFactory = (
   wechatyAddress: Mailbox.Address,
-  logger: Mailbox.MailboxOptions['logger'],
+  logger: Mailbox.Options['logger'],
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   initial: States.initializing,
@@ -186,8 +186,8 @@ mailboxFactory.inject = [
   InjectionToken.Logger,
 ] as const
 function mailboxFactory (
-  wechatyMailbox: Mailbox.Mailbox,
-  logger: Mailbox.MailboxOptions['logger'],
+  wechatyMailbox: Mailbox.Interface,
+  logger: Mailbox.Options['logger'],
 ) {
   const machine = machineFactory(wechatyMailbox.address, logger)
   const mailbox = Mailbox.from(machine, { logger })

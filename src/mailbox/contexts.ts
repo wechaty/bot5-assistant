@@ -22,7 +22,7 @@ import {
 }                     from './types.js'
 import {
   MAILBOX_TARGET_MACHINE_ID,
-}                     from './mailbox-options.js'
+}                     from './options.js'
 
 const metaSymKey = Symbol('meta')
 

@@ -46,7 +46,7 @@ const MACHINE_NAME = 'WechatyMachine'
 
 const machineFactory = (
   wechaty : Wechaty,
-  logger  : Mailbox.MailboxOptions['logger'],
+  logger  : Mailbox.Options['logger'],
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   context: initialContext(),
@@ -115,7 +115,7 @@ mailboxFactory.inject = [
 ] as const
 function mailboxFactory (
   wechaty: Wechaty,
-  logger: Mailbox.MailboxOptions['logger'],
+  logger: Mailbox.Options['logger'],
 ) {
   const machine = machineFactory(wechaty, logger)
   const mailbox = Mailbox.from(machine, { logger })

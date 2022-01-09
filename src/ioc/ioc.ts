@@ -9,7 +9,7 @@ import * as actors from '../actors/mod.js'
 
 import { InjectionToken } from './tokens.js'
 
-system.inject = [
+resolveAll.inject = [
   InjectionToken.WechatyMailbox,
   InjectionToken.IntentMailbox,
   InjectionToken.FeedbackMailbox,
@@ -18,20 +18,20 @@ system.inject = [
   InjectionToken.Logger,
 ] as const
 
-function system (
-  wechatyMailbox  : Mailbox.Mailbox,
-  intentMailbox   : Mailbox.Mailbox,
-  FeedbackMailbox : Mailbox.Mailbox,
-  RegisterMailbox : Mailbox.Mailbox,
+function resolveAll (
+  wechatyMailbox  : Mailbox.Interface,
+  intentMailbox   : Mailbox.Interface,
+  feedbackMailbox : Mailbox.Interface,
+  registerMailbox : Mailbox.Interface,
   wechaty         : Wechaty,
-  logger          : Mailbox.MailboxOptions['logger'],
+  logger          : Mailbox.Options['logger'],
 ) {
   return {
     mailbox: {
-      wechaty: wechatyMailbox,
-      intent: intentMailbox,
-      feedback: FeedbackMailbox,
-      register: RegisterMailbox,
+      wechaty:  wechatyMailbox,
+      intent:   intentMailbox,
+      feedback: feedbackMailbox,
+      register: registerMailbox,
     },
     wechaty,
     logger,
@@ -40,7 +40,7 @@ function system (
 
 interface IocOptions {
   wechaty: Wechaty
-  logger: Mailbox.MailboxOptions['logger']
+  logger: Mailbox.Options['logger']
 }
 
 const createBot5Injector = (options: IocOptions) => createInjector()
@@ -49,8 +49,8 @@ const createBot5Injector = (options: IocOptions) => createInjector()
   //
   .provideFactory(InjectionToken.WechatyMailbox,  actors.wechaty.mailboxFactory)
   .provideFactory(InjectionToken.IntentMailbox,   actors.intent.mailboxFactory)
-  .provideFactory(InjectionToken.FeedbackMailbox, actors.feedback.mailboxFactory)
   .provideFactory(InjectionToken.RegisterMailbox, actors.register.mailboxFactory)
+  .provideFactory(InjectionToken.FeedbackMailbox, actors.feedback.mailboxFactory)
 
 export {
   createBot5Injector,

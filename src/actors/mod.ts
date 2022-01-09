@@ -9,7 +9,7 @@ import * as wechaty   from './wechaty-actor.js'
 import * as brainstorming from './brainstorming-actor.js'
 
 interface ActorModel {
-  mailboxFactory: (...args: any[]) => Mailbox.Mailbox
+  mailboxFactory: (...args: any[]) => Mailbox.Interface
   // machineFactory: (...args: any[]) => StateMachine<any, any, any>
   Events: {
     [key: string]: ActionCreator,
