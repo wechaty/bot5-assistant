@@ -4,6 +4,7 @@ interface Options {
   id?       : string
   capacity? : number
   logger?   : InterpreterOptions['logger'],
+  devTools? : InterpreterOptions['devTools'],
 }
 
 const MAILBOX_TARGET_MACHINE_ID = 'mailbox-target-machind-id'

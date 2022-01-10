@@ -256,6 +256,7 @@ mailboxFactory.inject = [
   InjectionToken.RegisterMailbox,
   InjectionToken.WechatyMailbox,
   InjectionToken.Logger,
+  InjectionToken.DevTools,
 ] as const
 
 function mailboxFactory (
@@ -263,6 +264,7 @@ function mailboxFactory (
   registerMailbox: Mailbox.Interface,
   wechatyMailbox:  Mailbox.Interface,
   logger: Mailbox.Options['logger'],
+  devTools: Mailbox.Options['devTools'],
 ) {
   const machine = machineFactory(
     feedbackMailbox.address,
@@ -271,7 +273,11 @@ function mailboxFactory (
     logger,
   )
 
-  const mailbox = Mailbox.from(machine, { logger })
+  const mailbox = Mailbox.from(machine, {
+    logger,
+    devTools,
+  })
+
   mailbox.acquire()
 
   return mailbox

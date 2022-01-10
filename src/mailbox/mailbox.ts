@@ -116,7 +116,10 @@ class MailboxImpl<
     super()
     // console.info('MailboxOptions', options)
 
-    const interpretOptions: Partial<InterpreterOptions> = {}
+    const interpretOptions: Partial<InterpreterOptions> = {
+      devTools: options.devTools,
+    }
+
     if (typeof options.logger === 'function') {
       // If the `logger` key has been set, then the value must be function
       // The interpret function can not accept a { logger: undefined } option

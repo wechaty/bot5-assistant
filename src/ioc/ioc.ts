@@ -40,12 +40,15 @@ function resolveAll (
 
 interface IocOptions {
   wechaty: Wechaty
-  logger: Mailbox.Options['logger']
+  //
+  logger?:    Mailbox.Options['logger']
+  devTools?:  Mailbox.Options['devTools']
 }
 
 const createBot5Injector = (options: IocOptions) => createInjector()
-  .provideValue(InjectionToken.Logger,  options.logger)
-  .provideValue(InjectionToken.Wechaty, options.wechaty)
+  .provideValue(InjectionToken.DevTools,  options.devTools)
+  .provideValue(InjectionToken.Logger,    options.logger)
+  .provideValue(InjectionToken.Wechaty,   options.wechaty)
   //
   .provideFactory(InjectionToken.WechatyMailbox,  actors.wechaty.mailboxFactory)
   .provideFactory(InjectionToken.IntentMailbox,   actors.intent.mailboxFactory)
