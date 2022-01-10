@@ -94,8 +94,14 @@ const machineFactory = (
         [Types.REPORT]: {
           actions: [
             actions.log('states.idle.on.REPORT', MACHINE_NAME),
+            actions.choose([
+              {
+                cond: ctx => ctx.contacts.length > 0,
+                actions: Mailbox.Actions.reply(ctx => Bot5Events.CONTACTS(ctx.contacts)),
+              },
+            ]),
           ],
-          target: States.updating,
+          target: States.idle,
         },
         [Types.RESET]: {
           actions: actions.assign({ contacts: _ => [] }),
@@ -131,6 +137,9 @@ const machineFactory = (
     },
     [States.updating]: {
       entry: actions.log('states.updating.entry', MACHINE_NAME),
+      exit: actions.assign({
+        mentions: _ => [],
+      }),
       always: [
         {
           cond: ctx => ctx.mentions.length > 0,
@@ -138,7 +147,7 @@ const machineFactory = (
             actions.assign({
               contacts: ctx => [
                 ...ctx.contacts,
-                ...ctx.mentions,
+                ...ctx.mentions.filter(m => !ctx.contacts.includes(m)),
               ],
             }),
           ],
