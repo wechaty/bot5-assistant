@@ -249,7 +249,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received the 2nd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NOTIFY after received the 2nd EVENT sleep')
+  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NEW_MESSAGE after received the 2nd EVENT sleep')
   t.equal(snapshot.context.queue.length, 1, 'should have 1 event in queue after received the 2nd EVENT sleep')
 
   interpreter.send(Baby.Events.SLEEP(30))
@@ -258,7 +258,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received the 3rd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NOTIFY after received the 3rd EVENT sleep')
+  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NEW_MESSAGE after received the 3rd EVENT sleep')
   t.equal(snapshot.context.queue.length, 2, 'should have 1 event in queue after received the 3rd EVENT sleep')
 
   /**
@@ -390,7 +390,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received 3 sleep EVENTs')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger event NOTIFY after received 3 sleep EVENTs')
+  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger event NEW_MESSAGE after received 3 sleep EVENTs')
   t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after received 3 sleep EVENTs')
 
   eventList.length = 0
