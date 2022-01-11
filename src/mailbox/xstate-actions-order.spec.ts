@@ -51,7 +51,13 @@ const spyActionsMachine = (spy: sinon.SinonSpy) => createMachine<{ lastSetBy: st
         actions.assign({ lastSetBy: _ => { spy('states.step1.entry.assign'); return 'states.step1.entry.assign' } }),
         ctx => spy('states.step1.entry.expr context.lastSetBy:' + ctx.lastSetBy),
       ],
-      always: 'step2',
+      always: {
+        actions: [
+          actions.assign({ lastSetBy: _ => { spy('states.step1.always.assign'); return 'states.step1.always.assign' } }),
+          ctx => spy('states.step1.always.expr context.lastSetBy:' + ctx.lastSetBy),
+        ],
+        target: 'step2',
+      },
       exit: [
         actions.assign({ lastSetBy: _ => { spy('states.step1.exit.assign'); return 'states.step1.exit.assign' } }),
         ctx => spy('states.step1.exit.expr context.lastSetBy:' + ctx.lastSetBy),
@@ -124,11 +130,13 @@ test('spyActionsMachine actions order testing', async t => {
     [ 'states.step0.on.assign' ],
     [ 'states.step1.entry.assign' ],
     [ 'states.step1.exit.assign' ],
+    [ 'states.step1.always.assign' ],
     [ 'states.step2.entry.assign' ],
     [ 'states.step0.exit.expr context.lastSetBy:states.step0.exit.assign' ],
     [ 'states.step0.on.expr context.lastSetBy:states.step0.on.assign' ],
     [ 'states.step1.entry.expr context.lastSetBy:states.step1.entry.assign' ],
     [ 'states.step1.exit.expr context.lastSetBy:states.step1.exit.assign' ],
+    [ 'states.step1.always.expr context.lastSetBy:states.step1.always.assign' ],
     [ 'states.step2.entry.expr context.lastSetBy:states.step2.entry.assign' ],
     [ 'onEvent: received TEST' ],
     [ 'onTransition: transition to step2' ],
