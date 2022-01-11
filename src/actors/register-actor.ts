@@ -87,7 +87,10 @@ const machineFactory = (
       on: {
         [Types.MESSAGE]: {
           actions: [
-            actions.assign({ message: (_, e) => e.payload.message }),
+            actions.assign({
+              message: (_, e) => e.payload.message,
+              mentions: _ => [],
+            }),
           ],
           target: States.mentioning,
         },
@@ -137,9 +140,6 @@ const machineFactory = (
     },
     [States.updating]: {
       entry: actions.log('states.updating.entry', MACHINE_NAME),
-      exit: actions.assign({
-        mentions: _ => [],
-      }),
       always: [
         {
           cond: ctx => ctx.mentions.length > 0,
