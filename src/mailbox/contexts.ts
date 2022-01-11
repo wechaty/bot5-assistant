@@ -135,7 +135,7 @@ const childSnapshotOf = (childId: string) => (state: State<Context, EventObject,
   return child.getSnapshot()
 }
 
-const condEventSentFromChildOf = (childId = MAILBOX_TARGET_MACHINE_ID) => (meta: GuardMeta<Context, AnyEventObject>) =>
+const condEventSentFromChildOf = (childId: string) => (meta: GuardMeta<Context, AnyEventObject>) =>
   !!(meta._event.origin) && meta._event.origin === childSessionIdOf(childId)(meta.state.children)
 
 const condEventCanBeAcceptedByChildOf = (childId = MAILBOX_TARGET_MACHINE_ID) => (state: State<any, EventObject, any, any>, event: string) =>
@@ -222,42 +222,59 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
   },
   {
     // 2. Child events (origin from child machine) are handled by child machine, skip them
-    cond: (_, __, meta) => condEventSentFromChildOf()(meta),
+    cond: (_, __, meta) => condEventSentFromChildOf(MAILBOX_TARGET_MACHINE_ID)(meta),
     actions: [],  // skip
   },
   {
     /**
-     * 3. Send to child if the child is busy and can accept this new arrived event
+     * 3. If the child is idle, add the incoming message to queue by wrapping the `_event.origin` meta data
+     */
+    cond: (_, __, { state }) => state.matches({ child: States.idle }),
+    actions: [
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is idle ${e.type}@${_event.origin || ''}`, machineName),
+      assignEnqueue,  // <- wrapping `_event.origin` inside
+      actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
+    ],
+  },
+  /**
+   *
+   * Child is **BUSY**
+   *
+   */
+  {
+    /**
+     * 4. Forward to child if the child can accept this new arrived event
      *  - this case is specially for the busy child machine
      *      for prevent deaadlock when child actor want to receive events at BUSY state.
      *  - if child is idle, then we just enqueue it
      */
-    cond: (_, e, { state }) => state.matches({ child: States.busy }) && condEventCanBeAcceptedByChildOf(MAILBOX_TARGET_MACHINE_ID)(state, e.type),
+    cond: (_, e, { state }) => condEventCanBeAcceptedByChildOf(MAILBOX_TARGET_MACHINE_ID)(state, e.type),
     actions: [
-      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send ${e.type} to child because it can accept it`, machineName),
-      actions.send((_, e) => e, { to: MAILBOX_TARGET_MACHINE_ID }),
+      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child id busy but can accept ${e.type}, forward it directly`, machineName),
+      actions.forwardTo(MAILBOX_TARGET_MACHINE_ID),
     ],
   },
   {
     /**
-     * 4. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
+     * 5. Bounded mailbox: out of capicity, send them to Dead Letter Queue (DLQ)
      */
     cond: ctx => queueSize(ctx) > capacity,
     actions: [
-      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, machineName),
+      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is busy, send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, machineName),
       actions.send((ctx, e) => Events.DEAD_LETTER(e, `queueSize(${queueSize(ctx)} out of capacity(${capacity})`)),
     ],
   },
   {
     /**
-     * 5. Incoming messages: add them to queue by wrapping the `_event.origin` meta data
+     * 6. Add incoming message to queue by wrapping the `_event.origin` meta data
      */
     actions: [
-      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) ${e.type}@${_event.origin || ''}`, machineName),
-      assignEnqueue,
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is busy, queue new message: ${e.type}@${_event.origin || ''}`, machineName),
+      assignEnqueue,  // <- wrapping `_event.origin` inside
       actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
     ],
   },
+
 ]) as any
 
 /**************************
