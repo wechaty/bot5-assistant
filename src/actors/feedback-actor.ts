@@ -7,11 +7,8 @@ import {
 import type {
   Message,
   Contact,
-  Wechaty,
-  // Room,
 }                       from 'wechaty'
 import { GError } from 'gerror'
-import type { Logger } from 'brolog'
 
 import {
   Events as Bot5Events,
@@ -154,7 +151,10 @@ function machineFactory (
         always: States.idle,
       },
       [States.recognizing]: {
-        entry: actions.log('states.recognizing.entry', MACHINE_NAME),
+        entry: [
+          actions.log('states.recognizing.entry', MACHINE_NAME),
+          actions.assign({ feedback: _ => undefined }),
+        ],
         invoke: {
           src: (ctx) => messageToText(ctx.message),
           onDone: {
@@ -167,7 +167,6 @@ function machineFactory (
             actions: [
               actions.assign({
                 gerror: (_, e) => GError.stringify(e.data),
-                feedback: _ => undefined,
               }),
               actions.log((_, e) => 'states.recognizing invoke error: ' + e.data, MACHINE_NAME),
             ],
@@ -178,27 +177,30 @@ function machineFactory (
       [States.recognized]: {
         entry: [
           actions.log(ctx => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, MACHINE_NAME),
-          wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
-            `
-              收到${ctx.message!.talker().name()}的反馈：
-                ${ctx.feedback}
-
-              下一位：@${nextContact(ctx)?.name()}
-            `,
-            ctx.message!.room()!.id,
-            nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
-          )),
+          actions.assign({
+            feedbacks: ctx => ({
+              ...ctx.feedbacks,
+              [ctx.message!.talker().id]: ctx.feedback!,
+            }),
+          }),
         ],
         always: [
           {
             cond: ctx => !!ctx.feedback,
             actions: [
               actions.log(ctx => `states.recognized.always exist feedback: "${ctx.feedback}" from ${ctx.message!.talker().id}`, MACHINE_NAME),
-              actions.assign({
-                feedbacks: ctx => ({
-                  ...ctx.feedbacks,
-                  [ctx.message!.talker().id]: ctx.feedback!,
-                }),
+              wechatyAddress.send(ctx => {
+                // console.info('ctx', ctx)
+                return actors.wechaty.Events.SAY(
+                  `
+                    收到${ctx.message!.talker().name()}的反馈：
+                      ${ctx.feedback}
+
+                    下一位：@${nextContact(ctx)?.name()}
+                  `,
+                  ctx.message!.room()!.id,
+                  nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
+                )
               }),
             ],
             target: States.checking,

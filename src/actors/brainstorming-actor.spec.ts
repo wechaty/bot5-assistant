@@ -50,12 +50,6 @@ import { isActionOf } from 'typesafe-actions'
 import { bot5Fixtures } from './bot5-fixture.js'
 
 test('Brainstorming actor smoke testing', async t => {
-  const server = new WebSocketServer({
-    port: 8888
-  })
-
-  inspect({ server })
-
   for await (
     const {
       mocker: mockerFixture,
@@ -63,6 +57,16 @@ test('Brainstorming actor smoke testing', async t => {
       logger,
     } of bot5Fixtures()
   ) {
+    const sandbox = sinon.createSandbox({
+      useFakeTimers: true,
+    })
+
+    const server = new WebSocketServer({
+      port: 8888
+    })
+
+    inspect({ server })
+
     const FEEDBACKS = {
       [mockerFixture.mary.id]: 'im mary',
       [mockerFixture.mike.id]: 'im mike',
@@ -148,7 +152,7 @@ test('Brainstorming actor smoke testing', async t => {
      */
     targetStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
-    await new Promise(setImmediate)
+    await sandbox.clock.runToLastAsync()
     t.same(targetStateList, [States.registering], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
@@ -167,9 +171,7 @@ test('Brainstorming actor smoke testing', async t => {
         mockerFixture.mike,
       ])
       .to(mockerFixture.groupRoom)
-    await new Promise(setImmediate)
-    await new Promise(setImmediate)
-    await new Promise(r => setTimeout(r, 10))
+    await sandbox.clock.runToLastAsync()
     console.info('targetStateList', targetStateList)
     console.info('proxyEventList', proxyEventList)
     t.same(
@@ -189,7 +191,7 @@ test('Brainstorming actor smoke testing', async t => {
       Types.CONTACTS,
     ], 'should have MESSAGE & CONTACTS event')
 
-    await new Promise(r => setTimeout(r, 10))
+    await sandbox.clock.runToLastAsync()
 
     // console.info(targetSnapshot().context)
     // console.info(targetSnapshot().value)
@@ -198,7 +200,7 @@ test('Brainstorming actor smoke testing', async t => {
     mockerFixture.mary
       .say(FEEDBACKS[mockerFixture.mary.id])
       .to(mockerFixture.groupRoom)
-    await new Promise(setImmediate)
+    await sandbox.clock.runToLastAsync()
     t.same(
       targetContext().feedbacks,
       {},
@@ -207,6 +209,24 @@ test('Brainstorming actor smoke testing', async t => {
     t.same(targetStateList, [
       States.feedbacking,
     ], 'should in state.feedbacking')
+
+    targetEventList.length = 0
+    targetStateList.length = 0
+    // mockerFixture.mike
+    //   .say(FEEDBACKS[mockerFixture.mike.id])
+    //   .to(mockerFixture.groupRoom)
+    // await sandbox.clock.runToLastAsync()
+    // t.same(
+    //   targetContext().feedbacks,
+    //   {
+    //     [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
+    //     [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
+    //   },
+    //   'should set feedbacks because all members have replied',
+    // )
+    // t.same(targetStateList, [
+    //   States.feedbacked,
+    // ], 'should in state.feedbacked')
 
     // targetEventList.length = 0
     // targetStateList.length = 0
@@ -269,7 +289,7 @@ test('Brainstorming actor smoke testing', async t => {
     // }
 
     // await new Promise(resolve => setTimeout(resolve, 50000))
+    sandbox.restore()
+    server.close()
   }
-
-  server.close()
 })
