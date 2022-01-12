@@ -48,6 +48,7 @@ function initialContext (): Context {
   }
   return JSON.parse(JSON.stringify(context))
 }
+
 const MACHINE_NAME = 'RegisterMachine'
 
 const machineFactory = (
@@ -100,7 +101,15 @@ const machineFactory = (
             actions.choose([
               {
                 cond: ctx => ctx.contacts.length > 0,
-                actions: Mailbox.Actions.reply(ctx => Bot5Events.CONTACTS(ctx.contacts)),
+                actions: [
+                  actions.log(_ => 'states.idle.on.REPORT ctx.contacts is not empty', MACHINE_NAME),
+                  Mailbox.Actions.reply(ctx => Bot5Events.CONTACTS(ctx.contacts)),
+                ],
+              },
+              {
+                actions: [
+                  actions.log(_ => 'states.idle.on.REPORT ctx.contacts is empty', MACHINE_NAME),
+                ],
               },
             ]),
           ],
@@ -172,9 +181,9 @@ const machineFactory = (
     },
     [States.registered]: {
       entry: [
-        actions.log(ctx => `states.registered.entry contacts: "${ctx.contacts.map(c => c.name()).join(',')}"`, 'RegisterMachine'),
+        actions.log(ctx => `states.registered.entry contacts: "${ctx.contacts.map(c => c.name()).join(',')}"`, MACHINE_NAME),
         Mailbox.Actions.reply(ctx => Bot5Events.CONTACTS(ctx.contacts)),
-        actions.send(
+        wechatyAddress.send(
           ctx => actors.wechaty.Events.SAY(
             `
               系统【注册】恭喜 ${ctx.contacts.map(c => c.name()).join('，')} 注册成功！
@@ -207,6 +216,8 @@ function mailboxFactory (
 
 
 export {
+  type Context,
+  States,
   machineFactory,
   mailboxFactory,
   initialContext,

@@ -3,13 +3,14 @@
 
 import {
   test,
-  // sinon,
+  sinon,
 }                   from 'tstest'
 
 import {
   AnyEventObject,
   interpret,
   createMachine,
+  Interpreter,
   // spawn,
 }                   from 'xstate'
 import type * as WECHATY from 'wechaty'
@@ -24,55 +25,51 @@ import {
 }                 from '../schemas/mod.js'
 
 import * as Mailbox from '../mailbox/mod.js'
-import {
-  machineFactory,
-}                   from './register-actor.js'
+import * as Register from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
-  const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
-  wechatyMailbox.acquire()
-
-  const registerMachine = machineFactory(wechatyMailbox.address, () => {})
-  const CHILD_ID = 'child-id'
-  const parentTester = createMachine({
+  const registerMachine = Register.machineFactory(Mailbox.nullAddress, Mailbox.nullLogger)
+  const REGISTER_MACHINE_ID = 'register-machine-id'
+  const PROXY_MACHINE_ID = 'proxy-machine-id'
+  const proxyMachine = createMachine({
+    id: PROXY_MACHINE_ID,
     invoke: {
-      id: CHILD_ID,
+      id: REGISTER_MACHINE_ID,
       src: registerMachine,
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
+        actions: Mailbox.Actions.proxyToChild(PROXY_MACHINE_ID)(REGISTER_MACHINE_ID),
       },
     },
   })
 
-  const interpreter = interpret(parentTester)
-  const eventList: AnyEventObject[] = []
-
-  interpreter
-    .onEvent(e => eventList.push(e))
+  const proxyEventList: AnyEventObject[] = []
+  const proxyInterpreter = interpret(proxyMachine)
+  proxyInterpreter
+    .onEvent(e => proxyEventList.push(e))
     .start()
 
-  const childRef = interpreter.children.get(CHILD_ID)!
-  childRef.subscribe(snapshot => {
-    // console.info('child transition to', snapshot.value)
-    // console.info('child receiving event', snapshot.event.type)
-  })
+  const registerRef      = () => proxyInterpreter.children.get(REGISTER_MACHINE_ID) as Interpreter<any>
+  const registerSnapshot = () => registerRef().getSnapshot()
+  const registerContext  = () => registerSnapshot().context as Register.Context
+  const registerState    = () => registerSnapshot().value as Register.States
 
-  // interpreter.subscribe(s => {
-  //   console.info('Transition to', s.value)
-  //   console.info('Receiving event', s.event.type)
-  // })
+  const registerEventList: AnyEventObject[] = []
+  registerRef().onEvent(e => registerEventList.push(e))
 
-  let snapshot = childRef.getSnapshot()
-  t.equal(snapshot.value, States.idle, 'should be idle state')
-  t.same(snapshot.context.contacts, [], 'should be empty mention list')
+  t.equal(registerState(), States.idle, 'should be idle state')
+  t.same(registerContext().contacts, [], 'should be empty mention list')
 
   for await (const fixtures of createFixture()) {
     const {
       mocker,
       wechaty,
     }           = fixtures
+
+    const sandbox = sinon.createSandbox({
+      useFakeTimers: true,
+    })
 
     const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
 
@@ -91,35 +88,33 @@ test('registerMachine smoke testing', async t => {
     /**
      * Process a message without mention
      */
-    eventList.length = 0
+    proxyEventList.length = 0
     const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
 
     mary.say('register without mentions').to(meetingRoom)
     const noMentionMessage = await messageFutureNoMention
 
-    childRef.send(
+    registerRef().send(
       Events.MESSAGE(noMentionMessage),
     )
-    t.equal(eventList.length, 0, 'should has no message sent to parent right after message')
+    t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.mentioning, 'should be in mentioning state')
-    t.equal(snapshot.event.type, Types.MESSAGE, 'should be MESSAGE event')
-    t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
+    t.equal(registerState(), States.mentioning, 'should be in mentioning state')
+    t.same(registerEventList.map(e => e.type), [
+      Types.MESSAGE,
+    ], 'should be MESSAGE event')
+    t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
-    await new Promise(setImmediate)
-    t.same(
-      eventList,
-      [
-        Mailbox.Events.CHILD_IDLE('idle'),
-      ],
-      'should have 1 idle event after one message, with empty contacts listfor non-mention message',
-    )
-
-    snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.idle, 'should be back to idle state')
-    t.equal(snapshot.event.type, 'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]', 'should be done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
-    t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
+    registerEventList.length = 0
+    await sandbox.clock.runToLastAsync()
+    t.same(proxyEventList, [
+      Mailbox.Events.CHILD_IDLE('idle'),
+    ], 'should have 1 idle event after one message, with empty contacts listfor non-mention message')
+    t.equal(registerState(), States.idle, 'should be back to idle state')
+    t.same(registerEventList.map(e => e.type), [
+      'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]',
+    ], 'should be done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
+    t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
      * Process a message with mention
@@ -132,59 +127,57 @@ test('registerMachine smoke testing', async t => {
     const mentionMessage = await messageFutureMentions
     // console.info('mentionMessage:', mentionMessage.text())
 
-    eventList.length = 0
-    childRef.send(
+    proxyEventList.length = 0
+    registerEventList.length = 0
+    registerRef().send(
       Events.MESSAGE(mentionMessage),
     )
-    t.equal(eventList.length, 0, 'should has no message sent to parent right after message')
+    t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.mentioning, 'should be mentioning state')
-    t.equal(snapshot.event.type, Types.MESSAGE, 'should got MESSAGE event')
-    t.same(snapshot.context.contacts, [], 'should have empty mentioned id list before onDone')
+    t.equal(registerState(), States.mentioning, 'should be in mentioning state')
+    t.same(registerEventList.map(e => e.type), [
+      Types.MESSAGE,
+    ], 'should got MESSAGE event')
+    t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
     const CONTACT_MENTION_LIST = await Promise.all(
       MENTION_LIST
         .map(c => wechaty.wechaty.Contact.find({ id: c.id })),
     ) as WECHATY.Contact[]
+    t.equal(proxyEventList.length, 0, 'should no event in eventList')
 
-    eventList.length = 0
-    await new Promise(setImmediate)
-    t.equal(eventList.length, 2, 'should has no message sent to parent right after message')
+    registerEventList.length = 0
+    // await new Promise(r => setTimeout(r, 3))
+    await sandbox.clock.runToLastAsync()
     t.same(
-      eventList,
+      proxyEventList,
       [
+        Mailbox.Events.CHILD_IDLE('idle'),
         Mailbox.Events.CHILD_REPLY(
           Events.CONTACTS(CONTACT_MENTION_LIST),
         ),
-        Mailbox.Events.CHILD_IDLE('idle'),
       ],
       'should have 2 events after one message with contacts list for mention message',
     )
-
-    snapshot = childRef.getSnapshot()
-    t.equal(snapshot.value, States.idle, 'should be in idle state')
-    t.equal(
-      snapshot.event.type,
+    t.equal(registerState(), States.idle, 'should be in idle state')
+    t.same(registerEventList.map(e => e.type), [
       'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]',
-      'should got done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event',
-    )
+    ], 'should got done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
     t.same(
-      snapshot.context.contacts.map(c => c.id),
+      registerContext().contacts.map(c => c.id),
       MENTION_LIST.map(c =>  c.id),
       'should have mentioned id list before onDone',
     )
+    proxyInterpreter.stop()
+    sandbox.restore()
   }
-
-  wechatyMailbox.dispose()
-  interpreter.stop()
 })
 
-test('registerActor smoke testing', async t => {
+test.only('registerActor smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
   wechatyMailbox.acquire()
 
-  const registerMachine = machineFactory(wechatyMailbox.address, () => {})
+  const registerMachine = Register.machineFactory(wechatyMailbox.address, () => {})
   const registerActor = Mailbox.wrap(registerMachine)
 
   const CHILD_ID = 'testing-child-id'
