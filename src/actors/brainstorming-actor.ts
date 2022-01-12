@@ -34,7 +34,7 @@ interface Context {
 
 const Events = {
   CONTACTS  : Bot5Events.CONTACTS,
-  FEEDBACK  : Bot5Events.FEEDBACK,
+  FEEDBACKS  : Bot5Events.FEEDBACKS,
   //
   INTRODUCE : Bot5Events.INTRODUCE,
   ROOM : Bot5Events.ROOM,
@@ -201,7 +201,7 @@ function machineFactory (
           [Types.MESSAGE]: {
             actions: feedbackAddress.send((_, e) => e),
           },
-          [Types.FEEDBACK]: {
+          [Types.FEEDBACKS]: {
             actions: actions.assign({ feedbacks: (_, e) => e.payload.feedbacks }),
             target: States.feedbacked,
           },
@@ -241,7 +241,7 @@ function machineFactory (
             ctx.room!.id,
             ctx.contacts.map(c => c.id),
           )),
-          Mailbox.Actions.reply(ctx => Events.FEEDBACK(ctx.feedbacks)),
+          Mailbox.Actions.reply(ctx => Events.FEEDBACKS(ctx.feedbacks)),
         ],
         always: States.idle,
       },

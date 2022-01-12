@@ -175,7 +175,7 @@ const machineFactory = (
     [States.erroring]: {
       entry: [
         actions.log(ctx => `states.erroring.entry ${ctx.gerror}`, MACHINE_NAME),
-        Mailbox.Actions.reply(ctx => Bot5Events.ERROR(ctx.gerror!)),
+        Mailbox.Actions.reply(ctx => Bot5Events.GERROR(ctx.gerror!)),
       ],
       always: States.idle,
     },

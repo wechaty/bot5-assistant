@@ -20,9 +20,9 @@ enum Types {
   RESET = 'bot5/RESET',
 
   // WAKEUP = 'bot5/WAKEUP',
-  ERROR = 'bot5/ERROR',
-  // CHECK = 'bot5/CHECK',
+  GERROR = 'bot5/GERROR',
 
+  FEEDBACKS = 'bot5/FEEDBACKS',
   FEEDBACK = 'bot5/FEEDBACK',
 
   /**
@@ -47,6 +47,12 @@ enum Types {
 
   INTRODUCE = 'bot5/INTROCUDUCE',
   REPORT = 'bot5/REPORT',
+
+  IDLE = 'bot5/IDLE',
+  CHECK = 'bot5/CHECK',
+
+  PROCESS = 'bot5/PROCESS',
+  PARSE = 'bot5/PARSE',
 }
 
 export {

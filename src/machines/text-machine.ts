@@ -75,7 +75,7 @@ const textMachine = createMachine<Context, Event>(
           onError: {
             target: 'idle',
             actions: [
-              actions.escalate((_, e) => Events.ERROR(e.data)),
+              actions.escalate((_, e) => Events.GERROR(e.data)),
             ],
           },
         },

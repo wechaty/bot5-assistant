@@ -23,15 +23,10 @@ import * as actors  from './mod.js'
 
 type Context = {
   admins    : Contact[]
-  //
   contacts  : Contact[]
-  // room?      : Room,
-  //
-  message?   : Message,
-  feedback?  : string
+  message?  : Message,
   feedbacks : { [id: string]: string }
-  //
-  gerror?    : string,
+  gerror?   : string,
 }
 
 const Events = {
@@ -40,28 +35,26 @@ const Events = {
   MESSAGE  : Bot5Events.MESSAGE,
   RESET    : Bot5Events.RESET,
   REPORT   : Bot5Events.REPORT,
+  FEEDBACK : Bot5Events.FEEDBACK,
+  GERROR   : Bot5Events.GERROR,
+  IDLE: Bot5Events.IDLE,
+  PROCESS: Bot5Events.PROCESS,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
 
-// const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
-// const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
-
-const nextContact = (ctx: Context) => ctx.contacts.filter(c =>
+const contactsNum   = (ctx: Context) => ctx.contacts.length
+const feedbacksNum  = (ctx: Context) => Object.values(ctx.feedbacks).filter(Boolean).length
+const nextContact   = (ctx: Context) => ctx.contacts.filter(c =>
   !Object.keys(ctx.feedbacks).includes(c.id),
 )[0]
 
 function initialContext (): Context {
   const context: Context = {
     admins    : [],
-    //
     contacts  : [],
-    // room      : undefined,
-    //
     message   : undefined,
-    feedback  : undefined,
     feedbacks : {},
-    //
     gerror     : undefined,
   }
   return JSON.parse(JSON.stringify(context))
@@ -120,7 +113,7 @@ function machineFactory (
             actions: [
               actions.log('states.idle.on.REPORT', MACHINE_NAME),
             ],
-            target: States.checking,
+            target: States.processing,
           },
           [Types.RESET]: {
             actions: [
@@ -136,79 +129,82 @@ function machineFactory (
                 message: (_, e) => e.payload.message,
               }),
             ],
-            target: States.recognizing,
+            target: States.parsing,
           },
         },
       },
-      [States.erroring]: {
+      [States.parsing]: {
         entry: [
-          actions.log('states.error.entry', MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => Bot5Events.ERROR(ctx.gerror!)),
-        ],
-        exit: [
-          actions.assign({ gerror: _ => undefined }),
-        ],
-        always: States.idle,
-      },
-      [States.recognizing]: {
-        entry: [
-          actions.log('states.recognizing.entry', MACHINE_NAME),
-          actions.assign({ feedback: _ => undefined }),
+          actions.log('states.parsing.entry', MACHINE_NAME),
         ],
         invoke: {
           src: (ctx) => messageToText(ctx.message),
           onDone: {
-            actions: actions.assign({
-              feedback: (_, e) => e.data,
-            }),
-            target: States.recognized,
+            actions: actions.send((ctx, e) =>
+              Events.FEEDBACK(ctx.message!.talker().id, e.data),
+            ),
           },
           onError: {
+            actions: actions.send((_, e) => {
+              console.info(e.data)
+              return Events.GERROR(GError.stringify(e.data))
+            }),
+          },
+        },
+        on: {
+          [Types.FEEDBACK]: {
+            actions: actions.log('states.parsing.on.FEEDBACK', MACHINE_NAME),
+            target: States.feedbacking,
+          },
+          [Types.GERROR]: {
             actions: [
-              actions.assign({
-                gerror: (_, e) => GError.stringify(e.data),
-              }),
-              actions.log((_, e) => 'states.recognizing invoke error: ' + e.data, MACHINE_NAME),
+              actions.log('states.parsing.on.GERROR', MACHINE_NAME),
+              Mailbox.Actions.reply((_, e) => Bot5Events.GERROR((e as ReturnType<typeof Events.GERROR>).payload.gerror)),
             ],
-            target: States.erroring,
+            target: States.idle,
           },
         },
       },
-      [States.recognized]: {
+      [States.feedbacking]: {
         entry: [
-          actions.log(ctx => `states.recognized.entry current feedback from ${ctx.message!.talker()} feedback: "${ctx.feedback}"`, MACHINE_NAME),
+          actions.log((_, e) => `states.feedbacking.entry <- [FEEDBACK(${(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId}, ${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback})`, MACHINE_NAME),
           actions.assign({
-            feedbacks: ctx => ({
+            feedbacks: (ctx, e) => ({
               ...ctx.feedbacks,
-              [ctx.message!.talker().id]: ctx.feedback!,
+              [(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId]: (e as ReturnType<typeof Events.FEEDBACK>).payload.feedback,
             }),
           }),
-        ],
-        always: [
-          {
-            cond: ctx => !!ctx.feedback,
-            actions: [
-              actions.log(ctx => `states.recognized.always exist feedback: "${ctx.feedback}" from ${ctx.message!.talker().id}`, MACHINE_NAME),
-              wechatyAddress.send(ctx => {
-                // console.info('ctx', ctx)
-                return actors.wechaty.Events.SAY(
-                  `
-                    收到${ctx.message!.talker().name()}的反馈：
-                      ${ctx.feedback}
+          actions.choose<Context, Event>([
+            {
+              cond: (_, e) => !!(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback,
+              actions: [
+                wechatyAddress.send((ctx, e) => {
+                  // console.info('ctx', ctx)
+                  return actors.wechaty.Events.SAY(
+                    `
+                      收到${ctx.message!.talker().name()}的反馈：
+                        ${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback}
 
-                    下一位：@${nextContact(ctx)?.name()}
-                  `,
-                  ctx.message!.room()!.id,
-                  nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
-                )
-              }),
-            ],
-            target: States.checking,
-          },
-          {
-            target: States.idle,
-          }
+                      下一位：@${nextContact(ctx)?.name()}
+                    `,
+                    ctx.message!.room()!.id,
+                    nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
+                  )
+                }),
+                actions.send(_ => Events.PROCESS()),
+              ],
+            },
+            {
+              actions: [
+                actions.send(_ => Events.IDLE()),
+              ],
+            },
+          ])
         ],
+        on: {
+          [Types.PROCESS]: States.processing,
+          [Types.IDLE]:  States.idle,
+        },
       },
       [States.registering]: {
         entry: [
@@ -227,35 +223,48 @@ function machineFactory (
                 contacts: (_, e) => e.payload.contacts,
               }),
             ],
-            target: States.checking,
+            target: States.processing,
           },
         },
       },
-      [States.checking]: {
-        entry: actions.log('states.checking.entry', MACHINE_NAME),
+      [States.processing]: {
+        entry: actions.log('states.processing.entry', MACHINE_NAME),
         always: [
           {
-            cond: ctx => ctx.contacts.length <= 0,
+            cond: ctx => contactsNum(ctx) <= 0,
             actions:[
-              actions.log('states.checking.always no contacts', MACHINE_NAME),
+              actions.log('states.processing.always -> registering because no contacts', MACHINE_NAME),
             ],
             target: States.registering,
           },
-          { // everyone feedback-ed
-            cond: ctx => Object.keys(ctx.feedbacks).length >= ctx.contacts.length,
-            actions: actions.log(ctx => `states.checking.always contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, MACHINE_NAME),
-            target: States.feedbacked,
-          },
           {
-            target: States.idle,
-            actions: actions.log(ctx => `states.checking.always default contacts.length=${ctx.contacts.length} feedbacks.length=${Object.keys(ctx.feedbacks).length}`, MACHINE_NAME),
+            target: States.reporting,
+            actions: actions.log('states.processing.always -> reporting', MACHINE_NAME),
           },
         ],
       },
-      [States.feedbacked]: {
+      [States.reporting]: {
         entry: [
-          actions.log('states.feedbacked.entry', MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => Bot5Events.FEEDBACK(ctx.feedbacks)),
+          actions.choose<Context, any>([
+            {
+              cond: ctx => contactsNum(ctx) <= 0,
+              actions: [
+                actions.log('states.reporting.entry no contacts', MACHINE_NAME),
+              ],
+            },
+            {
+              cond: ctx => feedbacksNum(ctx) >= contactsNum(ctx),
+              actions: [
+                actions.log(ctx => `states.reporting.entry all(${feedbacksNum(ctx)}) contacts feedbacked`, MACHINE_NAME),
+                Mailbox.Actions.reply(ctx => Bot5Events.FEEDBACKS(ctx.feedbacks)),
+              ],
+            },
+            {
+              actions: [
+                actions.log(ctx => `states.reporting.entry ${feedbacksNum(ctx)}/${contactsNum(ctx)} feedbacked`, MACHINE_NAME),
+              ],
+            },
+          ]),
         ],
         always: States.idle,
       },
@@ -286,6 +295,7 @@ function mailboxFactory (
 }
 
 export {
+  type Context,
   machineFactory,
   mailboxFactory,
   Events,

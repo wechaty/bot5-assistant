@@ -77,7 +77,7 @@ const machineFactory = (
       },
     },
     [States.erroring]: {
-      entry: Mailbox.Actions.reply(ctx => Bot5Events.ERROR(ctx.gerror!)),
+      entry: Mailbox.Actions.reply(ctx => Bot5Events.GERROR(ctx.gerror!)),
       exit: actions.assign({ gerror: _ => undefined }),
       always: States.idle,
     },

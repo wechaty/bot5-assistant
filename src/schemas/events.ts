@@ -36,16 +36,22 @@ const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
-const payloadError     = (gerror: string) => ({ gerror })
+const payloadGerror     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
 
 const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
-const payloadFeedback  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
+const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
+const payloadFeedback  = (contactId: string, feedback: string ) => ({ contactId, feedback, })
+
 const payloadIntroduce = () => ({})
 const payloadReport    = () => ({})
 
 const payloadEmpty     = () => ({})
+const payloadIdle = () => ({})
+const payloadCheck = () => ({})
+const payloadProcess = () => ({})
+const payloadParse = () => ({})
 
 const Events = {
   MENTIONS   : createAction(Types.MENTIONS, payloadMentions)(),
@@ -64,11 +70,12 @@ const Events = {
   TEXT       : createAction(Types.TEXT, payloadText)(),
   SAY        : createAction(Types.SAY, payloadSay)(),
 
-  FEEDBACK   : createAction(Types.FEEDBACK, payloadFeedback)(),
+  FEEDBACKS   : createAction(Types.FEEDBACKS, payloadFeedbacks)(),
+  FEEDBACK    : createAction(Types.FEEDBACK, payloadFeedback)(),
 
   CANCEL : createAction(Types.CANCEL, payloadCancel)(),
   ABORT : createAction(Types.ABORT, payloadAbort)(),
-  ERROR : createAction(Types.ERROR, payloadError)(),
+  GERROR : createAction(Types.GERROR, payloadGerror)(),
   RESET : createAction(Types.RESET, payloadReset)(),
 
   // WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
@@ -87,6 +94,12 @@ const Events = {
 
   INTRODUCE: createAction(Types.INTRODUCE, payloadIntroduce)(),
   REPORT: createAction(Types.REPORT, payloadReport)(),
+
+  IDLE: createAction(Types.IDLE, payloadIdle)(),
+  CHECK: createAction(Types.CHECK, payloadCheck)(),
+
+  PROCESS: createAction(Types.PROCESS, payloadProcess)(),
+  PARSE: createAction(Types.PARSE, payloadParse)(),
 } as const
 
 type EventPayloads = {

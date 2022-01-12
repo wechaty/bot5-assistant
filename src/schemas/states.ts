@@ -75,6 +75,8 @@ enum States {
   selecting = 'bot5/selecting',
   scheduling = 'bot5/scheduling',
   noticing = 'bot5/noticing',
+  reporting = 'bot5/reporting',
+  parsing = 'bot5/parsing',
 }
 
 export {
