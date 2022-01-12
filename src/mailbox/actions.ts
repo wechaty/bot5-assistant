@@ -28,7 +28,7 @@ const idle = (name: string) => (info: string) => {
        * send CHILD_IDLE event to the mailbox for receiving new messages
        */
       actions: [
-        actions.log((_, _e) => `actions.idle [CHILD_IDLE](${info})`, moduleName),
+        actions.log((_, _e) => `actions.idle [CHILD_IDLE(${info})]`, moduleName),
         actions.sendParent(_ => Events.CHILD_IDLE(info)),
       ],
     },
@@ -48,7 +48,7 @@ const reply: typeof actions.sendParent = (event, options) => {
    * Huan(202201): Issue #11 - Race condition: Mailbox think the target machine is busy when it's not
    * @link https://github.com/wechaty/bot5-assistant/issues/11
    *
-   * add a `delay` when sending reply events
+   * add a `delay:0` when sending reply events to put the send action to the next tick
    */
   const normalizedOptions: SendActionOptions<any, any> = {
     delay: 0,

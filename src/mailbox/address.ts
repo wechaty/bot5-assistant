@@ -65,7 +65,7 @@ class AddressImpl implements Address {
 
 }
 
-const nullMachine = createMachine<{}>({})
+const nullMachine     = createMachine<{}>({})
 const nullInterpreter = interpret(nullMachine)
 nullInterpreter.start()
 

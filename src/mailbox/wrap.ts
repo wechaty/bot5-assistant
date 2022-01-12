@@ -134,25 +134,25 @@ function wrap <
           },
           [States.checking]: {
             entry: [
-              actions.log((_, e) => 'states.queue.checking.entry ' + (e as ReturnType<typeof Events.DISPATCH>).payload.debug, MAILBOX_ADDRESS_NAME),
+              actions.log((_, e) => `states.queue.checking.entry <- [DISPATCH(${(e as ReturnType<typeof Events.DISPATCH>).payload.debug})]`, MAILBOX_ADDRESS_NAME),
             ],
             always: [
               {
                 cond: ctx => contexts.queueSize(ctx) > 0,
                 actions: [
-                  actions.log(ctx => `states.queue.checking.always queue size ${contexts.queueSize(ctx)}, transition to dequeuing`, MAILBOX_ADDRESS_NAME),
+                  actions.log(ctx => `states.queue.checking.always -> dequeuing (queue size ${contexts.queueSize(ctx)} > 0)`, MAILBOX_ADDRESS_NAME),
                 ],
                 target: States.dequeuing,
               },
               {
-                actions: actions.log('states.queue.checking.always queue is empty, transition to listening', MAILBOX_ADDRESS_NAME),
+                actions: actions.log('states.queue.checking.always -> listening (queue is empty)', MAILBOX_ADDRESS_NAME),
                 target: States.listening,
               },
             ],
           },
           [States.dequeuing]: {
             entry: [
-              actions.log(ctx => `states.queue.dequeuing.entry ${contexts.queueMessageType(ctx)}@${contexts.queueMessageOrigin(ctx)}`, MAILBOX_ADDRESS_NAME),
+              actions.log(ctx => `states.queue.dequeuing.entry [${contexts.queueMessageType(ctx)}]@${contexts.queueMessageOrigin(ctx)}`, MAILBOX_ADDRESS_NAME),
               actions.send(ctx => Events.DEQUEUE(contexts.queueMessage(ctx)!)),
               // contexts.sendCurrentMessageToChild,
             ],
@@ -194,14 +194,14 @@ function wrap <
             on: {
               [Types.DEQUEUE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.DEQUEUE ${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME),
+                  actions.log((_, e) => `states.child.idle.on.DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME),
                   contexts.assignChildMessage,
                 ],
                 target: States.busy,
               },
               [Types.NEW_MESSAGE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE ${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug}`, MAILBOX_ADDRESS_NAME),
+                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE (${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug})`, MAILBOX_ADDRESS_NAME),
                   actions.send(_ => Events.DISPATCH(Types.NEW_MESSAGE)),
                 ],
               },
@@ -209,7 +209,7 @@ function wrap <
           },
           [States.busy]: {
             entry: [
-              actions.log((_, e) => 'states.child.busy.entry ' + (e as ReturnType<typeof Events.DEQUEUE>).payload.message.type, MAILBOX_ADDRESS_NAME),
+              actions.log((_, e) => `states.child.busy.entry DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]`, MAILBOX_ADDRESS_NAME),
               contexts.sendChildMessage,
             ],
             on: {

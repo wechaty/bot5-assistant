@@ -159,7 +159,7 @@ const sendChildReply = (machineName: string) => actions.choose<Context, ReturnTy
       && !!childMessageOrigin(ctx)
     ,
     actions: [
-      actions.log((ctx, e) => `contexts.sendChildReply event ${e.payload.message.type} to message ${childMessage(ctx)?.type}@${childMessageOrigin(ctx)}`, machineName),
+      actions.log((ctx, e) => `contexts.sendChildReply [${e.payload.message.type}] to [${childMessage(ctx)?.type}]@${childMessageOrigin(ctx)}`, machineName),
       actions.send(
         (_, e) => e.payload.message,
         { to: ctx => childMessageOrigin(ctx)! },
@@ -171,7 +171,7 @@ const sendChildReply = (machineName: string) => actions.choose<Context, ReturnTy
    */
   {
     actions: [
-      actions.log((_, e, { _event }) => `contexts.sendChildReply dead letter ${e.payload.message.type}@${_event.origin || ''}`, machineName),
+      actions.log((_, e, { _event }) => `contexts.sendChildReply dead letter [${e.payload.message.type}]@${_event.origin || ''}`, machineName),
       actions.send((_, e, { _event }) => Events.DEAD_LETTER(
         e.payload.message,
         `message ${e.payload.message.type}@${_event.origin || ''} dropped`,
@@ -231,7 +231,7 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
      */
     cond: (_, __, { state }) => state.matches({ child: States.idle }),
     actions: [
-      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is idle ${e.type}@${_event.origin || ''}`, machineName),
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) queue [${e.type}]@${_event.origin || ''} for child(idle)`, machineName),
       assignEnqueue,  // <- wrapping `_event.origin` inside
       actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
     ],
@@ -243,15 +243,13 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
    */
   {
     /**
-     * 4. Forward to child if the child can accept this new arrived event
-     *  - this case is specially for the busy child machine
-     *      for prevent deaadlock when child actor want to receive events at BUSY state.
-     *  - if child is idle, then we just enqueue it
+     * 4. Forward to child when the child can accept this new arrived event even it's busy
+     *    for prevent deaadlock when child actor want to receive events at BUSY state.
      */
     cond: (_, e, { state }) => condEventCanBeAcceptedByChildOf(MAILBOX_TARGET_MACHINE_ID)(state, e.type),
     actions: [
-      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child id busy but can accept ${e.type}, forward it directly`, machineName),
-      actions.forwardTo(MAILBOX_TARGET_MACHINE_ID),
+      actions.log((_, e) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) forward [${e.type}](acceptable) to child(busy)`, machineName),
+      actions.forwardTo(MAILBOX_TARGET_MACHINE_ID), // <- keep the original of event by forwarding(`forwardTo`, instead of `send`) it
     ],
   },
   {
@@ -260,7 +258,7 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
      */
     cond: ctx => queueSize(ctx) > capacity,
     actions: [
-      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is busy, send event(${e.type}@${_event.origin || ''}) to DLQ because queueSize(${queueSize(ctx)} out of capacity(${capacity})`, machineName),
+      actions.log((ctx, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) dead letter [${e.type}]@${_event.origin || ''} because queueSize(${queueSize(ctx)}) > capacity(${capacity}): child(busy) out of capacity`, machineName),
       actions.send((ctx, e) => Events.DEAD_LETTER(e, `queueSize(${queueSize(ctx)} out of capacity(${capacity})`)),
     ],
   },
@@ -269,7 +267,7 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
      * 6. Add incoming message to queue by wrapping the `_event.origin` meta data
      */
     actions: [
-      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) child is busy, queue new message: ${e.type}@${_event.origin || ''}`, machineName),
+      actions.log((_, e, { _event }) => `contexts.queueAcceptingMessageWithCapacity(${capacity}) queue [${e.type}]@${_event.origin || ''} to child(busy)`, machineName),
       assignEnqueue,  // <- wrapping `_event.origin` inside
       actions.send((_, e) => Events.NEW_MESSAGE(e.type)),
     ],

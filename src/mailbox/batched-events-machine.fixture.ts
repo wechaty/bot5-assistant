@@ -49,7 +49,7 @@ const machine = createMachine<Context, Event>({
       initial: States.idle,
       states: {
         [States.idle]: {
-          entry: actions.send(Events.RECV),
+          entry: actions.send(Events.RECV()),
           on: {
             [Types.WORK]: States.busy,
           },
@@ -79,14 +79,14 @@ const machine = createMachine<Context, Event>({
               actions: actions.assign({ i: (_, e) => e.i }),
             },
           },
-        }, 
+        },
         [States.busy]: {
           entry: [
             actions.assign({ queue: ctx => [
               ...ctx.queue,
               ctx.i,
             ]}),
-            actions.send(Events.MESSAGE),
+            actions.send(Events.MESSAGE()),
           ],
           always: States.idle,
         },
