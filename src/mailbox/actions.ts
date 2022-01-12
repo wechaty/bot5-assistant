@@ -1,7 +1,8 @@
 /* eslint-disable sort-keys */
 import {
   actions,
-}                 from 'xstate'
+  SendActionOptions,
+}                         from 'xstate'
 
 import { Events }         from './events.js'
 import { isMailboxType }  from './types.js'
@@ -19,15 +20,15 @@ const idle = (name: string) => (info: string) => {
        */
       cond: (_, e) => isMailboxType(e.type),
       actions: [
-        actions.log((_, e) => `actions.idle skip for MailboxType ${e.type}`, moduleName),
+        actions.log((_, e) => `actions.idle [${e.type}] is MailboxType: skipped`, moduleName),
       ],
     },
     {
       /**
-       * send RECEIVE event to the mailbox for receiving new messages
+       * send CHILD_IDLE event to the mailbox for receiving new messages
        */
       actions: [
-        actions.log((_, _e) => `actions.idle ${info}`, moduleName),
+        actions.log((_, _e) => `actions.idle [CHILD_IDLE](${info})`, moduleName),
         actions.sendParent(_ => Events.CHILD_IDLE(info)),
       ],
     },
@@ -43,15 +44,26 @@ const idle = (name: string) => (info: string) => {
  * Current: explicit. (see: contexts.respondChildMessage)
  */
 const reply: typeof actions.sendParent = (event, options) => {
+  /**
+   * Huan(202201): Issue #11 - Race condition: Mailbox think the target machine is busy when it's not
+   * @link https://github.com/wechaty/bot5-assistant/issues/11
+   *
+   * add a `delay` when sending reply events
+   */
+  const normalizedOptions: SendActionOptions<any, any> = {
+    delay: 0,
+    ...options,
+  }
+
   if (typeof event === 'function') {
     return actions.sendParent(
       (ctx, e, meta) => Events.CHILD_REPLY(event(ctx, e, meta)),
-      options,
+      normalizedOptions,
     )
   } else if (typeof event === 'string') {
     return actions.sendParent(
       Events.CHILD_REPLY({ type: event }),
-      options,
+      normalizedOptions,
     )
   } else {
     return actions.sendParent(
@@ -62,7 +74,7 @@ const reply: typeof actions.sendParent = (event, options) => {
        *  @link https://stackoverflow.com/a/56701587/1123955
        */
       Events.CHILD_REPLY(event) as any,
-      options,
+      normalizedOptions,
     )
   }
 }
@@ -88,7 +100,7 @@ const proxyToChild = (name: string) => (childId: string) => {
     {
       actions: [
         actions.send((_, e) => e, { to: childId }),
-        actions.log((_, e, { _event }) => `actions.proxyToChild ${e.type}@${_event.origin || ''} -> ${childId}`, moduleName),
+        actions.log((_, e, { _event }) => `actions.proxyToChild [${e.type}]@${_event.origin || ''} -> ${childId}`, moduleName),
       ],
     },
   ])
