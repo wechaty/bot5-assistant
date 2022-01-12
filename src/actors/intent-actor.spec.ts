@@ -3,6 +3,7 @@
 
 import {
   test,
+  sinon,
 }                   from 'tstest'
 
 import {
@@ -15,45 +16,50 @@ import { createFixture } from 'wechaty-mocker'
 
 import * as Mailbox from '../mailbox/mod.js'
 
-import { machineFactory }  from './intent-actor.js'
+import * as IntentActor  from './intent-actor.js'
 import {
   Events,
   Intent,
 }                   from '../schemas/mod.js'
 
 test('intentMachine happy path smoke testing', async t => {
-  const FIXTURES = [
-    ['开始',    [Intent.Start]],
-    ['停止',    [Intent.Stop]],
-    ['都可能',  [Intent.Start, Intent.Stop, Intent.Unknown]],
-  ] as const
-
-  const CHILD_ID = 'child'
-
-  const parentMachine = createMachine({
-    invoke: {
-      id: CHILD_ID,
-      src: machineFactory,
-    },
-    on: {
-      '*': {
-        actions: [
-          Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
-        ],
-      },
-    },
-  })
-
-  const eventList: AnyEventObject[] = []
-  const interpreter = interpret(parentMachine)
-    .onEvent(e => eventList.push(e))
-    .start()
-
   for await (const fixtures of createFixture()) {
     const {
       mocker,
       wechaty,
     }           = fixtures
+
+    const sandbox = sinon.createSandbox({
+      useFakeTimers: true,
+    })
+
+    const FIXTURES = [
+      ['开始',    [Intent.Start]],
+      ['停止',    [Intent.Stop]],
+      ['都可能',  [Intent.Start, Intent.Stop, Intent.Unknown]],
+    ] as const
+
+    const CHILD_ID = 'child'
+
+    const parentMachine = createMachine({
+      invoke: {
+        id: CHILD_ID,
+        src: IntentActor.machineFactory(Mailbox.nullLogger),
+      },
+      on: {
+        '*': {
+          actions: [
+            Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
+          ],
+        },
+      },
+    })
+
+    const eventList: AnyEventObject[] = []
+    const interpreter = interpret(parentMachine)
+      .onEvent(e => eventList.push(e))
+      .start()
+
 
     wechaty.bot.on('message', msg => {
       interpreter.send(
@@ -64,7 +70,7 @@ test('intentMachine happy path smoke testing', async t => {
     for (const [text, expectedIntents] of FIXTURES) {
       eventList.length = 0
       mocker.player.say(text).to(mocker.bot)
-      await new Promise(setImmediate)
+      await sandbox.clock.runToLastAsync()
 
       // console.info(eventList)
 
@@ -78,9 +84,8 @@ test('intentMachine happy path smoke testing', async t => {
         `should get expected intents [${expectedIntents.map(i => Intent[i])}] for text "${text}"`,
       )
     }
+
+    sandbox.restore()
+    interpreter.stop()
   }
-
-  // TODO: add audio test
-
-  interpreter.stop()
 })
