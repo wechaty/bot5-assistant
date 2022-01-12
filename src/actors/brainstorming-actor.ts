@@ -125,7 +125,7 @@ function machineFactory (
       },
       [States.noticing]: {
         entry: [
-          actions.log(ctx => `states.noticing.entry updateMessages.length=${ctx.notices.length}`, MACHINE_NAME),
+          actions.log(ctx => `states.noticing.entry ctx.notices.length=${ctx.notices.length}`, MACHINE_NAME),
           actions.choose([
             {
               cond: ctx => ctx.notices.length > 0,
@@ -182,10 +182,10 @@ function machineFactory (
         on: {
           [Types.MESSAGE]: {
             actions: registerAddress.send((_, e) => e),
-
           },
           [Types.CONTACTS]: {
             actions: [
+              actions.log((_, e) => `states.registering.on.CONTACTS ${e.payload.contacts.map(c => `@${c.name()}`).join(' ')}`, MACHINE_NAME),
               actions.assign({ contacts: (_, e) => e.payload.contacts }),
             ],
             target: States.registered,
@@ -288,4 +288,5 @@ export {
   mailboxFactory,
   initialContext,
   Events,
+  type Context,
 }

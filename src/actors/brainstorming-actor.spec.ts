@@ -14,6 +14,7 @@ import {
   EventObject,
   // spawn,
   actions,
+  StateValue,
 }                   from 'xstate'
 import * as WECHATY from 'wechaty'
 import {
@@ -38,10 +39,7 @@ import {
   Types,
 }           from '../schemas/mod.js'
 
-import {
-  machineFactory,
-  mailboxFactory,
-}                   from './brainstorming-actor.js'
+import * as Brainstorming from './brainstorming-actor.js'
 
 import { audioFixtures } from '../to-text/mod.js'
 import { isMailboxType } from '../mailbox/types.js'
@@ -49,70 +47,7 @@ import { isMailboxType } from '../mailbox/types.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 import { isActionOf } from 'typesafe-actions'
 
-async function * bot5Fixtures () {
-  for await (const WECHATY_FIXTURES of createFixture()) {
-    const {
-      mocker,
-      wechaty,
-    }           = WECHATY_FIXTURES
-
-    const mockMary = mocker.mocker.createContact({ name: 'Mary' })
-    const mockMike = mocker.mocker.createContact({ name: 'Mike' })
-
-    const mary = (await wechaty.wechaty.Contact.find({ id: mockMary.id }))!
-    const mike = (await wechaty.wechaty.Contact.find({ id: mockMike.id }))!
-
-    const mockContactList = [
-      mockMary,
-      mockMike,
-      mocker.bot,
-      mocker.player,
-    ]
-    const contactList = [
-      mary,
-      mike,
-      wechaty.bot,
-      wechaty.player,
-    ]
-
-    const mockGroupRoom = mocker.mocker.createRoom({
-      memberIdList: contactList.map(c => c.id),
-    })
-    const groupRoom = await wechaty.wechaty.Room.find({ id: mockGroupRoom.id })
-    if (!groupRoom) {
-      throw new Error('no meeting room')
-    }
-
-    const logger = (arg0: any, ...args: any[]) => {
-      const arg0List = arg0.split(/\s+/)
-      WECHATY.log.info(
-        arg0List[0],
-        [
-          ...arg0List.slice(1),
-          ...args,
-        ].join(' '),
-      )
-    }
-
-    yield {
-      ...WECHATY_FIXTURES,
-      mocker: {
-        ...WECHATY_FIXTURES.mocker,
-        mary: mockMary,
-        mike: mockMike,
-        groupRoom: mockGroupRoom,
-      },
-
-      wechaty: {
-        ...WECHATY_FIXTURES.wechaty,
-        mary,
-        mike,
-        groupRoom,
-      },
-      logger,
-    } as const
-  }
-}
+import { bot5Fixtures } from './bot5-fixture.js'
 
 test('Brainstorming actor smoke testing', async t => {
   const server = new WebSocketServer({
@@ -141,14 +76,18 @@ test('Brainstorming actor smoke testing', async t => {
       devTools: true,
     })
 
-    const mailbox = injector.injectFunction(mailboxFactory) as Mailbox.MailboxImpl
+    const mailbox = injector.injectFunction(Brainstorming.mailboxFactory) as Mailbox.MailboxImpl
 
     const targetEventList: EventObject[] = []
-    mailbox.debug.target.interpreter!.onEvent(e => targetEventList.push(e))
+    const targetStateList: StateValue[] = []
+    mailbox.debug.target.interpreter!.onTransition(s => {
+      console.info('  - [TARGET]', s.value, s.event.type)
+      targetEventList.push(s.event)
+      targetStateList.push(s.value)
+    })
 
-    const targetSnapshot = () => mailbox.debug.target.interpreter!.getSnapshot()
-    const targetContext = () => targetSnapshot().context
-    const targetState = () => targetSnapshot().value
+    const targetSnapshot  = () => mailbox.debug.target.interpreter!.getSnapshot()
+    const targetContext   = () => targetSnapshot().context as Brainstorming.Context
 
     const proxyMachine = createMachine<any>({
       on: {
@@ -167,17 +106,15 @@ test('Brainstorming actor smoke testing', async t => {
     const proxyInterpreter = interpret(proxyMachine)
       .onEvent(e => proxyEventList.push(e))
       .onTransition(s => {
-        console.info('####  transition:', s.value, s.event.type)
+        console.info('  - [PROXY]:', s.value, s.event.type)
         // console.info('event:', s.event.type)
       })
       .start()
 
-    await new Promise(resolve => setTimeout(resolve, 15000))
-
     const messageList: WECHATY.Message[] = []
     wechatyFixture.wechaty.on('message', async msg => {
       messageList.push(msg)
-      console.info('XXX wechaty.wechaty.on(message)', String(msg))
+      console.info('  - [Wechaty] message:', String(msg))
 
       if (msg.self()) {
         return
@@ -187,24 +124,43 @@ test('Brainstorming actor smoke testing', async t => {
       )
     })
 
+    /**
+     * Events.ROOM(groupRoom) - setting room
+     */
+    targetEventList.length = 0
+    targetStateList.length = 0
     proxyInterpreter.send(Events.ROOM(wechatyFixture.groupRoom))
     t.equal(
-      targetContext().room.id,
+      targetContext().room?.id,
       wechatyFixture.groupRoom.id,
       'should set room to context',
     )
-    t.equal(targetState(), States.registering, 'should in state.registering')
+    t.same(targetStateList, [States.registering], 'should in state.registering')
 
+    /**
+     * XState Issue #2931 - https://github.com/statelyai/xstate/issues/2931
+     *  "An unexpected error has occurred" with statecharts.io/inspect #2931
+     */
+    // await new Promise(resolve => setTimeout(resolve, 10000))
+
+    /**
+     * Events.MESSAGE(message) - no mentions
+     */
+    targetStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
     await new Promise(setImmediate)
-    t.equal(targetState(), States.registering, 'should in state.registering if no mention')
+    t.same(targetStateList, [States.registering], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
 
-    proxyEventList.length = 0
+    // await new Promise(resolve => setTimeout(resolve, 5000))
+
     /**
-     * Send MESSAGE event
+     * Events.MESSAGE(message) - with mentions
      */
+    targetEventList.length = 0
+    proxyEventList.length = 0
+    targetStateList.length = 0
     mockerFixture.player
       .say('register mary & mike by mention them', [
         mockerFixture.mary,
@@ -212,6 +168,10 @@ test('Brainstorming actor smoke testing', async t => {
       ])
       .to(mockerFixture.groupRoom)
     await new Promise(setImmediate)
+    await new Promise(setImmediate)
+    await new Promise(r => setTimeout(r, 10))
+    console.info('targetStateList', targetStateList)
+    console.info('proxyEventList', proxyEventList)
     t.same(
       targetContext().contacts.map(c => c.id),
       [
@@ -220,8 +180,21 @@ test('Brainstorming actor smoke testing', async t => {
       ],
       'should set contacts to mary, mike',
     )
-    t.equal(targetState(), States.feedbacking, 'should in state.feedbacking')
+    t.same(targetStateList, [
+      States.registering,
+      States.feedbacking,
+    ], 'should transition to registering & feedbacking states')
+    t.same(targetEventList.map(e => e.type), [
+      Types.MESSAGE,
+      Types.CONTACTS,
+    ], 'should have MESSAGE & CONTACTS event')
 
+    await new Promise(r => setTimeout(r, 10))
+
+    // console.info(targetSnapshot().context)
+    // console.info(targetSnapshot().value)
+    targetEventList.length = 0
+    targetStateList.length = 0
     mockerFixture.mary
       .say(FEEDBACKS[mockerFixture.mary.id])
       .to(mockerFixture.groupRoom)
@@ -231,21 +204,27 @@ test('Brainstorming actor smoke testing', async t => {
       {},
       'should no feedbacks because it will updated only all members have replied',
     )
-    t.equal(targetState(), States.feedbacking, 'should in state.feedbacking')
+    t.same(targetStateList, [
+      States.feedbacking,
+    ], 'should in state.feedbacking')
 
-    mockerFixture.mike
-      .say(FEEDBACKS[mockerFixture.mike.id])
-      .to(mockerFixture.groupRoom)
-    await new Promise(setImmediate)
-    t.same(
-      targetContext().feedbacks,
-      {
-        [mockerFixture.mary.id] : FEEDBACKS[mockerFixture.mary.id],
-        [mockerFixture.mike.id] : FEEDBACKS[mockerFixture.mike.id],
-      },
-      'should get feedbacks because it will updated only all members have replied',
-    )
-    t.equal(targetState(), States.finished, 'should in state.feedbacking')
+    // targetEventList.length = 0
+    // targetStateList.length = 0
+    // mockerFixture.mike
+    //   .say(FEEDBACKS[mockerFixture.mike.id])
+    //   .to(mockerFixture.groupRoom)
+    // await new Promise(setImmediate)
+    // t.same(
+    //   targetContext().feedbacks,
+    //   {
+    //     [mockerFixture.mary.id] : FEEDBACKS[mockerFixture.mary.id],
+    //     [mockerFixture.mike.id] : FEEDBACKS[mockerFixture.mike.id],
+    //   },
+    //   'should get feedbacks because it will updated only all members have replied',
+    // )
+    // t.equal(targetStateList, [
+    //   States.finished,
+    // ], 'should in state.feedbacking')
 
     // const EXPECTED_FEEDBACKS = {
     //   [mary.id]          : FIXTURES.feedbacks.mary,
@@ -275,22 +254,22 @@ test('Brainstorming actor smoke testing', async t => {
     // )
     // interpreter.stop()
 
-    console.info('Room message log:')
-    for (const msg of messageList) {
-      const mentionText = (await msg.mentionList())
-        .map(c => '@' + c.name()).join(' ')
+    // console.info('Room message log:')
+    // for (const msg of messageList) {
+    //   const mentionText = (await msg.mentionList())
+    //     .map(c => '@' + c.name()).join(' ')
 
-      console.info(
-        '-------\n',
-        msg.talker().name(),
-        ':',
-        mentionText,
-        msg.text(),
-      )
-    }
+    //   console.info(
+    //     '-------\n',
+    //     msg.talker().name(),
+    //     ':',
+    //     mentionText,
+    //     msg.text(),
+    //   )
+    // }
 
-    await new Promise(resolve => setTimeout(resolve, 50000))
+    // await new Promise(resolve => setTimeout(resolve, 50000))
   }
 
-  // server.close()
+  server.close()
 })

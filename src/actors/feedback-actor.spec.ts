@@ -33,13 +33,12 @@ import {
   Types,
 }           from '../schemas/mod.js'
 
-import {
-  machineFactory,
-  mailboxFactory,
-}                   from './feedback-actor.js'
+import * as Feedback from './feedback-actor.js'
 
 import { audioFixtures } from '../to-text/mod.js'
 import { isMailboxType } from '../mailbox/types.js'
+
+import { bot5Fixtures } from './bot5-fixture.js'
 
 const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
   const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
@@ -52,7 +51,7 @@ test('feedbackMachine smoke testing', async t => {
   const testMachine = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: machineFactory(
+      src: Feedback.machineFactory(
         Mailbox.nullAddress,
         Mailbox.nullAddress,
         Mailbox.nullLogger,
@@ -230,11 +229,14 @@ test('feedbackMachine smoke testing', async t => {
       [mocker.player.id] : FIXTURES.feedbacks.player,
     }, 'should have feedback from all users')
     t.equal(Object.keys(snapshot.context.feedbacks).length, 4, 'should have all 4 feedbacks')
-
-    // eventList.forEach(e => console.info(e))
-    // console.info(eventList
-    //   .filter(e => e.type === Mailbox.Types.CHILD_REPLY)[0])
-
+    // await new Promise(setImmediate)
+    /**
+     * Huan(202201): must use setTimeout instead of setImmediate to make sure the following test pass
+     *  it seems that the setImmediate is microtask (however the internet said that it should be a macrotask),
+     *    and the setTimeout is macrotask?
+     */
+    await new Promise(r => setTimeout(r, 0))
+    // console.info(eventList)
     t.same(
       eventList
         .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
@@ -257,7 +259,7 @@ test('feedbackMachine smoke testing', async t => {
 
 test('feedbackActor smoke testing', async t => {
 
-  const feedbackMachine = machineFactory(
+  const feedbackMachine = Feedback.machineFactory(
     Mailbox.nullAddress,
     Mailbox.nullAddress,
     Mailbox.nullLogger,
@@ -411,4 +413,41 @@ test('feedbackActor smoke testing', async t => {
   }
 
   interpreter.stop()
+})
+
+test('nextContact()', async t => {
+  for await (const {
+    wechaty: wechatyFixtures,
+  } of bot5Fixtures()) {
+    const context = Feedback.initialContext()
+    t.equal(Feedback.nextContact(context), undefined, 'should return undefined when context is empty')
+
+    context.contacts = [
+      wechatyFixtures.mary,
+      wechatyFixtures.mike,
+      wechatyFixtures.player,
+      wechatyFixtures.bot,
+    ]
+    t.equal(Feedback.nextContact(context), wechatyFixtures.mary, 'should return first contact in the list when context.feedbacks is empty')
+
+    context.feedbacks = {
+      [wechatyFixtures.mary.id]: 'im mary',
+    }
+    t.equal(Feedback.nextContact(context), wechatyFixtures.mike, 'should return second contact in the list when context.feedbacks is set to mary feedback')
+
+    context.feedbacks = {
+      [wechatyFixtures.mary.id]: 'im mary',
+      [wechatyFixtures.mike.id]: 'im mike',
+    }
+    t.equal(Feedback.nextContact(context), wechatyFixtures.player, 'should return third contact in the list when context.feedbacks is set to mary&mike feedbacks')
+
+    context.feedbacks = {
+      [wechatyFixtures.mary.id]: 'im mary',
+      [wechatyFixtures.mike.id]: 'im mike',
+      [wechatyFixtures.player.id]: 'im player',
+      [wechatyFixtures.bot.id]: 'im bot',
+    }
+    t.equal(Feedback.nextContact(context), undefined, 'should return undefined if everyone has feedbacked')
+
+  }
 })

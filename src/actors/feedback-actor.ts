@@ -50,10 +50,9 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 // const isText  = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Text
 // const isAudio = (message?: Message) => !!(message) && message.type() === WechatyTypes.Message.Audio
 
-const nextAttendee = (ctx: Context) =>
-  ctx.contacts.filter(c =>
-    !Object.keys(ctx.feedbacks).includes(c.id),
-  )[0]
+const nextContact = (ctx: Context) => ctx.contacts.filter(c =>
+  !Object.keys(ctx.feedbacks).includes(c.id),
+)[0]
 
 function initialContext (): Context {
   const context: Context = {
@@ -184,10 +183,10 @@ function machineFactory (
               收到${ctx.message!.talker().name()}的反馈：
                 ${ctx.feedback}
 
-              下一位：@${nextAttendee(ctx)?.name()}
+              下一位：@${nextContact(ctx)?.name()}
             `,
             ctx.message!.room()!.id,
-            nextAttendee(ctx)?.id ? [nextAttendee(ctx)!.id] : [],
+            nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
           )),
         ],
         always: [
@@ -289,4 +288,5 @@ export {
   mailboxFactory,
   Events,
   initialContext,
+  nextContact,
 }
