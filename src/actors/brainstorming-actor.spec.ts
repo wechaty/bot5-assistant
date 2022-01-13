@@ -94,6 +94,7 @@ test('Brainstorming actor smoke testing', async t => {
     const targetContext   = () => targetSnapshot().context as Brainstorming.Context
 
     const proxyMachine = createMachine<any>({
+      id: 'ProxyMachine',
       on: {
         '*': {
           actions: actions.choose([
@@ -134,12 +135,18 @@ test('Brainstorming actor smoke testing', async t => {
     targetEventList.length = 0
     targetStateList.length = 0
     proxyInterpreter.send(Events.ROOM(wechatyFixture.groupRoom))
+    proxyInterpreter.send(Events.REPORT())
+    await sandbox.clock.runToLastAsync()
     t.equal(
       targetContext().room?.id,
       wechatyFixture.groupRoom.id,
       'should set room to context',
     )
-    t.same(targetStateList, [States.registering], 'should in state.registering')
+    t.same(targetStateList, [
+      States.idle,
+      States.reporting,
+      States.registering,
+    ], 'should in state.{idle,reporting,registering}')
 
     /**
      * XState Issue #2931 - https://github.com/statelyai/xstate/issues/2931
@@ -152,7 +159,7 @@ test('Brainstorming actor smoke testing', async t => {
      */
     targetStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
     t.same(targetStateList, [States.registering], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
@@ -171,9 +178,9 @@ test('Brainstorming actor smoke testing', async t => {
         mockerFixture.mike,
       ])
       .to(mockerFixture.groupRoom)
-    await sandbox.clock.runToLastAsync()
-    console.info('targetStateList', targetStateList)
-    console.info('proxyEventList', proxyEventList)
+    await sandbox.clock.runAllAsync()
+    // console.info('targetStateList', targetStateList)
+    // console.info('proxyEventList', proxyEventList)
     t.same(
       targetContext().contacts.map(c => c.id),
       [
@@ -185,13 +192,15 @@ test('Brainstorming actor smoke testing', async t => {
     t.same(targetStateList, [
       States.registering,
       States.feedbacking,
+      States.feedbacking,
     ], 'should transition to registering & feedbacking states')
     t.same(targetEventList.map(e => e.type), [
       Types.MESSAGE,
       Types.CONTACTS,
-    ], 'should have MESSAGE & CONTACTS event')
+      Types.NOTICE,
+    ], 'should have MESSAGE,CONTACTS,NOTICE event')
 
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
 
     // console.info(targetSnapshot().context)
     // console.info(targetSnapshot().value)
@@ -200,7 +209,7 @@ test('Brainstorming actor smoke testing', async t => {
     mockerFixture.mary
       .say(FEEDBACKS[mockerFixture.mary.id])
       .to(mockerFixture.groupRoom)
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
     t.same(
       targetContext().feedbacks,
       {},
@@ -212,83 +221,56 @@ test('Brainstorming actor smoke testing', async t => {
 
     targetEventList.length = 0
     targetStateList.length = 0
-    // mockerFixture.mike
-    //   .say(FEEDBACKS[mockerFixture.mike.id])
-    //   .to(mockerFixture.groupRoom)
-    // await sandbox.clock.runToLastAsync()
-    // t.same(
-    //   targetContext().feedbacks,
-    //   {
-    //     [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
-    //     [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
-    //   },
-    //   'should set feedbacks because all members have replied',
-    // )
-    // t.same(targetStateList, [
-    //   States.feedbacked,
-    // ], 'should in state.feedbacked')
+    mockerFixture.mike
+      .say(FEEDBACKS[mockerFixture.mike.id])
+      .to(mockerFixture.groupRoom)
+    await sandbox.clock.runAllAsync()
+    t.same(
+      targetContext().feedbacks,
+      {
+        [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
+        [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
+      },
+      'should set feedbacks because all members have replied',
+    )
+    t.same(targetStateList, [
+      States.feedbacking,
+      States.reporting,
+      States.reporting,
+      States.idle,
+    ], 'should in state.feedbacking,reporting,idle')
+    t.same(targetEventList.map(e => e.type), [
+      Types.MESSAGE,
+      Types.FEEDBACKS,
+      Types.NOTICE,
+      Types.IDLE,
+    ], 'should have MESSAGE,CONTACTS,NOTICE event')
+    t.same(
+      targetEventList.filter(e => e.type === Types.FEEDBACKS),
+      [
+        Events.FEEDBACKS({
+          [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
+          [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
+        }),
+      ],
+      'should have FEEDBACKS event with feedbacks',
+    )
 
-    // targetEventList.length = 0
-    // targetStateList.length = 0
-    // mockerFixture.mike
-    //   .say(FEEDBACKS[mockerFixture.mike.id])
-    //   .to(mockerFixture.groupRoom)
-    // await new Promise(setImmediate)
-    // t.same(
-    //   targetContext().feedbacks,
-    //   {
-    //     [mockerFixture.mary.id] : FEEDBACKS[mockerFixture.mary.id],
-    //     [mockerFixture.mike.id] : FEEDBACKS[mockerFixture.mike.id],
-    //   },
-    //   'should get feedbacks because it will updated only all members have replied',
-    // )
-    // t.equal(targetStateList, [
-    //   States.finished,
-    // ], 'should in state.feedbacking')
+    console.info('Room message log:')
+    for (const msg of messageList) {
+      const mentionText = (await msg.mentionList())
+        .map(c => '@' + c.name()).join(' ')
 
-    // const EXPECTED_FEEDBACKS = {
-    //   [mary.id]          : FIXTURES.feedbacks.mary,
-    //   [mocker.bot.id]    : FIXTURES.feedbacks.bot,
-    //   [mike.id]          : FIXTURES.feedbacks.mike,
-    //   [mocker.player.id] : FIXTURES.feedbacks.player,
-    // }
+      console.info(
+        '-------\n',
+        msg.talker().name(),
+        ':',
+        mentionText,
+        msg.text(),
+      )
+    }
 
-    // const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
-    // interpreter.send(Events.MESSAGE(msg))
-    // eventList.length = 0
-    // await firstValueFrom(
-    //   from(interpreter).pipe(
-    //     tap(x => console.info('tap event:', x.event.type)),
-    //     filter(s => s.event.type === Types.FEEDBACK),
-    //   ),
-    // )
-    // t.same(
-    //   eventList,
-    //   [
-    //     Events.FEEDBACK({
-    //       ...EXPECTED_FEEDBACKS,
-    //       [mary.id] : FIXTURES.feedbacks.mike,
-    //     }),
-    //   ],
-    //   'should get FEEDBACKS event immediately after mary said mike feedback once again',
-    // )
-    // interpreter.stop()
-
-    // console.info('Room message log:')
-    // for (const msg of messageList) {
-    //   const mentionText = (await msg.mentionList())
-    //     .map(c => '@' + c.name()).join(' ')
-
-    //   console.info(
-    //     '-------\n',
-    //     msg.talker().name(),
-    //     ':',
-    //     mentionText,
-    //     msg.text(),
-    //   )
-    // }
-
-    // await new Promise(resolve => setTimeout(resolve, 50000))
+    await sandbox.clock.runAllAsync()
     sandbox.restore()
     server.close()
   }

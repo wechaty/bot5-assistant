@@ -53,6 +53,7 @@ enum Types {
 
   PROCESS = 'bot5/PROCESS',
   PARSE = 'bot5/PARSE',
+  NOTICE = 'bot5/NOTICE',
 }
 
 export {

@@ -52,6 +52,7 @@ const payloadIdle = () => ({})
 const payloadCheck = () => ({})
 const payloadProcess = () => ({})
 const payloadParse = () => ({})
+const payloadNotice = (notice: string) => ({ notice })
 
 const Events = {
   MENTIONS   : createAction(Types.MENTIONS, payloadMentions)(),
@@ -100,6 +101,7 @@ const Events = {
 
   PROCESS: createAction(Types.PROCESS, payloadProcess)(),
   PARSE: createAction(Types.PARSE, payloadParse)(),
+  NOTICE: createAction(Types.NOTICE, payloadNotice)(),
 } as const
 
 type EventPayloads = {

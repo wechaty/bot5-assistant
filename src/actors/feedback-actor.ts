@@ -167,7 +167,7 @@ function machineFactory (
       },
       [States.feedbacking]: {
         entry: [
-          actions.log((_, e) => `states.feedbacking.entry <- [FEEDBACK(${(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId}, ${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback})`, MACHINE_NAME),
+          actions.log((_, e) => `states.feedbacking.entry <- [FEEDBACK(${(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId}, "${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback}")`, MACHINE_NAME),
           actions.assign({
             feedbacks: (ctx, e) => ({
               ...ctx.feedbacks,
@@ -245,23 +245,24 @@ function machineFactory (
       },
       [States.reporting]: {
         entry: [
+          actions.log(ctx => `states.reporting.entry feedbacks/contacts(${feedbacksNum(ctx)}/${contactsNum(ctx)})`, MACHINE_NAME),
           actions.choose<Context, any>([
             {
               cond: ctx => contactsNum(ctx) <= 0,
               actions: [
-                actions.log('states.reporting.entry no contacts', MACHINE_NAME),
+                actions.log(_ => 'states.reporting.entry contacts is not set', MACHINE_NAME),
               ],
             },
             {
-              cond: ctx => feedbacksNum(ctx) >= contactsNum(ctx),
+              cond: ctx => feedbacksNum(ctx) < contactsNum(ctx),
               actions: [
-                actions.log(ctx => `states.reporting.entry all(${feedbacksNum(ctx)}) contacts feedbacked`, MACHINE_NAME),
+                actions.log('states.reporting.entry feedbacks is not enough', MACHINE_NAME),
+              ],
+            },
+            {
+              actions: [
+                actions.log('states.reporting.entry feedbacks reported', MACHINE_NAME),
                 Mailbox.Actions.reply(ctx => Bot5Events.FEEDBACKS(ctx.feedbacks)),
-              ],
-            },
-            {
-              actions: [
-                actions.log(ctx => `states.reporting.entry ${feedbacksNum(ctx)}/${contactsNum(ctx)} feedbacked`, MACHINE_NAME),
               ],
             },
           ]),

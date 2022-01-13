@@ -173,7 +173,7 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-test.only('registerActor smoke testing', async t => {
+test('registerActor smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
   wechatyMailbox.acquire()
 
