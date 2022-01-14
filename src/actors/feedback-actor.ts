@@ -37,17 +37,20 @@ const Events = {
   REPORT   : Bot5Events.REPORT,
   FEEDBACK : Bot5Events.FEEDBACK,
   GERROR   : Bot5Events.GERROR,
-  IDLE: Bot5Events.IDLE,
-  PROCESS: Bot5Events.PROCESS,
+  IDLE     : Bot5Events.IDLE,
+  PROCESS  : Bot5Events.PROCESS,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
 
-const contactsNum   = (ctx: Context) => ctx.contacts.length
-const feedbacksNum  = (ctx: Context) => Object.values(ctx.feedbacks).filter(Boolean).length
-const nextContact   = (ctx: Context) => ctx.contacts.filter(c =>
+const ctxContactsNum   = (ctx: Context) => ctx.contacts.length
+const ctxFeedbacksNum  = (ctx: Context) => Object.values(ctx.feedbacks).filter(Boolean).length
+const ctxNextContact   = (ctx: Context) => ctx.contacts.filter(c =>
   !Object.keys(ctx.feedbacks).includes(c.id),
 )[0]
+const ctxContactAfterNext   = (ctx: Context) => ctx.contacts.filter(c =>
+  !Object.keys(ctx.feedbacks).includes(c.id),
+)[1]
 
 function initialContext (): Context {
   const context: Context = {
@@ -65,7 +68,7 @@ const MACHINE_NAME = 'FeedbackMachine'
 function machineFactory (
   wechatyAddress: Mailbox.Address,
   registerAddress: Mailbox.Address,
-  logger: Mailbox.Options['logger'],
+  // logger: Mailbox.Options['logger'],
 ) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
@@ -174,36 +177,46 @@ function machineFactory (
               [(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId]: (e as ReturnType<typeof Events.FEEDBACK>).payload.feedback,
             }),
           }),
+          wechatyAddress.send((ctx, e) => actors.wechaty.Events.SAY(
+            [
+              '【反馈系统】',
+              `收到${ctx.message!.talker().name()}的反馈：`,
+              `“${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback}”`,
+            ].join(''),
+            ctx.message!.room()!.id,
+          )),
           actions.choose<Context, Event>([
             {
-              cond: (_, e) => !!(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback,
+              cond: ctx => !!ctxNextContact(ctx),
               actions: [
-                wechatyAddress.send((ctx, e) => {
-                  // console.info('ctx', ctx)
-                  return actors.wechaty.Events.SAY(
-                    `
-                      收到${ctx.message!.talker().name()}的反馈：
-                        ${(e as ReturnType<typeof Events.FEEDBACK>).payload.feedback}
-
-                      下一位：@${nextContact(ctx)?.name()}
-                    `,
-                    ctx.message!.room()!.id,
-                    nextContact(ctx)?.id ? [nextContact(ctx)!.id] : [],
-                  )
-                }),
+                wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+                  [
+                    '【反馈系统】',
+                    `下一位：@${ctxNextContact(ctx)?.name()}`,
+                    ctxContactAfterNext(ctx)?.name() ? `。（请@${ctxContactAfterNext(ctx)?.name()}做准备）` : '',
+                  ].join(''),
+                  ctx.message!.room()!.id,
+                  !!ctxContactAfterNext(ctx)
+                    ? [ctxNextContact(ctx)!.id, ctxContactAfterNext(ctx)!.id]
+                    : [ctxNextContact(ctx)!.id]
+                )),
                 actions.send(_ => Events.PROCESS()),
               ],
             },
             {
               actions: [
-                actions.send(_ => Events.IDLE()),
+                wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+                  '【反馈系统】：已完成收集所有人反馈',
+                  ctx.message!.room()!.id,
+                )),
+                actions.send(_ => Events.PROCESS()),
               ],
             },
           ])
         ],
         on: {
-          [Types.PROCESS]: States.processing,
-          [Types.IDLE]:  States.idle,
+          [Types.PROCESS]:  States.processing,
+          [Types.IDLE]:     States.idle,
         },
       },
       [States.registering]: {
@@ -231,7 +244,7 @@ function machineFactory (
         entry: actions.log('states.processing.entry', MACHINE_NAME),
         always: [
           {
-            cond: ctx => contactsNum(ctx) <= 0,
+            cond: ctx => ctxContactsNum(ctx) <= 0,
             actions:[
               actions.log('states.processing.always -> registering because no contacts', MACHINE_NAME),
             ],
@@ -245,16 +258,16 @@ function machineFactory (
       },
       [States.reporting]: {
         entry: [
-          actions.log(ctx => `states.reporting.entry feedbacks/contacts(${feedbacksNum(ctx)}/${contactsNum(ctx)})`, MACHINE_NAME),
+          actions.log(ctx => `states.reporting.entry feedbacks/contacts(${ctxFeedbacksNum(ctx)}/${ctxContactsNum(ctx)})`, MACHINE_NAME),
           actions.choose<Context, any>([
             {
-              cond: ctx => contactsNum(ctx) <= 0,
+              cond: ctx => ctxContactsNum(ctx) <= 0,
               actions: [
                 actions.log(_ => 'states.reporting.entry contacts is not set', MACHINE_NAME),
               ],
             },
             {
-              cond: ctx => feedbacksNum(ctx) < contactsNum(ctx),
+              cond: ctx => ctxFeedbacksNum(ctx) < ctxContactsNum(ctx),
               actions: [
                 actions.log('states.reporting.entry feedbacks is not enough', MACHINE_NAME),
               ],
@@ -287,7 +300,7 @@ function mailboxFactory (
   const machine = machineFactory(
     wechatyMailbox.address,
     registerMailbox.address,
-    logger
+    // logger
   )
   const mailbox = Mailbox.from(machine, { logger })
 
@@ -301,5 +314,5 @@ export {
   mailboxFactory,
   Events,
   initialContext,
-  nextContact,
+  ctxNextContact,
 }

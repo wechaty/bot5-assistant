@@ -54,7 +54,6 @@ test('feedbackMachine smoke testing', async t => {
       src: Feedback.machineFactory(
         Mailbox.nullAddress,
         Mailbox.nullAddress,
-        Mailbox.nullLogger,
       ),
     },
   })
@@ -82,7 +81,7 @@ test('feedbackMachine smoke testing', async t => {
     wechaty: wechatyFixtures,
   } of bot5Fixtures()) {
     const sandbox = sinon.createSandbox({
-      useFakeTimers: true,
+      useFakeTimers: { now: Date.now() }, // for make TencentCloud API timestamp happy
     })
 
     const listenMessage = awaitMessageWechaty(wechatyFixtures.wechaty)
@@ -248,7 +247,6 @@ test('feedbackActor smoke testing', async t => {
   const feedbackMachine = Feedback.machineFactory(
     Mailbox.nullAddress,
     Mailbox.nullAddress,
-    Mailbox.nullLogger,
   )
   const feedbackActor = Mailbox.wrap(feedbackMachine)
 
@@ -406,7 +404,7 @@ test('nextContact()', async t => {
     wechaty: wechatyFixtures,
   } of bot5Fixtures()) {
     const context = Feedback.initialContext()
-    t.equal(Feedback.nextContact(context), undefined, 'should return undefined when context is empty')
+    t.equal(Feedback.ctxNextContact(context), undefined, 'should return undefined when context is empty')
 
     context.contacts = [
       wechatyFixtures.mary,
@@ -414,18 +412,18 @@ test('nextContact()', async t => {
       wechatyFixtures.player,
       wechatyFixtures.bot,
     ]
-    t.equal(Feedback.nextContact(context), wechatyFixtures.mary, 'should return first contact in the list when context.feedbacks is empty')
+    t.equal(Feedback.ctxNextContact(context), wechatyFixtures.mary, 'should return first contact in the list when context.feedbacks is empty')
 
     context.feedbacks = {
       [wechatyFixtures.mary.id]: 'im mary',
     }
-    t.equal(Feedback.nextContact(context), wechatyFixtures.mike, 'should return second contact in the list when context.feedbacks is set to mary feedback')
+    t.equal(Feedback.ctxNextContact(context), wechatyFixtures.mike, 'should return second contact in the list when context.feedbacks is set to mary feedback')
 
     context.feedbacks = {
       [wechatyFixtures.mary.id]: 'im mary',
       [wechatyFixtures.mike.id]: 'im mike',
     }
-    t.equal(Feedback.nextContact(context), wechatyFixtures.player, 'should return third contact in the list when context.feedbacks is set to mary&mike feedbacks')
+    t.equal(Feedback.ctxNextContact(context), wechatyFixtures.player, 'should return third contact in the list when context.feedbacks is set to mary&mike feedbacks')
 
     context.feedbacks = {
       [wechatyFixtures.mary.id]: 'im mary',
@@ -433,7 +431,7 @@ test('nextContact()', async t => {
       [wechatyFixtures.player.id]: 'im player',
       [wechatyFixtures.bot.id]: 'im bot',
     }
-    t.equal(Feedback.nextContact(context), undefined, 'should return undefined if everyone has feedbacked')
+    t.equal(Feedback.ctxNextContact(context), undefined, 'should return undefined if everyone has feedbacked')
 
   }
 })

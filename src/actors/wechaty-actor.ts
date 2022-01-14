@@ -83,7 +83,7 @@ const machineFactory = (
     },
     [States.busy]: {
       entry: [
-        actions.log((_, e) => `state.busy.entry ${e.type}`, MACHINE_NAME),
+        actions.log((_, e) => `state.busy.entry <- [${e.type}]`, MACHINE_NAME),
       ],
       invoke: {
         src: async (_, e) => {

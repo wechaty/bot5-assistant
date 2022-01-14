@@ -28,7 +28,7 @@ const idle = (name: string) => (info: string) => {
        * send CHILD_IDLE event to the mailbox for receiving new messages
        */
       actions: [
-        actions.log((_, _e) => `actions.idle [CHILD_IDLE(${info})]`, moduleName),
+        actions.log((_, _e) => `actions.idle -> [CHILD_IDLE(${info})]`, moduleName),
         actions.sendParent(_ => Events.CHILD_IDLE(info)),
       ],
     },

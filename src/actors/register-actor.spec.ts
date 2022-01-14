@@ -99,7 +99,7 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), States.mentioning, 'should be in mentioning state')
+    t.equal(registerState(), States.parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
       Types.MESSAGE,
     ], 'should be MESSAGE event')
@@ -112,8 +112,10 @@ test('registerMachine smoke testing', async t => {
     ], 'should have 1 idle event after one message, with empty contacts listfor non-mention message')
     t.equal(registerState(), States.idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
-      'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]',
-    ], 'should be done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
+      'done.invoke.RegisterMachine.bot5/parsing:invocation[0]',
+      Types.MENTION,
+      Types.IDLE,
+    ], 'should be done.invoke.RegisterMachine.bot5/parsing:invocation[0], MENTION, IDLE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
@@ -134,7 +136,7 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), States.mentioning, 'should be in mentioning state')
+    t.equal(registerState(), States.parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
       Types.MESSAGE,
     ], 'should got MESSAGE event')
@@ -161,8 +163,10 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(registerState(), States.idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
-      'done.invoke.RegisterMachine.bot5/mentioning:invocation[0]',
-    ], 'should got done.invoke.RegisterMachine.bot5/mentioning:invocation[0] event')
+      'done.invoke.RegisterMachine.bot5/parsing:invocation[0]',
+      Types.MENTION,
+      Types.REPORT,
+    ], 'should got done.invoke.RegisterMachine.bot5/parsing:invocation[0], MENTION, REPORT event')
     t.same(
       registerContext().contacts.map(c => c.id),
       MENTION_LIST.map(c =>  c.id),

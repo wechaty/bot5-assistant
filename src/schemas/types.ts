@@ -8,7 +8,7 @@ enum Types {
   NO_AUDIO = 'bot5/NO_AUDIO',
   TEXT = 'bot5-assisstant/TEXT',
 
-  MENTIONS = 'bot5/MENTIONS',
+  MENTION = 'bot5/MENTION',
   NO_MENTION = 'bot5/NO_MENTION',
 
   NEXT = 'bot5/NEXT',

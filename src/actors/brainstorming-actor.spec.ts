@@ -10,23 +10,12 @@ import {
   AnyEventObject,
   interpret,
   createMachine,
-  Interpreter,
   EventObject,
   // spawn,
   actions,
   StateValue,
 }                   from 'xstate'
-import * as WECHATY from 'wechaty'
-import {
-  firstValueFrom,
-  from,
-}                   from 'rxjs'
-import {
-  filter,
-  tap,
-}                   from 'rxjs/operators'
-import { createFixture } from 'wechaty-mocker'
-import type { mock } from 'wechaty-puppet-mock'
+import type * as WECHATY from 'wechaty'
 
 import { inspect } from '@xstate/inspect/lib/server.js'
 import { WebSocketServer } from 'ws'
@@ -37,17 +26,12 @@ import {
   Events,
   States,
   Types,
-}           from '../schemas/mod.js'
+}                             from '../schemas/mod.js'
+import { audioFixtures }      from '../to-text/mod.js'
+import { createBot5Injector } from '../ioc/ioc.js'
 
 import * as Brainstorming from './brainstorming-actor.js'
-
-import { audioFixtures } from '../to-text/mod.js'
-import { isMailboxType } from '../mailbox/types.js'
-
-import { createBot5Injector } from '../ioc/ioc.js'
-import { isActionOf } from 'typesafe-actions'
-
-import { bot5Fixtures } from './bot5-fixture.js'
+import { bot5Fixtures }   from './bot5-fixture.js'
 
 test('Brainstorming actor smoke testing', async t => {
   for await (
@@ -58,7 +42,7 @@ test('Brainstorming actor smoke testing', async t => {
     } of bot5Fixtures()
   ) {
     const sandbox = sinon.createSandbox({
-      useFakeTimers: true,
+      useFakeTimers: { now: Date.now() },
     })
 
     const server = new WebSocketServer({
@@ -72,7 +56,7 @@ test('Brainstorming actor smoke testing', async t => {
       [mockerFixture.mike.id]: 'im mike',
       [mockerFixture.player.id]: audioFixtures.silk.text,
       [mockerFixture.bot.id]: 'im bot',
-    }
+    } as const
 
     const injector = createBot5Injector({
       wechaty: wechatyFixture.wechaty,
@@ -173,9 +157,10 @@ test('Brainstorming actor smoke testing', async t => {
     proxyEventList.length = 0
     targetStateList.length = 0
     mockerFixture.player
-      .say('register mary & mike by mention them', [
+      .say('register mary & mike & player by mention them', [
         mockerFixture.mary,
         mockerFixture.mike,
+        mockerFixture.player,
       ])
       .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
@@ -186,8 +171,9 @@ test('Brainstorming actor smoke testing', async t => {
       [
         mockerFixture.mary.id,
         mockerFixture.mike.id,
+        mockerFixture.player.id,
       ],
-      'should set contacts to mary, mike',
+      'should set contacts to mary, mike, player',
     )
     t.same(targetStateList, [
       States.registering,
@@ -224,22 +210,28 @@ test('Brainstorming actor smoke testing', async t => {
     mockerFixture.mike
       .say(FEEDBACKS[mockerFixture.mike.id])
       .to(mockerFixture.groupRoom)
+    mockerFixture.player
+      .say(FEEDBACKS[mockerFixture.player.id])
+      .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
     t.same(
       targetContext().feedbacks,
       {
         [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
         [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
+        [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id],
       },
       'should set feedbacks because all members have replied',
     )
     t.same(targetStateList, [
+      States.feedbacking,
       States.feedbacking,
       States.reporting,
       States.reporting,
       States.idle,
     ], 'should in state.feedbacking,reporting,idle')
     t.same(targetEventList.map(e => e.type), [
+      Types.MESSAGE,
       Types.MESSAGE,
       Types.FEEDBACKS,
       Types.NOTICE,
@@ -251,24 +243,25 @@ test('Brainstorming actor smoke testing', async t => {
         Events.FEEDBACKS({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
           [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
+          [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,
         }),
       ],
       'should have FEEDBACKS event with feedbacks',
     )
 
-    console.info('Room message log:')
-    for (const msg of messageList) {
-      const mentionText = (await msg.mentionList())
-        .map(c => '@' + c.name()).join(' ')
+    // console.info('Room message log:')
+    // for (const msg of messageList) {
+    //   const mentionText = (await msg.mentionList())
+    //     .map(c => '@' + c.name()).join(' ')
 
-      console.info(
-        '-------\n',
-        msg.talker().name(),
-        ':',
-        mentionText,
-        msg.text(),
-      )
-    }
+    //   console.info(
+    //     '-------\n',
+    //     msg.talker().name(),
+    //     ':',
+    //     mentionText,
+    //     msg.text(),
+    //   )
+    // }
 
     await sandbox.clock.runAllAsync()
     sandbox.restore()

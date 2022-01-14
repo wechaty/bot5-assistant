@@ -5,7 +5,6 @@ import {
 }                   from 'xstate'
 
 import type {
-  Message,
   Contact,
   Room,
 }             from 'wechaty'
@@ -29,7 +28,6 @@ interface Context {
   feedbacks: {
     [id: string]: string,
   },
-  notices: string[],
 }
 
 const Events = {
@@ -50,7 +48,6 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 const ctxFeedbacksNum = (ctx: Context) => Object.values(ctx.feedbacks).filter(Boolean).length
 const ctxContactsNum  = (ctx: Context) => ctx.contacts.length
-const ctxNoticesNum   = (ctx: Context) => ctx.notices.length
 
 const MACHINE_NAME = 'BrainstormingMachine'
 
@@ -61,7 +58,6 @@ function initialContext (): Context {
     contacts : [],
     gerror: undefined,
     feedbacks: {},
-    notices: [],
   }
   return JSON.parse(JSON.stringify(context))
 }
@@ -83,12 +79,15 @@ function machineFactory (
       [Types.NOTICE]: {
         actions: [
           actions.log((_, e) => `on.NOTICE ${e.payload.notice}`, MACHINE_NAME),
-          actions.assign({
-            notices: (ctx, e) => [
-              ...ctx.notices,
+          wechatyAddress.send((ctx, e) => actors.wechaty.Events.SAY(
+            [
+              '【脑爆系统】叮！系统检测到通知，请注意查收！',
+              '-------',
               e.payload.notice,
-            ],
-          }),
+            ].join('\n'),
+            ctx.room!.id,
+            ctx.contacts.map(c => c.id),
+          )),
         ],
       },
       [Types.INTRODUCE]: {
@@ -163,44 +162,11 @@ function machineFactory (
           [Types.PROCESS]:  States.processing,
         },
       },
-      [States.noticing]: {
-        entry: [
-          actions.log(ctx => `states.noticing.entry notices/${ctx.notices.length}`, MACHINE_NAME),
-          actions.choose([
-            {
-              cond: ctx => ctxNoticesNum(ctx) > 0,
-              actions: wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
-                `叮！系统检测到${ctx.notices.length}条新更新：
-                ${
-                  ctx.notices
-                    .map((v, i) => `${i+1}. ${v}`)
-                    .join('\n')
-                }
-                收获${ctx.notices.length}点经验值（可通过查看“我的经验值”查询）。
-                `,
-                ctx.room!.id,
-                ctx.contacts.map(c => c.id),
-              )),
-            },
-            {
-              actions: actions.log('states.noticing.entry no notices', MACHINE_NAME),
-            }
-          ]),
-        ],
-        exit: [
-          actions.assign({ notices: _ => [] }),
-        ],
-        always: States.processing,
-      },
       [States.processing]: {
         entry: [
           actions.log('states.processing.entry', MACHINE_NAME),
         ],
         always: [
-          {
-            cond: ctx => ctxNoticesNum(ctx) > 0,
-            target: States.noticing,
-          },
           {
             cond: ctx => ctxContactsNum(ctx) <= 0,
             target: States.registering,
@@ -212,9 +178,7 @@ function machineFactory (
           {
             actions: [
               wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
-                `
-                  叮！系统检测到您已经成功完成头脑风暴，恭喜宿主！
-                `,
+                '【脑爆系统】叮！系统检测到您已经成功完成头脑风暴，恭喜宿主！',
                 ctx.room!.id,
                 ctx.contacts.map(c => c.id),
               )),

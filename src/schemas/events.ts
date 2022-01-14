@@ -22,14 +22,14 @@ import { Types } from './types.js'
 //   [K in keyof T]: RemoveType<T[K]>
 // }
 
-const payloadMentions  = (mentions: Contact[]) => ({ mentions })
+const payloadMention  = (contacts: Contact[]) => ({ contacts })
 const payloadMessage   = (message: Message) => ({ message })
 
 const payloadRoom      = (room: Room) => ({ room })
 const payloadContacts  = (contacts: Contact[]) => ({ contacts })
 
 const payloadText      = (text: string)     => ({ text })
-const payloadSay       = (text: string, conversation: string, mentions: string[]) => ({ conversation, mentions, text })
+const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
 const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
 // const payloadWechatyAddress   = (address: string) => ({ address })
 
@@ -48,14 +48,14 @@ const payloadIntroduce = () => ({})
 const payloadReport    = () => ({})
 
 const payloadEmpty     = () => ({})
-const payloadIdle = () => ({})
+const payloadIdle = (reason?: string) => ({ reason })
 const payloadCheck = () => ({})
 const payloadProcess = () => ({})
 const payloadParse = () => ({})
 const payloadNotice = (notice: string) => ({ notice })
 
 const Events = {
-  MENTIONS   : createAction(Types.MENTIONS, payloadMentions)(),
+  MENTION   : createAction(Types.MENTION, payloadMention)(),
   MESSAGE    : createAction(Types.MESSAGE, payloadMessage)(),
   NEXT       : createAction(Types.NEXT, payloadEmpty)(),
   NO_AUDIO   : createAction(Types.NO_AUDIO, payloadEmpty)(),
