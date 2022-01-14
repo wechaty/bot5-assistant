@@ -16,8 +16,6 @@ import type * as WECHATY from 'wechaty'
 import { createFixture } from 'wechaty-mocker'
 import {
   Events,
-  States,
-  Types,
 }           from '../schemas/mod.js'
 
 import {
@@ -29,12 +27,10 @@ test('wechatyActor SAY with concurrency', async t => {
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
       wechaty,
-      bot,
-      player,
       room,
     }         = WECHATY_FIXTURES.wechaty
 
-    const wechatyMachine = machineFactory(wechaty)
+    const wechatyMachine = machineFactory(wechaty, () => {})
     const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
     const testActor = createMachine({
@@ -42,9 +38,11 @@ test('wechatyActor SAY with concurrency', async t => {
         src: Mailbox.wrap(wechatyMachine),
         id: WECHATY_MACHINE_ID,
       },
-      on: { '*': {
-        actions: Mailbox.Actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
-      }},
+      on: {
+        '*': {
+          actions: Mailbox.Actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
+        },
+      },
     })
 
     const EXPECTED_TEXT = 'hello world'
@@ -84,12 +82,11 @@ test('wechatyMachine interpreter smoke testing', async t => {
   for await (const WECHATY_FIXTURES of createFixture()) {
     const {
       wechaty,
-      bot,
       player,
       room,
     }         = WECHATY_FIXTURES.wechaty
 
-    const wechatyMachine = machineFactory(wechaty)
+    const wechatyMachine = machineFactory(wechaty, () => {})
 
     const testMachine = createMachine({
       invoke: {
@@ -107,7 +104,6 @@ test('wechatyMachine interpreter smoke testing', async t => {
     const interpreter = interpret(testMachine)
       .onTransition(s => eventList.push(s.event))
       .start()
-    let snapshot = interpreter.getSnapshot()
 
     interpreter.send([
       Events.WECHATY(wechaty),

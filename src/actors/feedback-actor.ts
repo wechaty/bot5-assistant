@@ -196,9 +196,9 @@ function machineFactory (
                     ctxContactAfterNext(ctx)?.name() ? `。（请@${ctxContactAfterNext(ctx)?.name()}做准备）` : '',
                   ].join(''),
                   ctx.message!.room()!.id,
-                  !!ctxContactAfterNext(ctx)
-                    ? [ctxNextContact(ctx)!.id, ctxContactAfterNext(ctx)!.id]
-                    : [ctxNextContact(ctx)!.id]
+                  !ctxContactAfterNext(ctx)
+                    ? [ctxNextContact(ctx)!.id]
+                    : [ctxNextContact(ctx)!.id, ctxContactAfterNext(ctx)!.id],
                 )),
                 actions.send(_ => Events.PROCESS()),
               ],
@@ -212,7 +212,7 @@ function machineFactory (
                 actions.send(_ => Events.PROCESS()),
               ],
             },
-          ])
+          ]),
         ],
         on: {
           [Types.PROCESS]:  States.processing,

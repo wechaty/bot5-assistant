@@ -142,7 +142,7 @@ const machineFactory = (
         },
         onError: {
           actions: actions.send((_, e) => Events.GERROR(e.data)),
-        }
+        },
       },
       on: {
         [Types.MENTION]: {
@@ -195,7 +195,7 @@ const machineFactory = (
     [States.erroring]: {
       entry: [
         actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as EventPayloads['GERROR']).payload.gerror})]`, MACHINE_NAME),
-        Mailbox.Actions.reply((_, e) => e)
+        Mailbox.Actions.reply((_, e) => e),
       ],
       always: States.idle,
     },
@@ -216,7 +216,6 @@ function mailboxFactory (
   mailbox.acquire()
   return mailbox
 }
-
 
 export {
   type Context,

@@ -60,7 +60,6 @@ test('intentMachine happy path smoke testing', async t => {
       .onEvent(e => eventList.push(e))
       .start()
 
-
     wechaty.bot.on('message', msg => {
       interpreter.send(
         Events.MESSAGE(msg),

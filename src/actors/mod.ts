@@ -19,18 +19,18 @@ interface ActorModel {
 const actors: {
   [key: string]: ActorModel,
 } = {
+  brainstorming,
   feedback,
   intent,
   register,
   wechaty,
-  brainstorming,
 }
 void actors // for typing testing only
 
 export {
+  brainstorming,
   feedback,
   intent,
   register,
   wechaty,
-  brainstorming,
 }

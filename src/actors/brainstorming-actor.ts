@@ -111,20 +111,20 @@ function machineFactory (
     states: {
       [States.initializing]: {
         entry: [
-          actions.log('states.initializing.entry' , MACHINE_NAME),
+          actions.log('states.initializing.entry', MACHINE_NAME),
         ],
         always: States.idle,
       },
       [States.resetting]: {
         entry: [
-          actions.log('states.resetting.entry' , MACHINE_NAME),
+          actions.log('states.resetting.entry', MACHINE_NAME),
           actions.assign(_ => initialContext()),
         ],
         always: States.initializing,
       },
       [States.idle]: {
         entry: [
-          actions.log('states.idle.entry' , MACHINE_NAME),
+          actions.log('states.idle.entry', MACHINE_NAME),
           Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
@@ -139,22 +139,22 @@ function machineFactory (
       },
       [States.reporting]: {
         entry: [
-          actions.log(ctx => `states.reporting.entry feedbacks(${ctxFeedbacksNum(ctx)})` , MACHINE_NAME),
+          actions.log(ctx => `states.reporting.entry feedbacks(${ctxFeedbacksNum(ctx)})`, MACHINE_NAME),
           actions.choose<Context, any>([
             {
               cond: ctx => ctxFeedbacksNum(ctx) > 0,
               actions: [
-                actions.log(`states.reporting.entry -> [FEEDBACKS], [IDLE]` , MACHINE_NAME),
+                actions.log('states.reporting.entry -> [FEEDBACKS], [IDLE]', MACHINE_NAME),
                 Mailbox.Actions.reply(ctx => Events.FEEDBACKS(ctx.feedbacks)),
                 actions.send(Events.IDLE()),
               ],
             },
             {
               actions: [
-                actions.log(`states.reporting.entry -> [PROCESS]` , MACHINE_NAME),
+                actions.log('states.reporting.entry -> [PROCESS]', MACHINE_NAME),
                 actions.send(Events.PROCESS()),
               ],
-            }
+            },
           ]),
         ],
         on: {

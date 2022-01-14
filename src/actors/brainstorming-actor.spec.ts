@@ -46,7 +46,7 @@ test('Brainstorming actor smoke testing', async t => {
     })
 
     const server = new WebSocketServer({
-      port: 8888
+      port: 8888,
     })
 
     inspect({ server })

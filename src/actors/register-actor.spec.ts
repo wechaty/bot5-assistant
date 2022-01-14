@@ -28,7 +28,7 @@ import * as Mailbox from '../mailbox/mod.js'
 import * as Register from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
-  const registerMachine = Register.machineFactory(Mailbox.nullAddress, Mailbox.nullLogger)
+  const registerMachine = Register.machineFactory(Mailbox.nullAddress)
   const REGISTER_MACHINE_ID = 'register-machine-id'
   const PROXY_MACHINE_ID = 'proxy-machine-id'
   const proxyMachine = createMachine({
@@ -181,7 +181,7 @@ test('registerActor smoke testing', async t => {
   const wechatyMailbox = Mailbox.from(createMachine<{}>({}))
   wechatyMailbox.acquire()
 
-  const registerMachine = Register.machineFactory(wechatyMailbox.address, () => {})
+  const registerMachine = Register.machineFactory(wechatyMailbox.address)
   const registerActor = Mailbox.wrap(registerMachine)
 
   const CHILD_ID = 'testing-child-id'
@@ -236,7 +236,7 @@ test('registerActor smoke testing', async t => {
     t.same(
       eventList.map(e => e.type),
       [
-        Types.MESSAGE
+        Types.MESSAGE,
       ],
       'should receive mailbox events for processing the new MESSAGE event',
     )
@@ -263,7 +263,7 @@ test('registerActor smoke testing', async t => {
       interpreter.onEvent(e => {
         // console.info('event:', e)
         if (e.type === Types.CONTACTS) {
-         resolve()
+          resolve()
         }
       }),
     )

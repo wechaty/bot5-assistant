@@ -107,9 +107,9 @@ test('feedbackMachine smoke testing', async t => {
     /**
      * Send CONTACTS event
      */
-     proxyEventList.length = 0
-     feedbackEventList.length = 0
-     feedbackRef.send(
+    proxyEventList.length = 0
+    feedbackEventList.length = 0
+    feedbackRef.send(
       Events.CONTACTS(FIXTURES.members),
     )
     t.same(
@@ -259,8 +259,8 @@ test('feedbackActor smoke testing', async t => {
     on: {
       '*': {
         actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
-      }
-    }
+      },
+    },
   })
 
   const eventList: AnyEventObject[] = []

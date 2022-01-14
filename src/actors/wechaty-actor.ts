@@ -103,7 +103,7 @@ const machineFactory = (
             gerror: (_, e) => GError.stringify(e.data),
           }),
           target: States.erroring,
-        }
+        },
       },
     },
   },

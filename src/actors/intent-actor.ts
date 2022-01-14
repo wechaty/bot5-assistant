@@ -64,7 +64,7 @@ function machineFactory (logger: Mailbox.Options['logger']) {
           [Types.MESSAGE]: {
             actions: [
               actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
-              actions.assign({ message: (_, event) => event.payload.message })
+              actions.assign({ message: (_, event) => event.payload.message }),
             ],
             target: States.checking,
           },
@@ -111,9 +111,9 @@ function machineFactory (logger: Mailbox.Options['logger']) {
             actions: [
               actions.assign({ gerror: (_, event) => event.data }),
             ],
-            target: States.erroring
-          }
-        }
+            target: States.erroring,
+          },
+        },
       },
       [States.understanding]: {
         entry: [
