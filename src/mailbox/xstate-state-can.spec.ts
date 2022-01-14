@@ -23,7 +23,7 @@ test('state.can() machine with a TEST event', async t => {
   const interpreter = interpret(testMachine)
 
   interpreter.start()
-  let snapshot = interpreter.getSnapshot()
+  const snapshot = interpreter.getSnapshot()
 
   t.ok(snapshot.can('TEST'), 'should be able to send event TEST')
   t.notOk(snapshot.can('XXX'), 'should not be able to send event XXX')
@@ -41,7 +41,7 @@ test('state.can() machine with a * event', async t => {
   const interpreter = interpret(testMachine)
 
   interpreter.start()
-  let snapshot = interpreter.getSnapshot()
+  const snapshot = interpreter.getSnapshot()
 
   t.ok(snapshot.can('TEST'), 'should be able to send event TESST')
   t.ok(snapshot.can('XXX'), 'should be able to send event XXX')

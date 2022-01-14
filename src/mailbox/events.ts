@@ -27,7 +27,7 @@ const payloadDequeue    = (message: contexts.AnyEventObjectExt) => ({ message })
  * payload of: debugging
  */
 const payloadReset      = (debug?: string) => ({ debug })
-const payloadDeadLetter = (message: AnyEventObject, debug?: string,) => ({ message, debug })
+const payloadDeadLetter = (message: AnyEventObject, debug?: string) => ({ message, debug })
 
 const Events = {
   /**

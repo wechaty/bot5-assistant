@@ -9,7 +9,7 @@ import {
   GuardMeta,
   createMachine,
   interpret,
-}                   from "xstate"
+}                   from 'xstate'
 
 interface Address {
   send<TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
@@ -77,14 +77,14 @@ const nullInterpreter = interpret(nullMachine)
 nullInterpreter.start()
 
 const nullAddress: Address = {
+  condNotOrigin: () => () => false,
   send: <TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
     event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-    options?: SendActionOptions<TContext, TEvent>
+    options?: SendActionOptions<TContext, TEvent>,
   ) => actions.send(event, {
     ...options,
     to: nullInterpreter.sessionId,
   }),
-  condNotOrigin: () => () => false,
 }
 
 export {

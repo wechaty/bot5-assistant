@@ -9,10 +9,13 @@ import {
   actions,
 }                   from 'xstate'
 
-import { Types } from './types.js'
-import { Events } from './events.js'
-import * as contexts from './contexts.js'
-import { isMailboxType } from './types.js'
+import {
+  Types,
+  isMailboxType,
+}                     from './types.js'
+import { Events }     from './events.js'
+import * as contexts  from './contexts.js'
+
 /**
  * Make the machine the child of the container to ready for testing
  *  because the machine need to use `sendParent` to send events to parent
@@ -37,6 +40,7 @@ function container (machine: StateMachine<any, any, any>) {
                *
                *  Send all other events to the child
                */
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               cond: (_, e, meta) => true
                 && !isMailboxType(e.type)
                 && !contexts.condEventSentFromChildOf(CHILD_ID)(meta),
@@ -53,9 +57,9 @@ function container (machine: StateMachine<any, any, any>) {
 }
 
 /**
- * Initialization with RECEIVE event
+ * Initialization with CHILD_IDLE event
  *
- * A mailbox-addressable machine MUST send parent RECEIVE right after it has been initialized
+ * A mailbox-addressable machine MUST send parent CHILD_IDLE right after it has been initialized
  *  (or the mailbox can not know when the machine is ready to process events)
  *
  */
@@ -77,16 +81,16 @@ function validateInitializing (
     .filter(type => EXPECTED_INIT_EVENT_TYPES.includes(type))
 
   /**
-   * A mailbox-addressable machine MUST send parent RECEIVE right after it has been initialized
+   * A mailbox-addressable machine MUST send parent CHILD_IDLE right after it has been initialized
    */
-  assert.deepEqual(actualInitEvents, EXPECTED_INIT_EVENT_TYPES, 'should send parent RECEIVE right after it has been initialized')
+  assert.deepEqual(actualInitEvents, EXPECTED_INIT_EVENT_TYPES, 'should send parent CHILD_IDLE right after it has been initialized')
 
   return [interpreter, eventList] as const
 }
 
 /**
- * Response each event with RECEIVE event
- *  one event will get one RECEIVE event back
+ * Response each event with CHILD_IDLE event
+ *  one event will get one CHILD_IDLE event back
  */
 function validateReceiveFormOtherEvent (
   interpreter: Interpreter<any>,
@@ -100,17 +104,17 @@ function validateReceiveFormOtherEvent (
   const actualIdleEvents = eventList
     .map(e => e.type)
     .filter(t => t === Types.CHILD_IDLE)
-  const EXPECTED_RECEIVE_EVENTS = [Types.CHILD_IDLE]
+  const EXPECTED_CHILD_IDLE_EVENTS = [Types.CHILD_IDLE]
   assert.deepEqual(
     actualIdleEvents,
-    EXPECTED_RECEIVE_EVENTS,
-    'Mailbox need the child machine to respond RECEIVE event to parent immediately whenever it has received one other event',
+    EXPECTED_CHILD_IDLE_EVENTS,
+    'Mailbox need the child machine to respond CHILD_IDLE event to parent immediately whenever it has received one other event',
   )
 }
 
 /**
- * Response each event with RECEIVE event
- *  ten events will get ten RECEIVE events back
+ * Response each event with CHILD_IDLE event
+ *  ten events will get ten CHILD_IDLE events back
  */
 function validateReceiveFormOtherEvents (
   interpreter: Interpreter<any>,
@@ -122,14 +126,14 @@ function validateReceiveFormOtherEvents (
     .map(i => String(
       i + Math.random(),
     ))
-  const EXPECTED_RECEIVE_EVENTS = Array
+  const EXPECTED_CHILD_IDLE_EVENTS = Array
     .from({ length: TOTAL_EVENT_NUM })
     .fill(Types.CHILD_IDLE)
   interpreter.send(randomEvents)
   const actualIdelEvents = eventList
     .map(e => e.type)
     .filter(t => t === Types.CHILD_IDLE)
-  assert.deepEqual(actualIdelEvents, EXPECTED_RECEIVE_EVENTS, `should send ${TOTAL_EVENT_NUM} RECEIVE events to parent when it has finished process ${TOTAL_EVENT_NUM} of other events`)
+  assert.deepEqual(actualIdelEvents, EXPECTED_CHILD_IDLE_EVENTS, `should send ${TOTAL_EVENT_NUM} CHILD_IDLE events to parent when it has finished process ${TOTAL_EVENT_NUM} of other events`)
 }
 
 /**
@@ -157,7 +161,7 @@ function validateSkipMailboxEvents (
  *
  * Validate a state machine for satisfying the Mailbox address protocol:
  *  1. skip all EVENTs send from mailbox itself (Mailbox.*)
- *  2. send parent `Events.RECEIVE()` event after each received events and back to the idle state
+ *  2. send parent `Events.CHILD_IDLE()` event after each received events and back to the idle state
  *
  * @returns
  *  Success: will return true
@@ -177,14 +181,14 @@ function validate (
   const [interpreter, eventList] = validateInitializing(parentMachine)
 
   /**
-   * Response each event with RECEIVE event
+   * Response each event with CHILD_IDLE event
    *
-   * a mailbox-addressable machine MUST send RECEIVE event to parent when it has finished process an event
+   * a mailbox-addressable machine MUST send CHILD_IDLE event to parent when it has finished process an event
    *  (or the mailbox will stop sending any new events to it because it stays in busy state)
    */
   validateReceiveFormOtherEvent(interpreter, eventList)
   /**
-   * Multiple events will get multiple RECEIVE event back
+   * Multiple events will get multiple CHILD_IDLE event back
    */
   validateReceiveFormOtherEvents(interpreter, eventList)
 

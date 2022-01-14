@@ -55,7 +55,6 @@ test('xstate machine with spawn-ed & invoked child machine order testing for ent
     'parentMachine.entry',
   ], 'should call entry actions in order')
 
-
   spy.resetHistory()
   interpreter.stop()
   t.same(spy.args.map(a => a[0]), [

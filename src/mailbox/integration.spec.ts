@@ -17,8 +17,9 @@ import {
 import * as Mailbox     from './mod.js'
 import * as DingDong    from './ding-dong-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
+import { isMailboxType } from './types.js'
 
-test('Mailbox.address(DingDong.machine) as an actor should enforce process messages one by one', async t => {
+test('Mailbox.from(DingDong.machine) as an actor should enforce process messages one by one', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -27,9 +28,9 @@ test('Mailbox.address(DingDong.machine) as an actor should enforce process messa
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.Events.DING(i))
   const DONG_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.Events.DONG(i))
 
-  const interpreter = interpret(
-    Mailbox.address(DingDong.machine),
-  )
+  const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
+  mailbox.acquire()
+  const interpreter = mailbox.debug.interpreter!
 
   const eventList: AnyEventObject[] = []
   interpreter
@@ -67,12 +68,15 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
     DingDong.Events.DONG(i),
   )
 
+  const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
+  const machine = mailbox.debug.machine
+
   const CHILD_ID = 'mailbox-child-id'
 
   const parentMachine = createMachine({
     invoke: {
       id: CHILD_ID,
-      src: Mailbox.address(DingDong.machine),
+      src: machine,
       /**
        * Huan(202112): autoForward event will not set `origin` to the forwarder.
        *  think it like a SNAT/DNAT in iptables?
@@ -117,7 +121,7 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
   sandbox.restore()
 })
 
-test('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process messages one by one', async t => {
+test('Mailbox.from(CoffeeMaker.machine) as an actor should enforce process messages one by one', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -131,9 +135,9 @@ test('Mailbox.address(CoffeeMaker.machine) as an actor should enforce process me
     CoffeeMaker.Events.COFFEE(String(i)),
   )
 
-  const interpreter = interpret(
-    Mailbox.address(CoffeeMaker.machine),
-  )
+  const mailbox = Mailbox.from(CoffeeMaker.machine) as Mailbox.MailboxImpl
+  mailbox.acquire()
+  const interpreter = mailbox.debug.interpreter!
 
   const eventList: AnyEventObject[] = []
 

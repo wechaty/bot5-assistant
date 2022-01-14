@@ -48,7 +48,7 @@ test('reply()', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
-  await new Promise(r => setTimeout(r, 0))
+  await new Promise(resolve => setTimeout(resolve, 0))
   t.same(
     eventList,
     [

@@ -9,16 +9,11 @@ import {
 import {
   interpret,
   createMachine,
-  spawn,
   actions,
-  ActorRef,
   AnyEventObject,
 }                   from 'xstate'
 
 test('two xstate machine interpreter can exchange events', async t => {
-  const sandbox = sinon.createSandbox()
-  const spy = sandbox.spy()
-
   const testMachine = createMachine({
     on: {
       TEST: {

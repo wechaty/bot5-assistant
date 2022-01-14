@@ -60,7 +60,7 @@ interface Context {
 /**
  * use JSON.parse() to prevent the initial context from being changed
  */
- function initialContext (): Context {
+function initialContext (): Context {
   const context: Context = {
     message  : undefined,
     queue    : [],
@@ -73,7 +73,7 @@ interface Context {
   )
 }
 
-const metaOrigin = (event?: null | AnyEventObjectExt) => event && event[metaSymKey].origin || ''
+const metaOrigin = (event?: null | AnyEventObjectExt) => (event && event[metaSymKey].origin) || ''
 
 const wrapEvent = (event: AnyEventObject, origin?: string) => {
   const wrappedEvent = ({
@@ -150,14 +150,10 @@ const sendChildReply = (machineName: string) => actions.choose<Context, ReturnTy
      * I. validate the event, make it as the reply of actor if it valid
      */
     cond: (ctx, _, { _event, state }) =>
-      true
       // 1. current event is sent from CHILD_MACHINE_ID
-      && (!!_event.origin && _event.origin === childSessionIdOf(MAILBOX_TARGET_MACHINE_ID)(state.children))
-      // // 2. has a message for which we are going to reply to
-      // && !!childMessage(ctx)
-      // 3. the message has valid origin for which we are going to reply to
-      && !!childMessageOrigin(ctx)
-    ,
+      (!!_event.origin && _event.origin === childSessionIdOf(MAILBOX_TARGET_MACHINE_ID)(state.children))
+      // 2. the message has valid origin for which we are going to reply to
+      && !!childMessageOrigin(ctx),
     actions: [
       actions.log((ctx, e) => `contexts.sendChildReply [${e.payload.message.type}] to [${childMessage(ctx)?.type}]@${childMessageOrigin(ctx)}`, machineName),
       actions.send(
@@ -281,9 +277,9 @@ const queueAcceptingMessageWithCapacity = (machineName: string) => (capacity = I
  *
  *************************/
 
- const childMessage       = (ctx: Context) => ctx.message
- const childMessageOrigin = (ctx: Context) => metaOrigin(childMessage(ctx))
- const childMessageType   = (ctx: Context) => childMessage(ctx)?.type
+const childMessage        = (ctx: Context) => ctx.message
+const childMessageOrigin  = (ctx: Context) => metaOrigin(childMessage(ctx))
+const childMessageType    = (ctx: Context) => childMessage(ctx)?.type
 
 const assignChildMessage = actions.assign<Context, ReturnType<typeof Events.DEQUEUE>>({
   message: (_, e) => e.payload.message,
@@ -340,4 +336,4 @@ export {
    */
   condEventSentFromChildOf,
   condEventCanBeAcceptedByChildOf,
-  }
+}

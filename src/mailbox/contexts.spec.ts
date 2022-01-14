@@ -28,7 +28,7 @@ test('assignEnqueue', async t => {
 
   t.equal(contexts.assignEnqueue.type, 'xstate.assign', 'should be in `assign` type')
 
-  const queue = (contexts.assignEnqueue.assignment as any).queue(CONTEXT, EVENT, { _event: { origin: 'test-origin' }})
+  const queue = (contexts.assignEnqueue.assignment as any).queue(CONTEXT, EVENT, { _event: { origin: 'test-origin' } })
   t.same(queue, [EVENT], 'should enqueue event to context.queue')
 })
 
@@ -84,17 +84,14 @@ test('condEventSentFromChildOf', async t => {
 
   const META = {
     _event: _EVENT,
-    state: { children: CHILDREN }
+    state: { children: CHILDREN },
   } as GuardMeta<any, any>
 
   t.ok(contexts.condEventSentFromChildOf(MAILBOX_TARGET_MACHINE_ID)(META), 'should return true if the event origin is the child session id')
-  t.ok(contexts.condEventSentFromChildOf()(META), 'should return true if the event origin is the child session id (with empty child id for using the default value)')
 
   META._event.origin = undefined
   t.notOk(contexts.condEventSentFromChildOf(MAILBOX_TARGET_MACHINE_ID)(META), 'should return false if the event origin is undefined')
-  t.notOk(contexts.condEventSentFromChildOf()(META), 'should return false if the event origin is undefined (with empty child id for using the default value)')
 })
-
 
 test('condEventCanBeAcceptedByChildOf()', async t => {
   const CHILD_ID = 'child-id-testing'
