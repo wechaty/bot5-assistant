@@ -3,16 +3,12 @@
 
 import {
   test,
-  sinon,
 }                   from 'tstest'
 import {
   actions,
-  ActorRef,
   AnyEventObject,
   createMachine,
-  GuardMeta,
   interpret,
-  SCXML,
 }                 from 'xstate'
 
 import { Actions as MailboxActions } from './actions.js'

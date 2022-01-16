@@ -50,7 +50,7 @@ const reply: typeof actions.sendParent = (event, options) => {
    *
    * add a `delay:0` when sending reply events to put the send action to the next tick
    */
-  const delayOptions: SendActionOptions<any, any> = {
+  const delayedOptions: SendActionOptions<any, any> = {
     delay: 0,
     ...options,
   }
@@ -58,12 +58,12 @@ const reply: typeof actions.sendParent = (event, options) => {
   if (typeof event === 'function') {
     return actions.sendParent(
       (ctx, e, meta) => Events.CHILD_REPLY(event(ctx, e, meta)),
-      delayOptions,
+      delayedOptions,
     )
   } else if (typeof event === 'string') {
     return actions.sendParent(
       Events.CHILD_REPLY({ type: event }),
-      delayOptions,
+      delayedOptions,
     )
   } else {
     return actions.sendParent(
@@ -74,7 +74,7 @@ const reply: typeof actions.sendParent = (event, options) => {
        *  @link https://stackoverflow.com/a/56701587/1123955
        */
       Events.CHILD_REPLY(event) as any,
-      delayOptions,
+      delayedOptions,
     )
   }
 }
