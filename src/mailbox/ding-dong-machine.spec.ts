@@ -65,8 +65,8 @@ test('DingDong.machine process one DING event', async t => {
   t.same(
     eventList,
     [
-      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(1)),
       Mailbox.Events.CHILD_IDLE('idle'),
+      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(1)),
     ],
     'should have received DONG/RECEIVE events after runAllAsync',
   )

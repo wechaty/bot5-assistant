@@ -113,7 +113,7 @@ test.only('XState machine will lost incoming messages(events) when receiving mul
     .onTransition(s => eventList.push(s.event))
     .start()
 
-    MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
+  MAKE_ME_COFFEE_EVENT_LIST.forEach(e => interpreter.send(e))
 
   await sandbox.clock.runAllAsync()
   // eventList.forEach(e => console.info(e))
