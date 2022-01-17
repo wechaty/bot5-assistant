@@ -1,9 +1,6 @@
 /* eslint-disable sort-keys */
 import {
   createAction,
-  isActionOf,
-  isOfType,
-  // createAsyncAction,
 }                         from 'typesafe-actions'
 import type {
   Message,
@@ -42,7 +39,7 @@ const payloadData      = (data: any) => ({ data })
 const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
-const payloadFeedback  = (contactId: string, feedback: string ) => ({ contactId, feedback, })
+const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
 
 const payloadIntroduce = () => ({})
 const payloadReport    = () => ({})

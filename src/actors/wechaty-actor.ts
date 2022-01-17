@@ -6,7 +6,6 @@ import {
 import {
   isActionOf,
 }                   from 'typesafe-actions'
-import type { Logger } from 'brolog'
 import type {
   Wechaty,
 }                   from 'wechaty'

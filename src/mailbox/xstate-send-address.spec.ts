@@ -3,7 +3,6 @@
 
 import {
   test,
-  sinon,
 }                   from 'tstest'
 
 import {

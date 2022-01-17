@@ -27,14 +27,14 @@ function resolveAll (
   logger          : Mailbox.Options['logger'],
 ) {
   return {
+    logger,
     mailbox: {
-      wechaty:  wechatyMailbox,
-      intent:   intentMailbox,
       feedback: feedbackMailbox,
+      intent:   intentMailbox,
       register: registerMailbox,
+      wechaty:  wechatyMailbox,
     },
     wechaty,
-    logger,
   }
 }
 

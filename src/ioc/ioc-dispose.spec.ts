@@ -40,8 +40,8 @@ test('dispose()', async t => {
   await injector.dispose()
 
   t.same(spy.args, [
-    [ 'fooFactory()' ],
-    [ 'test()' ],
-    [ '~fooFactory()' ]
+    ['fooFactory()'],
+    ['test()'],
+    ['~fooFactory()'],
   ], 'should dispose all factories')
 })

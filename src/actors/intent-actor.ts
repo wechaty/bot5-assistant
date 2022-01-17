@@ -41,7 +41,7 @@ type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 const MACHINE_NAME = 'IntentMachine'
 
-function machineFactory (logger: Mailbox.Options['logger']) {
+function machineFactory () {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
     initial: States.idle,
@@ -158,7 +158,7 @@ mailboxFactory.inject = [
 function mailboxFactory (
   logger: Mailbox.Options['logger'],
 ) {
-  const machine = machineFactory(logger)
+  const machine = machineFactory()
 
   const mailbox = Mailbox.from(machine, { logger })
   mailbox.acquire()

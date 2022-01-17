@@ -57,25 +57,28 @@ const machine = createMachine<Context, Event>({
           send(Events.PONG())
         }
       })
-    }
+    },
   },
   states: {
     [States.inactive]: {
       after: {
-        1000: States.active
-      }
+        1000: States.active,
+      },
     },
     [States.active]: {
-      entry: actions.send(Events.PING(), { to: PONGER_ID, delay: 1000 }),
+      entry: actions.send(Events.PING(), {
+        delay: 1000,
+        to: PONGER_ID,
+      }),
       on: {
         [Types.PONG]: States.inactive,
-      }
-    }
-  }
+      },
+    },
+  },
 })
 
 const server = new WebSocketServer({
-  port: 8888
+  port: 8888,
 })
 
 inspect({ server })

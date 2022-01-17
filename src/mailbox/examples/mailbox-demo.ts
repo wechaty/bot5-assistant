@@ -1,10 +1,10 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
+/* eslint-disable sort-keys */
 import * as Mailbox from '../mod.js'
 import {
   actions,
   createMachine,
   interpret,
-  StateMachine,
 }                   from 'xstate'
 
 /**
@@ -32,9 +32,12 @@ const demoMachine = (withMailbox = false) => createMachine<{}>({
        *  to the `entry` of the state which your machine can accept new messages,
        *  so that the Mailbox can know the machine are ready to receive new messages from other actors.
        */
-      entry: actions.choose([{ cond: _ => withMailbox,
-        actions: Mailbox.Actions.idle('DemoMachine')('idle'),
-      }]),
+      entry: actions.choose([
+        {
+          cond: _ => withMailbox,
+          actions: Mailbox.Actions.idle('DemoMachine')('idle'),
+        },
+      ]),
       on: {
         '*': {
           /**
@@ -42,8 +45,8 @@ const demoMachine = (withMailbox = false) => createMachine<{}>({
            *  when it finished processing any messages,
            *  to trigger the `entry` action run again.
            */
-          target: 'idle',
           actions: actions.log('make sure the idle state will be re-entry with external trainsition when receiving event'),
+          target: 'idle',
         },
         TASK: 'busy',
       },
@@ -54,9 +57,12 @@ const demoMachine = (withMailbox = false) => createMachine<{}>({
        *  to reply TASK_RECEIVED (or any EVENTs) to other actors.
        */
       entry: [
-        actions.choose([{ cond: _ => withMailbox,
-          actions: Mailbox.Actions.reply('TASK_RECEIVED'),
-        }]),
+        actions.choose([
+          {
+            cond: _ => withMailbox,
+            actions: Mailbox.Actions.reply('TASK_RECEIVED'),
+          },
+        ]),
         _ => console.info('TASK_RECEIVED'),
       ],
       after: {
@@ -69,41 +75,39 @@ const demoMachine = (withMailbox = false) => createMachine<{}>({
 /**
  * Normal machine without Mailbox
  */
-const machine = demoMachine(false)
+const rawMachine = demoMachine(false)
+const rawInterpreter = interpret(rawMachine, { logger: () => {} })
+rawInterpreter.start()
 
 /**
  * machine with Mailbox (async queue protocol support)
  */
-const actor = Mailbox.from(demoMachine(true))
+const actorMailbox = Mailbox.from(demoMachine(true), { logger: () => {} })
+actorMailbox.acquire()
 
 /**
- * send two events to the machine
+ * send two events for testing/demonstration
  */
-const testEvents = async (target: StateMachine<any, any, any>) => {
-  const interpreter = interpret(target, { logger: () => {} })
-    .start()
-
-  Array(2).fill('TASK').forEach(e => {
-    console.info('sending', e)
-    interpreter.send(e)
+const callTwice = async (send: () => void) => {
+  ;[...Array(2).keys()].forEach(i => {
+    console.info(`> sending event #${i}`)
+    send()
   })
   await new Promise(resolve => setTimeout(resolve, 30))
-
-  interpreter.stop()
 }
 
 /**
  * For normal machine, it will only response the first event
  */
-console.info('# testing raw machine ...')
-await testEvents(machine)
+console.info('# testing the raw machine ... (a raw machine will only be able to response the first event)')
+await callTwice(rawInterpreter.sender('TASK'))
 console.info('# testing raw machine ... done\n')
 
 /**
- * for a Mailbox-ed machine, it will response all events by processing it one by one.
+ * for a Mailbox-ed machine(actor), it will response all events by processing it one by one.
  */
-console.info('# testing mailbox-ed machine ...')
-await testEvents(actor)
+console.info('# testing the mailbox-ed(actor) machine ... (an actor will be able to response two events one by one)')
+await callTwice(() => actorMailbox.send('TASK'))
 console.info('# testing mailbox-ed machine ... done\n')
 
 /**

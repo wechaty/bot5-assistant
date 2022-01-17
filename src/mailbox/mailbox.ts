@@ -59,6 +59,7 @@ interface Interface<
   on (name: 'event', listener: (event: TEvent) => void): void
   acquire (): void
   dispose (): void
+  send (event: TEvent | TEvent['type']): void
 }
 
 /**
@@ -153,7 +154,7 @@ class MailboxImpl<
   /**
    * Send EVENT to the Mailbox Address
    */
-  send (event: TEvent): void {
+  send (event: TEvent | TEvent['type']): void {
     this._interpreter.send(event)
   }
 

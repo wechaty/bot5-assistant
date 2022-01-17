@@ -1,7 +1,7 @@
 import {
   Wechaty,
-  type,
   log,
+  types,
   WechatyPlugin,
 }                 from 'wechaty'
 
@@ -44,7 +44,7 @@ export function Bot5Assistant (config: Bot5AssistantConfig): WechatyPlugin {
       /**
        * message validation
        */
-      if (message.type() !== type.Message.Text) { return }
+      if (message.type() !== types.Message.Text) { return }
       if (message.self())                       { return }
 
       const room  = message.room()

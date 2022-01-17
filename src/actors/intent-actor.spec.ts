@@ -44,7 +44,7 @@ test('intentMachine happy path smoke testing', async t => {
     const parentMachine = createMachine({
       invoke: {
         id: CHILD_ID,
-        src: IntentActor.machineFactory(Mailbox.nullLogger),
+        src: IntentActor.machineFactory(),
       },
       on: {
         '*': {
