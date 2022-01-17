@@ -69,8 +69,9 @@ class MailboxImpl<
   TEvent extends EventObject = EventObject,
 >
   extends EventEmitter
-  implements Interface, Disposable
-{
+  implements
+    Interface,
+    Disposable {
 
   /**
    * XState interpreter
@@ -145,7 +146,7 @@ class MailboxImpl<
       machine: this._wrappedMachine,
       target: {
         machine: this._targetMachine,
-      }
+      },
     }
   }
 

@@ -33,9 +33,8 @@ import {
 import * as Mailbox  from './mod.js'
 import * as Baby   from './baby-machine.fixture.js'
 import * as DingDong from './ding-dong-machine.fixture.js'
-import { isActionOf } from 'typesafe-actions'
 
-test('Mailbox.from() smoke testing', async t => {
+test('Mailbox.from() smoke testing (w/BabyMachine)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -52,7 +51,7 @@ test('Mailbox.from() smoke testing', async t => {
             actions: [
               mailbox.address.send((_, e) => e),
             ],
-          }
+          },
         ]),
       },
     },
@@ -64,16 +63,18 @@ test('Mailbox.from() smoke testing', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
+  const SLEEP_EVENT = Baby.Events.SLEEP(10)
   eventList.length = 0
-  interpreter.send(Baby.Events.SLEEP(10))
+  interpreter.send(SLEEP_EVENT)
   t.same(
     eventList,
     [
-      Baby.Events.SLEEP(10),
-      Baby.Events.REST(),
-      Baby.Events.DREAM(),
+      SLEEP_EVENT,
+      // Baby.Events.REST(),
+      // Baby.Events.DREAM(),
     ],
-    'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep',
+    // 'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep',
+    'should receive the 1st EVENT sleep',
   )
 
   // // console.info(
@@ -86,13 +87,16 @@ test('Mailbox.from() smoke testing', async t => {
   t.same(
     eventList,
     [
+      Baby.Events.EAT(),
+      Baby.Events.REST(),
+      Baby.Events.DREAM(),
       Baby.Events.CRY(),
     ],
-    'should receive event child.Types.CRY after before wakeup',
+    'should receive baby events before wakeup',
   )
 
   eventList.length = 0
-  await sandbox.clock.tickAsync(1)
+  await sandbox.clock.tickAsync(2)
   t.same(
     eventList,
     [
@@ -105,7 +109,7 @@ test('Mailbox.from() smoke testing', async t => {
   sandbox.restore()
 })
 
-test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
+test('mailbox address interpret smoke testing: 3 parallel EVENTs (w/BabyMachine)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -122,7 +126,7 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
             actions: [
               mailbox.address.send((_, e) => e),
             ],
-          }
+          },
         ]),
       },
     },
@@ -140,10 +144,8 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
     eventList,
     [
       Baby.Events.SLEEP(10),
-      Baby.Events.REST(),
-      Baby.Events.DREAM(),
     ],
-    'should received DEAD_LETTER with REST and DREAM event',
+    'should received SLEEP event',
   )
 
   eventList.length = 0
@@ -158,13 +160,12 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   t.same(
     eventList,
     [
-      Baby.Events.CRY(),
-      Baby.Events.PEE(),
-      Baby.Events.PLAY(),
+      Baby.Events.EAT(),
       Baby.Events.REST(),
       Baby.Events.DREAM(),
+      Baby.Events.CRY(),
     ],
-    'should right enter 2nd SLEEP after 10 ms',
+    'should before enter 2nd SLEEP after 10 ms',
   )
   // console.info('#### queue:', snapshot.context.queue)
 
@@ -176,11 +177,14 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
   t.same(
     eventList,
     [
-      Baby.Events.CRY(),
       Baby.Events.PEE(),
       Baby.Events.PLAY(),
+      Baby.Events.EAT(),
+      Baby.Events.REST(),
+      Baby.Events.DREAM(),
+      Baby.Events.CRY(),
     ],
-    'should right enter 3rd SLEEP after another 20 ms',
+    'should before enter 3rd SLEEP after another 20 ms',
   )
 
   /**
@@ -188,13 +192,16 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
    */
   eventList.length = 0
   await sandbox.clock.tickAsync(30)
-  t.same(eventList, [], 'should be empty')
+  t.same(eventList, [
+    Baby.Events.PEE(),
+    Baby.Events.PLAY(),
+  ], 'should enter wakeup state')
 
   mailbox.dispose()
   sandbox.restore()
 })
 
-test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t => {
+test('mailbox address interpret smoke testing: 3 EVENTs with respond (w/BabyMachine)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -211,7 +218,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
             actions: [
               mailbox.address.send((_, e) => e),
             ],
-          }
+          },
         ]),
       },
     },
@@ -236,11 +243,10 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
       .map(e => e.type)
       .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
+      Baby.Types.EAT,
       Baby.Types.REST,
       Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 1st 10 ms',
   )
@@ -249,14 +255,15 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   await sandbox.clock.tickAsync(10)
   t.same(
     eventList
-    .map(e => e.type)
-    .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .map(e => e.type)
+      .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
       Baby.Types.PEE,
       Baby.Types.PLAY,
+      Baby.Types.EAT,
       Baby.Types.REST,
       Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 2nd 10 ms',
   )
@@ -265,12 +272,15 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   await sandbox.clock.tickAsync(10)
   t.same(
     eventList
-    .map(e => e.type)
-    .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .map(e => e.type)
+      .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
       Baby.Types.PEE,
       Baby.Types.PLAY,
+      Baby.Types.EAT,
+      Baby.Types.REST,
+      Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should receive event child.events.PLAY after 3rd 10 ms',
   )
@@ -279,7 +289,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   sandbox.restore()
 })
 
-test('Mailbox Address smoke testing', async t => {
+test('Mailbox Address smoke testing (w/DingDongMachine)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
@@ -314,7 +324,7 @@ test('Mailbox Address smoke testing', async t => {
   sandbox.restore()
 })
 
-test('Mailbox debug properties smoke testing', async t => {
+test('Mailbox debug properties smoke testing (w/DingDongMachine)', async t => {
   const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
   t.ok(mailbox.debug.machine, 'should has machine')
   t.same(mailbox.debug.target.machine, DingDong.machine, 'should has target machine')
