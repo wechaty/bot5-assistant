@@ -22,12 +22,12 @@ import {
   Intent,
 }                   from '../schemas/mod.js'
 
-test('intentMachine happy path smoke testing', async t => {
+test('IntentActor happy path smoke testing', async t => {
   for await (const fixtures of createFixture()) {
     const {
-      mocker,
-      wechaty,
-    }           = fixtures
+      mocker  : mockerFixtures,
+      wechaty : wechatyFixtures,
+    } = fixtures
 
     const sandbox = sinon.createSandbox({
       useFakeTimers: true,
@@ -60,7 +60,7 @@ test('intentMachine happy path smoke testing', async t => {
       .onEvent(e => eventList.push(e))
       .start()
 
-    wechaty.bot.on('message', msg => {
+    wechatyFixtures.bot.on('message', msg => {
       interpreter.send(
         Events.MESSAGE(msg),
       )
@@ -68,7 +68,7 @@ test('intentMachine happy path smoke testing', async t => {
 
     for (const [text, expectedIntents] of FIXTURES) {
       eventList.length = 0
-      mocker.player.say(text).to(mocker.bot)
+      mockerFixtures.player.say(text).to(mockerFixtures.bot)
       await sandbox.clock.runToLastAsync()
 
       // console.info(eventList)

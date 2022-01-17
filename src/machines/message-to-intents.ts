@@ -5,6 +5,35 @@ import {
 
 import { Intent } from '../schemas/mod.js'
 
+const INTENT_PATTERNS = [
+  [
+    [
+      Intent.Start,
+    ],
+    [
+      /^\/start$/i,
+      /开始|开会/i,
+    ],
+  ],
+  [
+    [Intent.Stop],
+    [
+      /^\/stop$/i,
+      /开完|结束|结会|停止/i,
+    ],
+  ],
+  [
+    [
+      Intent.Start,
+      Intent.Stop,
+      Intent.Unknown,
+    ],
+    [
+      /^都可能/i,
+    ],
+  ],
+] as const
+
 const textToIntents = async (text?: string): Promise<Intent[]> => {
   const intentList: Intent[] = []
 
@@ -12,18 +41,12 @@ const textToIntents = async (text?: string): Promise<Intent[]> => {
     return intentList
   }
 
-  if (/^开始|start/i.test(text)) {
-    intentList.push(Intent.Start)
-  }
-
-  if (/^停止|stop/i.test(text)) {
-    intentList.push(Intent.Stop)
-  }
-
-  if (/^都可能/i.test(text)) {
-    intentList.push(Intent.Start)
-    intentList.push(Intent.Stop)
-    intentList.push(Intent.Unknown)
+  for (const [intents, res] of INTENT_PATTERNS) {
+    for (const regex of res) {
+      if (regex.test(text)) {
+        intentList.push(...intents)
+      }
+    }
   }
 
   return intentList

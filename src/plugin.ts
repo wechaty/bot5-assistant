@@ -10,15 +10,17 @@ import {
   talkers,
 }                         from 'wechaty-plugin-contrib'
 
+import * as Mailbox from './mailbox/mod.js'
+import * as Actors from './actors/mod.js'
+
 import type {
   Bot5AssistantConfig,
 }                         from './config.js'
 
 import { processMessage } from './bot5-qingyu.js'
-import { getInterpreter } from './fsm/meeting-interpreter.js'
 
 export interface Bot5AssistantContext {
-  fsm: ReturnType<typeof getInterpreter>
+  actor: Mailbox.Address
   wechaty: Wechaty,
 }
 
@@ -27,13 +29,13 @@ const dongOptions: talkers.MessageTalkerOptions = [
 ]
 
 export function Bot5Assistant (config: Bot5AssistantConfig): WechatyPlugin {
-  log.verbose('WechatyPluginContrib', 'Bot5Assistant(%s)', JSON.stringify(config))
+  log.verbose('bot5-assistant', 'Bot5Assistant(%s)', JSON.stringify(config))
 
   const isMeetingRoom = matchers.roomMatcher(config.room)
   const talkDong      = talkers.messageTalker<{ inMeeting: string }>(dongOptions)
 
   return function Bot5AssistantPlugin (wechaty: Wechaty) {
-    log.verbose('WechatyPluginContrib', 'Bot5Assistant() Bot5AssistantPlugin(%s)', wechaty)
+    log.verbose('bot5-assistant', 'Bot5Assistant() Bot5AssistantPlugin(%s)', wechaty)
 
     const context: Bot5AssistantContext = {
       fsm:      getInterpreter(wechaty),

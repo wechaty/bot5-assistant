@@ -4,8 +4,9 @@ enum States {
    *  @see https://limblecmms.com/blog/idle-time/
    */
   idle = 'bot5/idle',
-  busy = 'bot5-assisstant/busy',
+  busy = 'bot5/busy',
 
+  meeting = 'bot5/meeting',
   /**
    * Huan(202112): Recommended states transition for actors with Mailbox
    *  1. initializing / onDone: idle
@@ -15,7 +16,7 @@ enum States {
    */
   initializing  = 'bot5/initializing',
 
-  unknown = 'bot5-assisstant/unknown',
+  unknown = 'bot5/unknown',
 
   listening = 'bot5/listening',
   thinking = 'bot5/thinking',

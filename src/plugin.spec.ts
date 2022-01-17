@@ -10,6 +10,6 @@ import {
   Bot5Assistant,
 }                     from './plugin.js'
 
-test('VoteOut()', async t => {
+test('Bot5Assistant()', async t => {
   t.doesNotThrow(() => validatePlugin(Bot5Assistant), 'should pass the validation')
 })
