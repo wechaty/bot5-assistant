@@ -35,11 +35,14 @@ import {
 
 import { Types }    from './types.js'
 import { States }   from './states.js'
-import type { Events }   from './events.js'
+import { Events }   from './events.js'
+import type { Context }  from './contexts.js'
 
-import * as Baby   from './baby-machine.fixture.js'
+import * as Baby        from './baby-machine.fixture.js'
+import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 
 import { wrap }  from './wrap.js'
+import { stripPayloadDebug } from './test-utils.js'
 
 test('wrap() transition nextState smoke testing', async t => {
   const mailbox = wrap(Baby.machine)
@@ -65,13 +68,14 @@ test('wrap() transition nextState smoke testing', async t => {
   t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
 })
 
-test('Mailbox.address interpret smoke testing: 1 event', async t => {
+test('wrap interpret smoke testing: 1 event (with BabyMachine)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailboxAddress = wrap(Baby.machine)
-  const interpreter = interpret(mailboxAddress)
+  const targetMachine = wrap(Baby.machine)
+  const interpreter = interpret(targetMachine)
+  const targetContext = () => interpreter.getSnapshot().context as Context
 
   const eventList: AnyEventObject[] = []
   const stateList: State<any, any>[] = []
@@ -80,301 +84,335 @@ test('Mailbox.address interpret smoke testing: 1 event', async t => {
   interpreter.onTransition(s => stateList.push(s))
   interpreter.start()
 
-  t.same(stateList[stateList.length - 1]?.value, {
+  const SLEEP_MS = 10
+  const SLEEP_EVENT = Baby.Events.SLEEP(SLEEP_MS)
+
+  /**
+   * start (right after)
+   */
+  t.same(stateList.at(-1)?.value, {
     queue : States.listening,
     child : States.idle,
   }, 'should stay at idle state after start')
-  t.same(stateList[stateList.length - 1]?.context, {
+  t.same(stateList.at(-1)?.context, {
     queue: [],
     index: 0,
   }, 'should have initial context after start')
   t.same(eventList.map(e => e.type), [
     'xstate.init',
     Types.CHILD_IDLE,
-    Types.CHILD_REPLY,
     Types.DISPATCH,
+  ], 'should received CHILD_IDLE with DISPATCH event aftrer child sent IDLE')
+
+  /**
+   * start (next tick)
+   */
+  stateList.length = eventList.length = 0
+  await sandbox.clock.tickAsync(0)
+  t.same(eventList.map(e => e.type), [
+    Types.CHILD_REPLY,
     Types.DEAD_LETTER,
-  ], 'should received CHILD_RESPONSE with DEAD_LETTER event aftrer child sent IDLE')
+  ], 'should received CHILD_REPLY with DEAD_LETTER event aftrer child sent IDLE')
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
-    [Baby.Types.PLAY],
+    eventList.filter(e => e.type === Types.DEAD_LETTER).map(e => (e as any).payload.message.type),
+    [
+      Baby.Types.PLAY,
+    ],
     'should received DEAD_LETTER with PLAY event',
   )
 
+  /**
+   * SLEEP event (right after)
+   */
   stateList.length = eventList.length = 0
-  interpreter.send(Baby.Events.SLEEP(10))
-  let snapshot = interpreter.getSnapshot()
-
-  t.same(stateList[stateList.length - 1]?.value, {
+  interpreter.send(SLEEP_EVENT)
+  t.same(stateList.at(-1)?.value, {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.child.busy after received the 1st EVENT sleep')
-  t.same(eventList.map(e => e.type), [
-    Baby.Types.SLEEP,
-    Types.NEW_MESSAGE,
-    Types.DISPATCH,
-    Types.DEQUEUE,
-    Types.CHILD_REPLY,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.DEAD_LETTER,
-  ], 'should receive event [..., CHILD_RESPOND x 2, DEAD_LETTER x2, ...] after received the 1st EVENT sleep')
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.REST,
-      Baby.Types.DREAM,
+      SLEEP_EVENT,
+      Events.NEW_MESSAGE(),
+      Events.DISPATCH(),
+      Events.DEQUEUE(SLEEP_EVENT as any),
     ],
-    'should received DEAD_LETTER with REST and DREAM event',
+    'should receive event SLEEP with Mailbox system events after received the 1st EVENT sleep',
   )
-  // console.info(
-  //   eventList
-  //     .filter(e => e.type === Types.DEAD_LETTER)
-  //     .map(e => (e as any).payload.event)
-  // )
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
 
+  /**
+   * SLEEP event (next tick)
+   */
   stateList.length = eventList.length = 0
-  await sandbox.clock.tickAsync(9)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  await sandbox.clock.nextAsync()
+  t.same(
+    stripPayloadDebug(eventList),
+    [
+      Events.CHILD_REPLY(Baby.Events.EAT()),
+      Events.DEAD_LETTER(Baby.Events.EAT()),
+    ],
+    'should received CHILD_REPLY & DEAD_LETTER with EAT event',
+  )
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
+
+  /**
+   * SLEEP event (tick after next tick)
+   */
+  stateList.length = eventList.length = 0
+  await sandbox.clock.nextAsync()
+  t.same(
+    stripPayloadDebug(eventList),
+    [
+      Events.CHILD_REPLY(Baby.Events.REST()),
+      Events.DEAD_LETTER(Baby.Events.REST()),
+    ],
+    'should received CHILD_REPLAY & DEAD_LETTER with REST event',
+  )
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
+
+  /**
+   * SLEEP event (tick SLEEP_MS -1)
+   */
+  stateList.length = eventList.length = 0
+  await sandbox.clock.tickAsync(SLEEP_MS - 1)
+  t.same(stateList.at(-1)?.value, {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue before wakeup')
-  t.same(eventList.map(e => e.type), [
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-  ], 'should receive event child.Types.CRY after before wakeup')
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue before wakeup')
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.CRY,
+      Events.CHILD_REPLY(Baby.Events.DREAM()),
+      Events.DEAD_LETTER(Baby.Events.DREAM()),
+      Events.CHILD_REPLY(Baby.Events.CRY()),
+      Events.DEAD_LETTER(Baby.Events.CRY()),
     ],
-    'should get one dead letter with CRY event after middle night',
+    'should get one dead letter with DREAM/CRY event after middle night',
   )
 
+  /**
+   * SLEEP event (tick SLEEP_MS finished)
+   */
   stateList.length = eventList.length = 0
   await sandbox.clock.tickAsync(1)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  t.same(stateList.at(-1)?.value, {
     queue   : States.listening,
     child   : States.idle,
   }, 'should be state.busy after received the 1st EVENT sleep')
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after sleep')
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after sleep')
   t.same(eventList.map(e => e.type), [
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
     Types.CHILD_IDLE,
     Types.DISPATCH,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
   ], 'should receive event child.Types.PLAY after sleep')
+
+  stateList.length = eventList.length = 0
+  await sandbox.clock.runAllAsync()
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
+      Events.CHILD_REPLY(Baby.Events.PEE()),
+      Events.DEAD_LETTER(Baby.Events.PEE()),
+      Events.CHILD_REPLY(Baby.Events.PLAY()),
+      Events.DEAD_LETTER(Baby.Events.PLAY()),
     ],
-    'should get one dead letter with PEE&PLAY event after sleep',
+    'should get dead letters for PEE&PLAY event after sleep',
   )
   interpreter.stop()
   sandbox.restore()
 })
 
-test('mailbox address interpret smoke testing: 3 parallel EVENTs', async t => {
+test('mailbox interpret smoke testing: 3 parallel EVENTs (with CoffeeMaker)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
-  const mailbox = wrap(Baby.machine)
+  const mailbox = wrap(CoffeeMaker.machine)
   const interpreter = interpret(mailbox)
 
   const eventList: AnyEventObject[] = []
-
   interpreter.onEvent(e => eventList.push(e))
-
-  // console.info('initialState:', actor.initialState)
-  interpreter.onTransition(x => {
-    // console.info('---------------- onTransition ----------------')
-    // console.info('  states  ->', x.value)
-    // console.info('  EVENT   ->', x.event.type)
-    // console.info('----------------------------------------------')
-  })
   interpreter.start()
 
-  let snapshot
+  const targetContext = () => interpreter.getSnapshot().context as Context
+  const targetState   = () => interpreter.getSnapshot().value
 
+  const COFFEE_EVENT_1 = CoffeeMaker.Events.MAKE_ME_COFFEE('Mary')
+  const COFFEE_EVENT_2 = CoffeeMaker.Events.MAKE_ME_COFFEE('Mike')
+  const COFFEE_EVENT_3 = CoffeeMaker.Events.MAKE_ME_COFFEE('John')
+
+  const COFFEE_EVENT_RESPONSE_1 = CoffeeMaker.Events.COFFEE(COFFEE_EVENT_1.customer)
+  const COFFEE_EVENT_RESPONSE_2 = CoffeeMaker.Events.COFFEE(COFFEE_EVENT_2.customer)
+  const COFFEE_EVENT_RESPONSE_3 = CoffeeMaker.Events.COFFEE(COFFEE_EVENT_3.customer)
+
+  /**
+   * 1st event (right after)
+   */
   eventList.length = 0
-  interpreter.send(Baby.Events.SLEEP(10))
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value,  {
+  interpreter.send(COFFEE_EVENT_1)
+  t.same(targetState(),  {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received the 1st EVENT sleep')
-  t.same(eventList.map(e => e.type), [
-    Baby.Types.SLEEP,
-    Types.NEW_MESSAGE,
-    Types.DISPATCH,
-    Types.DEQUEUE,
-    Types.CHILD_REPLY,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.DEAD_LETTER,
-  ], 'should send event child.Types.DREAM after received the 1st EVENT sleep')
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.REST,
-      Baby.Types.DREAM,
+      COFFEE_EVENT_1,
+      Events.NEW_MESSAGE(),
+      Events.DISPATCH(),
+      Events.DEQUEUE(COFFEE_EVENT_1 as any),
     ],
-    'should received DEAD_LETTER with REST and DREAM event',
+    'should send DING event with mailbox system events after received the 1st EVENT sleep',
   )
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after received the 1st DING')
 
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after received the 1st EVENT sleep')
-
-  interpreter.send(Baby.Events.SLEEP(20))
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  /**
+   * 1st event (next tick)
+   */
+  eventList.length = 0
+  await sandbox.clock.tickAsync(0)
+  t.equal(eventList.length, 0, 'should no more event after next tick')
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
-  }, 'should be state.busy after received the 2nd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NEW_MESSAGE after received the 2nd EVENT sleep')
-  t.equal(snapshot.context.queue.length, 1, 'should have 1 event in queue after received the 2nd EVENT sleep')
+  }, 'should be state.idle after received the 1st EVENT DING')
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after received the 1st DING with next tick')
 
-  interpreter.send(Baby.Events.SLEEP(30))
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  /**
+   * DING event 2 (right after & next tick)
+   */
+  eventList.length = 0
+  interpreter.send(COFFEE_EVENT_2)
+  await sandbox.clock.tickAsync(0)
+  t.same(targetState(), {
+    queue   : States.listening,
+    child   : States.busy,
+  }, 'should be state.busy after received the 2nd EVENT DING')
+  // eventList.forEach(e => console.info(e))
+  t.same(
+    stripPayloadDebug(eventList),
+    [
+      COFFEE_EVENT_2,
+      Events.NEW_MESSAGE(),
+    ],
+    'should trigger mailbox.events.NEW_MESSAGE after received the 2nd EVENT sleep',
+  )
+  t.equal(targetContext().queue.length, 1, 'should have 1 event in queue after received the 2nd EVENT sleep')
+
+  /**
+   * DING event 3 (right after & next tick)
+   */
+  eventList.length = 0
+  interpreter.send(COFFEE_EVENT_3)
+  await sandbox.clock.tickAsync(0)
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received the 3rd EVENT sleep')
-  t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger mailbox.events.NEW_MESSAGE after received the 3rd EVENT sleep')
-  t.equal(snapshot.context.queue.length, 2, 'should have 1 event in queue after received the 3rd EVENT sleep')
+  t.same(
+    stripPayloadDebug(eventList), [
+      COFFEE_EVENT_3,
+      Events.NEW_MESSAGE(),
+    ], 'should trigger mailbox.events.NEW_MESSAGE after received the 3rd EVENT sleep')
+  t.equal(targetContext().queue.length, 2, 'should have 1 event in queue after received the 3rd EVENT sleep')
 
   /**
-   * Finish 1st (will right enter the 2nd)
+   * Finish 1st (and will enter the 2nd)
    */
   eventList.length = 0
-  await sandbox.clock.tickAsync(10)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value,  {
+  await sandbox.clock.tick(CoffeeMaker.DELAY_MS)
+  t.equal(targetContext().queue.length, 2, 'should have 2 event in queue after 10 ms')
+  t.same(targetState(),  {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after 10 ms')
-  t.same(eventList.map(e => e.type), [
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_IDLE,
-    Types.DISPATCH,
-    Types.DEQUEUE,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-  ], 'should right enter 2nd SLEEP after 10 ms')
-  // console.info('#### queue:', snapshot.context.queue)
-  t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after 10 ms')
+  // eventList.forEach(e => console.info(e))
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.CRY,
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
+      Events.CHILD_IDLE(),
+      Events.DISPATCH(),
+      Events.DEQUEUE(COFFEE_EVENT_2 as any),
     ],
-    'should received DEAD_LETTER with Baby events',
+    `should process 1st event after ${CoffeeMaker.DELAY_MS} ms`,
+  )
+
+  /**
+   * Finish 1st (and will enter the 2nd) (next tick)
+   */
+  eventList.length = 0
+  await sandbox.clock.tickAsync(1)
+  // eventList.forEach(e => console.info(e))
+  t.same(
+    stripPayloadDebug(eventList),
+    [
+      Events.CHILD_REPLY(COFFEE_EVENT_RESPONSE_1),
+      Events.DEAD_LETTER(COFFEE_EVENT_RESPONSE_1),
+    ],
+    'should process 1st event after 1 ms',
   )
 
   /**
    * Finish 2nd
    */
   eventList.length = 0
-  await sandbox.clock.tickAsync(20)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  await sandbox.clock.tick(CoffeeMaker.DELAY_MS)
+  t.equal(targetContext().queue.length, 0, 'should have 0 event in queue after another 20 ms')
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
-  }, 'should be state.busyafter another 20 ms')
-  t.same(eventList.map(e => e.type), [
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_IDLE,
-    Types.DISPATCH,
-    Types.DEQUEUE,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-    Types.CHILD_REPLY,
-    Types.DEAD_LETTER,
-  ], 'should right enter 3rd SLEEP after another 20 ms')
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after another 20 ms')
+  }, `should be state.busy after another ${CoffeeMaker.DELAY_MS} ms`)
   t.same(
-    eventList
-      .filter(e => e.type === Types.DEAD_LETTER)
-      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type),
+    stripPayloadDebug(eventList),
     [
-      Baby.Types.CRY,
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
+      Events.CHILD_IDLE(),
+      Events.DISPATCH(),
+      Events.DEQUEUE(COFFEE_EVENT_3 as any),
+      Events.CHILD_REPLY(COFFEE_EVENT_RESPONSE_2),
+      Events.DEAD_LETTER(COFFEE_EVENT_RESPONSE_2),
     ],
-    'should received DEAD_LETTER with Baby events',
+    `should right enter 3rd SLEEP after another ${CoffeeMaker.DELAY_MS} ms`,
   )
 
   /**
    * Finish 3rd
    */
-  await sandbox.clock.tickAsync(30)
-  snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  eventList.length = 0
+  await sandbox.clock.tickAsync(CoffeeMaker.DELAY_MS)
+  t.equal(targetContext().queue.length, 0, `should have 0 event in queue after another ${CoffeeMaker.DELAY_MS} ms`)
+  eventList.forEach(e => console.info(e))
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.idle,
   }, 'should be state.idle after another 30 ms')
-  t.equal(snapshot.event.type, Types.DEAD_LETTER, 'should wakeup because there is no more SLEEP events after another 30 ms')
-  t.equal(snapshot.context.queue.length, 0, 'should have 0 event in queue after another 30 ms')
+  t.same(
+    stripPayloadDebug(eventList),
+    [
+      Events.CHILD_IDLE(),
+      Events.DISPATCH(),
+      Events.CHILD_REPLY(COFFEE_EVENT_RESPONSE_3),
+      Events.DEAD_LETTER(COFFEE_EVENT_RESPONSE_3),
+    ],
+    `should wakeup because there is no more SLEEP events after another ${CoffeeMaker.DELAY_MS} ms`,
+  )
 
-  // interpreter.stop()
+  interpreter.stop()
   sandbox.restore()
 })
 
-test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t => {
+test('mailbox wrap interpret smoke testing: 3 EVENTs with respond (more tests)', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const mailbox = wrap(Baby.machine)
   const interpreter = interpret(mailbox)
+  const targetState   = () => interpreter.getSnapshot().value
+  const targetContext = () => interpreter.getSnapshot().context as Context
 
   const eventList: AnyEventObject[] = []
   interpreter.onEvent(e => eventList.push(e))
-  // console.info('initialState:', actor.initialState)
-  interpreter.onTransition(x => {
-    // console.info('---------------- onTransition ----------------')
-    // console.info('  states  ->', x.value)
-    // console.info('  EVENT   ->', x.event.type)
-    // console.info('----------------------------------------------')
-  })
   interpreter.start()
 
   let snapshot
@@ -386,17 +424,17 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   })
 
   snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after received 3 sleep EVENTs')
   t.equal(snapshot.event.type, Types.NEW_MESSAGE, 'should trigger event NEW_MESSAGE after received 3 sleep EVENTs')
-  t.equal(snapshot.context.queue.length, 2, 'should have 2 event in queue after received 3 sleep EVENTs')
+  t.equal(targetContext().queue.length, 2, 'should have 2 event in queue after received 3 sleep EVENTs')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after 1st 10 ms')
@@ -407,11 +445,11 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
       .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
       .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
-      Baby.Types.PEE,
       Baby.Types.PLAY,
+      Baby.Types.EAT,
       Baby.Types.REST,
       Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 1st 10 ms',
   )
@@ -420,21 +458,22 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.busy,
   }, 'should be state.busy after 2nd 10 ms')
   t.same(
     eventList
-    .filter(e => e.type === Types.DEAD_LETTER)
-    .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
-    .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(e => e.type === Types.DEAD_LETTER)
+      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
+      .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
       Baby.Types.PEE,
       Baby.Types.PLAY,
+      Baby.Types.EAT,
       Baby.Types.REST,
       Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 2nd 10 ms',
   )
@@ -443,19 +482,22 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   snapshot = interpreter.getSnapshot()
-  t.same(snapshot.value, {
+  t.same(targetState(), {
     queue   : States.listening,
     child   : States.idle,
   }, 'should be state.idle after 3rd 10 ms')
   t.same(
     eventList
-    .filter(e => e.type === Types.DEAD_LETTER)
-    .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
-    .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(e => e.type === Types.DEAD_LETTER)
+      .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
+      .filter(t => Object.values<string>(Baby.Types).includes(t)),
     [
-      Baby.Types.CRY,
       Baby.Types.PEE,
       Baby.Types.PLAY,
+      Baby.Types.EAT,
+      Baby.Types.REST,
+      Baby.Types.DREAM,
+      Baby.Types.CRY,
     ],
     'should receive event child.events.PLAY after 3rd 10 ms',
   )
@@ -465,13 +507,13 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond', async t =
   sandbox.restore()
 })
 
-test('Mailbox.address proxy smoke testing', async t => {
+test('Mailbox.wrap proxy smoke testing', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
 
   const CHILD_ID = 'child'
-  const childActor = wrap(Baby.machine)
+  const targetMachine = wrap(Baby.machine)
 
   enum ParentStates {
     testing = 'testing',
@@ -480,12 +522,12 @@ test('Mailbox.address proxy smoke testing', async t => {
     TEST = 'TEST',
   }
 
-  const parentMachine = createMachine({
-    id: 'parent',
+  const proxyMachine = createMachine({
+    id: 'proxy',
     initial: ParentStates.testing,
     invoke: {
       id: CHILD_ID,
-      src: childActor,
+      src: targetMachine,
     },
     states: {
       [ParentStates.testing]: {
@@ -500,22 +542,21 @@ test('Mailbox.address proxy smoke testing', async t => {
     },
   })
 
-  const interpreter = interpret(parentMachine)
+  const proxyInterpreter = interpret(proxyMachine)
 
   const stateList: StateValue[]  = []
   const eventList: string[]      = []
 
-  interpreter.onEvent(e       => eventList.push(e.type))
-  interpreter.onTransition(s  => stateList.push(s.value))
-
-  interpreter.start()
+  proxyInterpreter.onEvent(e       => eventList.push(e.type))
+  proxyInterpreter.onTransition(s  => stateList.push(s.value))
+  proxyInterpreter.start()
 
   // console.info(interpreter.children)
-  const mailboxAddress = (interpreter.children.get(CHILD_ID) as any as Interpreter<any>)
-  mailboxAddress.onEvent((e: any) => {
+  const targetInterpreter = (proxyInterpreter.children.get(CHILD_ID) as any as Interpreter<any>)
+  targetInterpreter.onEvent((e: any) => {
     if (e.type === Types.DEAD_LETTER) {
       console.error('DEAD_LETTER', e.payload.event)
-      console.error('DEAD_LETTER', mailboxAddress.getSnapshot().context.message)
+      console.error('DEAD_LETTER', targetInterpreter.getSnapshot().context.message)
     }
   })
 
@@ -530,36 +571,45 @@ test('Mailbox.address proxy smoke testing', async t => {
    * 1st SLEEP
    */
   eventList.length = stateList.length = 0
-  interpreter.send(ParentTypes.TEST)
+  proxyInterpreter.send(ParentTypes.TEST)
   t.same(eventList, [
     ParentTypes.TEST,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
   ], 'should fall to sleep with events')
-  t.same(stateList, new Array(3).fill(ParentStates.testing),
-    'should transition to states.sleeping 3 times (with 3 events)',
+  t.same(stateList, new Array(1).fill(ParentStates.testing),
+    'should transition to states.sleeping 1 times (with 1 events)',
   )
 
   eventList.length = stateList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
+    Baby.Types.PLAY,
+    Baby.Types.EAT,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
     Baby.Types.CRY,
+  ], 'should be before wakeup')
+  t.same(stateList,
+    new Array(5).fill(ParentStates.testing),
+    'should transition to states.sleeping 5 times (with 5 events) after tick 10 ms',
+  )
+
+  eventList.length = stateList.length = 0
+  await sandbox.clock.runToLastAsync()
+  t.same(eventList, [
     Baby.Types.PEE,
     Baby.Types.PLAY,
-  ], 'should wakeup')
+  ], 'should be wakeup')
   t.same(stateList,
-    new Array(3).fill(ParentStates.testing),
-    'should transition to states.sleeping 3 times (with 3 events)',
+    new Array(2).fill(ParentStates.testing),
+    'should transition to states.sleeping 2 times (with 2 events) after wakeup',
   )
 
   eventList.length = stateList.length = 0
   Array.from({ length: 3 }).forEach(_ =>
-    interpreter.send(ParentTypes.TEST),
+    proxyInterpreter.send(ParentTypes.TEST),
   )
   t.same(eventList, [
     ParentTypes.TEST,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
     ParentTypes.TEST,
     ParentTypes.TEST,
   ], 'should fall to sleep after 3 SLEEP events, with two more SLEEP event queued')
@@ -567,35 +617,41 @@ test('Mailbox.address proxy smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.CRY,
-    Baby.Types.PEE,
-    Baby.Types.PLAY,
+    Baby.Types.EAT,
     Baby.Types.REST,
     Baby.Types.DREAM,
-  ], 'should wakeup after 10 ms ,and fail sleep again')
+    Baby.Types.CRY,
+  ], 'should before wakeup after 10 ms, and fail sleep again')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.CRY,
     Baby.Types.PEE,
     Baby.Types.PLAY,
+    Baby.Types.EAT,
     Baby.Types.REST,
     Baby.Types.DREAM,
+    Baby.Types.CRY,
   ], 'should wakeup after 10 ms ,and fail sleep again, twice')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.CRY,
     Baby.Types.PEE,
     Baby.Types.PLAY,
+    Baby.Types.EAT,
+    Baby.Types.REST,
+    Baby.Types.DREAM,
+    Baby.Types.CRY,
   ], 'should wakeup another 10 ms, and no more SLEEP in the queue')
 
   eventList.length = 0
   await sandbox.clock.runAllAsync()
-  t.same(eventList, [], 'should be no more EVENT mores')
+  t.same(eventList, [
+    Baby.Types.PEE,
+    Baby.Types.PLAY,
+  ], 'should be PEE & PLAY 2 more EVENT')
 
-  interpreter.stop()
+  proxyInterpreter.stop()
   sandbox.restore()
 })

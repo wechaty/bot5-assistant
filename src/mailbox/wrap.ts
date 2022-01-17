@@ -56,7 +56,7 @@ import {
 function wrap <
   TEvent extends EventObject,
   TContext extends {},
->(
+> (
   targetMachine: StateMachine<
     TContext,
     any,
@@ -79,6 +79,7 @@ function wrap <
     id       : MAILBOX_ADDRESS_NAME,
     capacity : Infinity,
     logger   : () => {},
+    devTools : false,
     ...options,
   }
 
@@ -162,7 +163,7 @@ function wrap <
                 {
                   cond: ctx => contexts.queueSize(ctx) <= 0,
                   actions: contexts.assignEmptyQueue,
-                }
+                },
               ]),
             ],
             always: States.listening,
@@ -192,17 +193,23 @@ function wrap <
               actions.send(Events.DISPATCH(States.idle)),
             ],
             on: {
+              /**
+               * FIXME:
+               * TODO:
+               * Huan(202201): remove the `as any` below.
+               *  Is this a bug in xstate? to be confirmed. (hope xstate@5 will fix it)
+               */
               [Types.DEQUEUE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME),
+                  actions.log((_, e) => `states.child.idle.on.DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME) as any,
                   contexts.assignChildMessage,
                 ],
                 target: States.busy,
               },
               [Types.NEW_MESSAGE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE (${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug})`, MAILBOX_ADDRESS_NAME),
-                  actions.send(_ => Events.DISPATCH(Types.NEW_MESSAGE)),
+                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE (${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug})`, MAILBOX_ADDRESS_NAME) as any,
+                  actions.send(_ => Events.DISPATCH(Types.NEW_MESSAGE)) as any,
                 ],
               },
             },
