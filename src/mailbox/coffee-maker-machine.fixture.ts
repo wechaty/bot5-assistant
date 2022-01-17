@@ -7,10 +7,8 @@ import {
 import * as Mailbox from './mod.js'
 
 enum States {
-  idle          = 'idle',
-  gettingCup    = 'gettingCup',
-  fillingCoffee = 'fillingCoffee',
-  delivering    = 'delivering'
+  idle = 'idle',
+  busy = 'busy',
 }
 
 enum Types {
@@ -24,13 +22,15 @@ const Events = {
 } as const
 
 interface Context {
-  customer: null | string,
+  customer?: string,
 }
 type Event = ReturnType<typeof Events[keyof typeof Events]>
 
+const DELAY_MS = 10
+
 const machine = createMachine<Context, Event>({
   context: {
-    customer: null,
+    customer: undefined,
   },
   initial: States.idle,
   states: {
@@ -38,28 +38,25 @@ const machine = createMachine<Context, Event>({
       entry: Mailbox.Actions.idle('CoffeeMaker')('idle'),
       on: {
         [Types.MAKE_ME_COFFEE]: {
-          target: States.gettingCup,
+          target: States.busy,
           actions: actions.assign((_, e) => ({ customer: e.customer })),
         },
         '*': States.idle,
       },
     },
-    [States.gettingCup]: {
-      after: {
-        10: States.fillingCoffee,
+    [States.busy]: {
+      entry: [
+        actions.send(ctx => Events.COFFEE(ctx.customer!), {
+          delay: DELAY_MS,
+        }),
+      ],
+      on: {
+        [Types.COFFEE]: {
+          actions: Mailbox.Actions.reply((_, e) => e),
+          target: States.idle,
+        },
       },
-    },
-    [States.fillingCoffee]: {
-      after: {
-        10: States.delivering,
-      },
-    },
-    [States.delivering]: {
-      entry: Mailbox.Actions.reply(ctx => Events.COFFEE(ctx.customer || 'NO CUSTOMER')),
-      after: {
-        10: States.idle,
-      },
-      exit: actions.assign({ customer: _ => null }),
+      exit: actions.assign({ customer: _ => undefined }),
     },
   },
 })
@@ -68,4 +65,5 @@ export {
   machine,
   Types,
   Events,
+  DELAY_MS,
 }

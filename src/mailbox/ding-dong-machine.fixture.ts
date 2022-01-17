@@ -73,4 +73,5 @@ export {
   Events,
   States,
   Types,
+  MAX_DELAY_MS,
 }

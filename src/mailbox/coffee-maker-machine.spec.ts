@@ -14,7 +14,7 @@ import {
 }                   from 'xstate'
 
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
-import * as Mailbox from './mod.js'
+import * as Mailbox     from './mod.js'
 
 test('CoffeeMaker.machine smoke testing', async t => {
   const CUSTOMER = 'John'
@@ -82,7 +82,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
   sandbox.restore()
 })
 
-test.only('XState machine will lost incoming messages(events) when receiving multiple messages at the same time', async t => {
+test('XState machine will lost incoming messages(events) when receiving multiple messages at the same time', async t => {
   const sandbox = sinon.createSandbox({
     useFakeTimers: true,
   })
