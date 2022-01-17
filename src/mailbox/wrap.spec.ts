@@ -42,7 +42,7 @@ import * as Baby        from './baby-machine.fixture.js'
 import * as CoffeeMaker from './coffee-maker-machine.fixture.js'
 
 import { wrap }  from './wrap.js'
-import { stripPayloadDebug } from './test-utils.js'
+import { stripPayloadDebug } from './testing-utils.js'
 
 test('wrap() transition nextState smoke testing', async t => {
   const mailbox = wrap(Baby.machine)
