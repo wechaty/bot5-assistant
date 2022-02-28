@@ -52,6 +52,8 @@ interface Context {
    * message queue: `queue` is for storing the messages. message is an event: (external events, which should be proxyed to the child)
    *  1. neither sent from mailbox
    *  2. nor from child
+   *
+   * TODO: Huan(202201): use yocto-queue to replace the array for better performance under high load
    */
   queue: AnyEventObjectExt[]
   index: number // current message index in queue

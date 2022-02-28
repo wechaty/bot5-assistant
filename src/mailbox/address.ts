@@ -72,24 +72,7 @@ class AddressImpl implements Address {
 
 }
 
-const nullMachine     = createMachine<{}>({})
-const nullInterpreter = interpret(nullMachine)
-nullInterpreter.start()
-
-const nullAddress: Address = {
-  condNotOrigin: () => () => false,
-  send: <TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
-    event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-    options?: SendActionOptions<TContext, TEvent>,
-  ) => actions.send(event, {
-    ...options,
-    to: nullInterpreter.sessionId,
-  }),
-}
-
 export {
   type Address,
   AddressImpl,
-  nullAddress,
-  nullInterpreter,
 }

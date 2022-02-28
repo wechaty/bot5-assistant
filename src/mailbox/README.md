@@ -298,6 +298,14 @@ See: [XState Docs - Batched Events](https://xstate.js.org/docs/guides/interpreta
 - [Apache Commons - Five Minutes SCXML](https://commons.apache.org/proper/commons-scxml/guide/scxml-documents.html)
 - [SCXML State Chart XML, Kai Blankenhorn, April 2003](https://www.i3s.unice.fr/~deantoni/teaching_resources/SI4/FSM/cours/4_SCXML_parallel.pdf)
 
+## Quota
+
+> Redux is predictable states container, XState is predictable transitions container.
+> &mdash; A Youtuber comment
+
+> Mailbox is predictable states & transitions container for actors.
+> &mdash; Huan, creator of Wechaty, Jan. 2022
+
 ## History
 
 ### main
