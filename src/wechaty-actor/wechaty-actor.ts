@@ -1,51 +1,53 @@
-/* eslint-disable sort-keys */
-import {
-  actions,
-  createMachine,
-  spawn,
-}                   from 'xstate'
-import {
-  isActionOf,
-}                   from 'typesafe-actions'
-import * as PUPPET from 'wechaty-puppet'
-import { GError }   from 'gerror'
-import {
-  getPuppet,
-}                       from './registry/mod.js'
-
-import { Events } from './events.js'
-import { States } from './states.js'
-import { Types } from './types.js'
-
-import * as Mailbox   from '../mailbox/mod.js'
-
 /**
- * Huan(202201): for async action, we use `request` as the Event type because
- *  only request will be sent to the machine (internal).
- *  `success` & `failure` are only sent to external.
+ *   Wechaty Open Source Software - https://github.com/wechaty
+ *
+ *   @copyright 2022 Huan LI (李卓桓) <https://github.com/huan>, and
+ *                   Wechaty Contributors <https://github.com/wechaty>.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
  */
-type EventsPayload<T> = {
-  [key in keyof T]: T[key] extends (...args: any) => any
-    ? ReturnType<T[key]>
-    : 'request' extends keyof EventsPayload<T[key]>
-      ? EventsPayload<T[key]>['request']
-      : never
-}
+/* eslint-disable sort-keys */
+import * as CQRS                    from 'wechaty-cqrs'
+import * as UUID                    from 'uuid'
+import { actions, createMachine }   from 'xstate'
+import { GError }                   from 'gerror'
+import { firstValueFrom }           from 'rxjs'
+import { ActionType, isActionOf }          from 'typesafe-actions'
 
-type Event = EventsPayload<typeof Events>[
-  keyof EventsPayload<typeof Events>
-]
+import * as Mailbox       from '../mailbox/mod.js'
+import { InjectionToken } from '../ioc/tokens.js'
+
+import type { CommandQuery } from './dto.js'
+
+import * as events  from './events.js'
+import * as states  from './states.js'
+import * as types   from './types.js'
+
+type Event = ActionType<typeof events>
 
 interface Context {
-  // to be added
+  puppetId : string
 }
 
 /**
  * use JSON.parse() to prevent the initial context from being changed
  */
-function initialContext (): Context {
+function initialContext (
+  puppetId : string,
+): Context {
   const context: Context = {
-    // to be added
+    puppetId,
   }
   return JSON.parse(JSON.stringify(context))
 }
@@ -53,110 +55,138 @@ function initialContext (): Context {
 const MACHINE_NAME = 'WechatyMachine'
 
 const machineFactory = (
-  logger?: Mailbox.Options['logger'],
+  bus$     : CQRS.Bus,
+  puppetId : string,
 ) => createMachine<Context, Event>({
-  id: MACHINE_NAME,
-  context: initialContext(),
+  /**
+   * Introducing: TypeScript typegen for XState
+   *  @link https://stately.ai/blog/introducing-typescript-typegen-for-xstate
+   */
+  // tsTypes: {},
+  // schema: {
+  //   context: {} as Context,
+  //   events: {} as Event,
+  // },
+
+  /**
+   * Issue statelyai/xstate#2891:
+   *  The context provided to the expr inside a State
+   *  should be exactly the **context in this state**
+   * @see https://github.com/statelyai/xstate/issues/2891
+   */
   preserveActionOrder: true,
-  initial: States.initializing,
-  on: {
-    [Types.RESET]:        States.resetting,
-    [Types.EVENT_ERROR]:  States.erroring,
-  },
+
+  id: MACHINE_NAME,
+  context: initialContext(puppetId),
+  initial: states.idle,
   states: {
-    [States.initializing]: {
-      entry: [
-        actions.log('states.initializing.entry'),
-      ],
-      always: States.idle,
-    },
-    [States.resetting]: {
-      entry: [
-        actions.log('states.resetting.entry'),
-        actions.assign(_ => initialContext()),
-      ],
-      always: States.initializing,
-    },
-    [States.erroring]: {
-      entry: Mailbox.Actions.reply((_, e) => Events.errorEvent(e),
-      always: States.idle,
-    },
-    [States.idle]: {
+    [states.idle]: {
       entry: [
         actions.log('state.idle.entry', MACHINE_NAME),
         Mailbox.Actions.idle(MACHINE_NAME)('idle'),
       ],
       on: {
-        '*': States.idle, // must have a external transition for all events
-        [Types.SAY_REQUEST]          : Types.SAY_REQUEST,
-        [Types.CURRENT_USER_REQUEST] : Types.CURRENT_USER_REQUEST,
+        // '*': states.idle, // must have a external transition for all events to trigger the Mailbox state transition
+        '*': states.preparing,
       },
     },
-    [Types.SAY_REQUEST]: {
+
+    [states.preparing]: {
       entry: [
-        actions.log((_, e) => `state.SAY_REQUEST.entry <- [${e.type}]`, MACHINE_NAME),
+        actions.log('state.preparing.entry', MACHINE_NAME),
+        actions.choose([
+          {
+            cond: (_, e) => CQRS.is(
+              Object.values({
+                ...CQRS.commands,
+                ...CQRS.queries,
+              }),
+            )(e),
+            actions: [
+              actions.log((_, e) => `states.preparing.entry execute Command/Query [${e.type}]`),
+              actions.send((_, e) => events.execute(e as CommandQuery)),
+            ],
+          },
+          {
+            actions: [
+              actions.log((_, e) => `states.preparing.entry skip non-Command/Query [${e.type}]`),
+              actions.send(events.idle()),
+            ],
+          },
+        ]),
       ],
-      invoke: {
-        src: async (_, event) => {
-          if (!isActionOf(Events.say.request)(event)) {
-            return Events.nop()
-          }
-          const messageId = await getPuppet(event.payload.puppetId)?.messageSend(
-            event.payload.conversationId,
-            event.payload.sayable,
-          )
-          if (!messageId) {
-            return Events.nop()
-          }
-          return Events.say.success(
-            event.payload.id,
-            messageId,
-          )
-        },
-        onDone: {
-          actions: [
-            Mailbox.Actions.reply((_, e) => e),
-          ],
-          target: States.idle,
-        },
-        onError: {
-          target: States.erroring,
-        },
+      on: {
+        [types.IDLE]    : states.idle,
+        [types.EXECUTE] : states.executing,
       },
     },
-    [Types.CURRENT_USER_REQUEST]: {
+
+    [states.executing]: {
       entry: [
-        actions.log((_, e) => `state.CURRENT_USER_REQUEST.entry <- [${e.type}]`, MACHINE_NAME),
+        actions.log((_, e) => `state.executing.entry -> [${e.type}]`, MACHINE_NAME),
       ],
       invoke: {
-        src: async (_, event) => {
-          if (!isActionOf(Events.currentUser.request)(event)) {
-            return Events.nop()
-          }
-          const contactId = await getPuppet(event.payload.puppetId)?.currentUserId
-          return Events.currentUser.success(
-            event.payload.id,
-            contactId,
-          )
-        },
+        src: 'execute',
         onDone: {
           actions: [
-            Mailbox.Actions.reply((_, e) => e),
+            actions.send((_, e) => events.response(e.data)),
           ],
         },
         onError: {
-          actions: actions.send((ctx, e) => Events.errorEvent(ctx.puppetId, GError.stringify(e.data))),
+          actions: [
+            actions.send((ctx: any, e) => events.response(
+              CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
+            )),
+          ],
         },
       },
-      always: States.idle,
+      on: {
+        [types.RESPONSE]: states.responding,
+      },
+    },
+
+    [states.responding]: {
+      entry: [
+        actions.log((_, e) => `states.responding.entry <- [${e.type}]`),
+        Mailbox.Actions.reply((_, e) => e),
+      ],
+      always: states.idle,
+    },
+
+  },
+}, {
+  services: {
+    execute: (ctx, e) => {
+      if (!isActionOf(events.execute)(e)) {
+        throw new Error(`${MACHINE_NAME} state.executing.invoke: unknown event [${e.type}]`)
+      }
+
+      const commandQuery = e.payload.commandQuery
+
+      if (commandQuery.meta.puppetId === UUID.NIL) {
+        commandQuery.meta.puppetId = ctx.puppetId
+      } else if (commandQuery.meta.puppetId !== ctx.puppetId) {
+        throw new Error(`${MACHINE_NAME} state.executing.invoke: puppetId mismatch. (given: "${commandQuery.meta.puppetId}", expected: "${ctx.puppetId}")`)
+      }
+
+      return firstValueFrom(
+        CQRS.execute$(bus$)(commandQuery),
+      )
     },
   },
 })
 
-function mailboxFactory (
-  logger?: Mailbox.Options['logger'],
+wechatyActorFactory.inject = [
+  InjectionToken.WechatyCqrsBus$,
+  InjectionToken.Logger,
+] as const
+
+function wechatyActorFactory (
+  bus$     : CQRS.Bus,
+  puppetId : string,
+  logger?  : Mailbox.Options['logger'],
 ) {
-  const machine = machineFactory(logger)
+  const machine = machineFactory(bus$, puppetId)
   const mailbox = Mailbox.from(machine, { logger })
 
   mailbox.acquire()
@@ -164,8 +194,9 @@ function mailboxFactory (
 }
 
 export {
+  type Event,
+  type Context,
   machineFactory,
-  mailboxFactory,
-  Events,
+  wechatyActorFactory,
   initialContext,
 }

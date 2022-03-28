@@ -1,12 +1,6 @@
-enum States {
-  idle = 'wechaty-puppet/idle',
-  busy = 'wechaty-puppet/busy',
-  initializing  = 'wechaty-puppet/initializing',
-  unknown = 'wechaty-puppet/unknown',
-  resetting = 'wechaty-puppet/resetting',
-  erroring = 'wechaty-puppet/erroring',
-}
+export const idle = 'wechaty-actor/idle'
+// export const busy = 'wechaty-actor/busy'
 
-export {
-  States,
-}
+export const preparing  = 'wechaty-actor/preparing'
+export const executing  = 'wechaty-actor/executing'
+export const responding = 'wechaty-actor/responding'
