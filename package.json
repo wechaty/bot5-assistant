@@ -47,33 +47,34 @@
     "@chatie/eslint-config": "^1.0.4",
     "@chatie/git-scripts": "^0.6.2",
     "@chatie/semver": "^0.4.7",
-    "@chatie/tsconfig": "^4.6.2",
-    "@types/lru-cache": "^5.1.1",
-    "@types/request": "^2.48.7",
-    "@types/uuid": "^8.3.3",
-    "@types/ws": "^8.2.2",
-    "@xstate/inspect": "^0.6.0",
-    "typescript": "^4.5.4",
+    "@chatie/tsconfig": "^4.6.3",
+    "@types/lru-cache": "^7.4.0",
+    "@types/request": "^2.48.8",
+    "@types/uuid": "^8.3.4",
+    "@types/ws": "^8.5.3",
+    "@xstate/inspect": "^0.6.4",
+    "typescript": "^4.6.2",
     "utility-types": "^3.10.0",
-    "wechaty": "^1.13.20",
+    "wechaty": "^1.18.1",
     "wechaty-mocker": "^1.11.2",
-    "wechaty-puppet-mock": "^1.13.4",
-    "ws": "^8.4.0"
+    "wechaty-puppet-mock": "^1.18.2",
+    "ws": "^8.5.0"
   },
   "peerDependencies": {
     "wechaty-plugin-contrib": "^1.11.1"
   },
   "readme": "README.md",
   "dependencies": {
-    "file-box": "^1.4.12",
-    "lru-cache": "^6.0.0",
+    "file-box": "^1.4.15",
+    "lru-cache": "^7.5.0",
     "request": "^2.88.2",
-    "tencentcloud-sdk-nodejs": "^4.0.246",
+    "tencentcloud-sdk-nodejs": "^4.0.306",
     "typed-inject": "^3.0.1",
     "typesafe-actions": "^5.1.0",
     "uuid": "^8.3.2",
-    "wechaty-redux": "^1.13.1",
-    "xstate": "^4.29.0"
+    "wechaty-cqrs": "^0.13.2",
+    "wechaty-redux": "^1.19.7",
+    "xstate": "^4.30.6"
   },
   "git": {
     "scripts": {
