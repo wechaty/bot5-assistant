@@ -1,34 +1,36 @@
-/* eslint-disable sort-keys */
-import {
-  createAction,
-}                         from 'typesafe-actions'
-import type {
-  Message,
-  Contact,
-  Room,
-  Wechaty,
-}               from 'wechaty'
-import type { Intent } from './intents.js'
+/**
+ *   Wechaty Open Source Software - https://github.com/wechaty
+ *
+ *   @copyright 2022 Huan LI (李卓桓) <https://github.com/huan>, and
+ *                   Wechaty Contributors <https://github.com/wechaty>.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ */
+import { createAction }   from 'typesafe-actions'
+import type * as PUPPET   from 'wechaty-puppet'
+import type { Wechaty }   from 'wechaty'
 
-import { Types } from './types.js'
+import * as types       from './types.js'
+import type { Intent }  from './intent-type.js'
 
-// type RemoveType<T extends (...args: any[]) => {}> = (...args: Parameters<T>) => Omit<ReturnType<T>, 'type'>
-// type RemoveAllType<T extends {
-//   [key: string]: (...args: any[]) => any
-// }> = {
-//   [K in keyof T]: RemoveType<T[K]>
-// }
-
-const payloadMention  = (contacts: Contact[]) => ({ contacts })
-const payloadMessage   = (message: Message) => ({ message })
-
-const payloadRoom      = (room: Room) => ({ room })
-const payloadContacts  = (contacts: Contact[]) => ({ contacts })
+const payloadMessage   = (message: PUPPET.payloads.Message)     => ({ message })
+const payloadRoom      = (room: PUPPET.payloads.Room)           => ({ room })
+const payloadContacts  = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
 const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
-// const payloadWechatyAddress   = (address: string) => ({ address })
 
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
@@ -36,76 +38,69 @@ const payloadCancel    = (reason: string) => ({ reason })
 const payloadGerror     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
 
-const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
+const payloadIntents  = (intents: Intent[]) => ({ intents })
 
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
 
-const payloadIntroduce = () => ({})
-const payloadReport    = () => ({})
-
-const payloadEmpty     = () => ({})
 const payloadIdle = (reason?: string) => ({ reason })
 const payloadCheck = () => ({})
 const payloadProcess = () => ({})
 const payloadParse = () => ({})
 const payloadNotice = (notice: string) => ({ notice })
+const payloadMinute = (minutes: string) => ({ minutes })
+const payloadConversation = (conversationId: string) => ({ conversationId })
 
-const Events = {
-  MENTION   : createAction(Types.MENTION, payloadMention)(),
-  MESSAGE    : createAction(Types.MESSAGE, payloadMessage)(),
-  NEXT       : createAction(Types.NEXT, payloadEmpty)(),
-  NO_AUDIO   : createAction(Types.NO_AUDIO, payloadEmpty)(),
-  NO_MENTION : createAction(Types.NO_MENTION, payloadEmpty)(),
+export const mention    = createAction(types.MENTION, payloadContacts)()
+export const message     = createAction(types.MESSAGE, payloadMessage)()
 
-  ROOM       : createAction(Types.ROOM, payloadRoom)(),
-  CONTACTS   : createAction(Types.CONTACTS, payloadContacts)(),
-  ADMINS     : createAction(Types.ADMINS, payloadContacts)(),
+export const back        = createAction(types.BACK)()
+export const next        = createAction(types.NEXT)()
 
-  START      : createAction(Types.START, payloadEmpty)(),
-  STOP       : createAction(Types.STOP, payloadEmpty)(),
+export const noAudio    = createAction(types.NO_AUDIO)()
+export const noMention  = createAction(types.NO_MENTION)()
 
-  TEXT       : createAction(Types.TEXT, payloadText)(),
-  SAY        : createAction(Types.SAY, payloadSay)(),
+export const room = createAction(types.ROOM, payloadRoom)()
 
-  FEEDBACKS   : createAction(Types.FEEDBACKS, payloadFeedbacks)(),
-  FEEDBACK    : createAction(Types.FEEDBACK, payloadFeedback)(),
+export const contacts   = createAction(types.CONTACTS,  payloadContacts)()
+export const attendees  = createAction(types.ATTENDEES, payloadContacts)()
+export const admins     = createAction(types.ADMINS,    payloadContacts)()
+export const chairs     = createAction(types.CHAIRS,    payloadContacts)()
 
-  CANCEL : createAction(Types.CANCEL, payloadCancel)(),
-  ABORT : createAction(Types.ABORT, payloadAbort)(),
-  GERROR : createAction(Types.GERROR, payloadGerror)(),
-  RESET : createAction(Types.RESET, payloadReset)(),
+export const start       = createAction(types.START)()
+export const stop        = createAction(types.STOP)()
 
-  // WAKEUP : createAction(Types.WAKEUP, payloadEmpty)(),
-  // CHECK  : createAction(Types.CHECK, payloadEmpty)(),
-  INTENTS: createAction(Types.INTENTS, payloadIntents)(),
+export const text        = createAction(types.TEXT, payloadText)()
+export const say         = createAction(types.SAY, payloadSay)()
 
-  WECHATY : createAction(Types.WECHATY, payloadWechaty)(),
-  // WECHATY_ADDRESS : createAction(Types.WECHATY_ADDRESS, payloadWechatyAddress)(),
+export const feedbacks    = createAction(types.FEEDBACKS, payloadFeedbacks)()
+export const feedback     = createAction(types.FEEDBACK, payloadFeedback)()
 
-  /**
-   * Complete v.s. Finish
-   *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
-   */
-  FINISH : createAction(Types.FINISH, payloadData)(),
-  COMPLETE : createAction(Types.COMPLETE, payloadData)(),
+export const cancel  = createAction(types.CANCEL, payloadCancel)()
+export const abort  = createAction(types.ABORT, payloadAbort)()
+export const gerror  = createAction(types.GERROR, payloadGerror)()
+export const reset  = createAction(types.RESET, payloadReset)()
 
-  INTRODUCE: createAction(Types.INTRODUCE, payloadIntroduce)(),
-  REPORT: createAction(Types.REPORT, payloadReport)(),
+export const intents = createAction(types.INTENTS, payloadIntents)()
 
-  IDLE: createAction(Types.IDLE, payloadIdle)(),
-  CHECK: createAction(Types.CHECK, payloadCheck)(),
+export const wechaty  = createAction(types.WECHATY, payloadWechaty)()
 
-  PROCESS: createAction(Types.PROCESS, payloadProcess)(),
-  PARSE: createAction(Types.PARSE, payloadParse)(),
-  NOTICE: createAction(Types.NOTICE, payloadNotice)(),
-} as const
+/**
+ * Complete v.s. Finish
+ *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+ */
+export const finish  = createAction(types.FINISH, payloadData)()
+export const complete  = createAction(types.COMPLETE, payloadData)()
 
-type EventPayloads = {
-  [key in keyof typeof Events]: ReturnType<typeof Events[key]>
-}
+export const introduce = createAction(types.INTRODUCE)()
+export const report = createAction(types.REPORT)()
 
-export {
-  Events,
-  type EventPayloads,
-}
+export const idle = createAction(types.IDLE, payloadIdle)()
+export const check = createAction(types.CHECK, payloadCheck)()
+
+export const process = createAction(types.PROCESS, payloadProcess)()
+export const parse = createAction(types.PARSE, payloadParse)()
+export const notice = createAction(types.NOTICE, payloadNotice)()
+export const minute = createAction(types.MINUTE, payloadMinute)()
+export const conversation = createAction(types.CONVERSATION, payloadConversation)()
+export const nop = createAction(types.NOP)()

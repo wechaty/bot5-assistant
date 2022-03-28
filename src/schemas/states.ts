@@ -1,85 +1,128 @@
-enum States {
-  /**
-   * Idle Time – Definition, Causes, And How To Reduce It
-   *  @see https://limblecmms.com/blog/idle-time/
-   */
-  idle = 'bot5/idle',
-  busy = 'bot5/busy',
+/**
+ *   Wechaty Open Source Software - https://github.com/wechaty
+ *
+ *   @copyright 2022 Huan LI (李卓桓) <https://github.com/huan>, and
+ *                   Wechaty Contributors <https://github.com/wechaty>.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ */
 
-  meeting = 'bot5/meeting',
-  /**
-   * Huan(202112): Recommended states transition for actors with Mailbox
-   *  1. initializing / onDone: idle
-   *  2. idle
-   *    - RESET: resetting -> initializing
-   *    - *: idle (make sure it's an external transition)
-   */
-  initializing  = 'bot5/initializing',
+/**
+ * Idle Time – Definition, Causes, And How To Reduce It
+ *  @see https://limblecmms.com/blog/idle-time/
+ */
+export const idle = 'bot5/idle'
+export const busy = 'bot5/busy'
 
-  unknown = 'bot5/unknown',
+export const meeting = 'bot5/meeting'
+/**
+ * Huan(202112): Recommended states transition for actors with Mailbox
+ *  1. initializing / onDone: idle
+ *  2. idle
+ *    - RESET: resetting -> initializing
+ *    - *: idle (make sure it's an external transition)
+ */
+export const initializing  = 'bot5/initializing'
 
-  listening = 'bot5/listening',
-  thinking = 'bot5/thinking',
-  feedbacking = 'bot5/feedbacking',
-  feedbacked = 'bot5/feedbacked',
-  checking = 'bot5/checking',
-  validating = 'bot5/validating',
+export const unknown = 'bot5/unknown'
 
-  /**
-   * Complete v.s. Finish
-   *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
-   */
-  completed  = 'bot5/completed',
-  completing = 'bot5/completing',
-  finished   = 'bot5/finished',
-  finishing  = 'bot5/finishing',
+export const listening = 'bot5/listening'
+export const thinking = 'bot5/thinking'
+export const feedbacking = 'bot5/feedbacking'
+export const feedbacked = 'bot5/feedbacked'
+export const checking = 'bot5/checking'
+export const validating = 'bot5/validating'
 
-  /**
-   * Abort v.s. Cancel
-   *  @see https://stackoverflow.com/a/9838022/1123955
-   */
-  aborting = 'bot5/aborted',
-  canceled = 'bot5/canceled',
+/**
+ * Complete v.s. Finish
+ *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
+ */
+export const completed  = 'bot5/completed'
+export const completing = 'bot5/completing'
+export const finished   = 'bot5/finished'
+export const finishing  = 'bot5/finishing'
 
-  /**
-   * Which one is better: errored v.s. failed?
-   *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
-   */
-  errored  = 'bot5/errored',
-  erroring = 'bot5/erroring',
-  failed   = 'bot5/failed',
+/**
+ * Abort v.s. Cancel
+ *  @see https://stackoverflow.com/a/9838022/1123955
+ */
+export const aborting = 'bot5/aborted'
+export const canceled = 'bot5/canceled'
 
-  starting  = 'bot5/starting',
-  stopping  = 'bot5/stopping',
+/**
+ * Which one is better: errored v.s. failed?
+ *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
+ */
+export const errored  = 'bot5/errored'
+export const erroring = 'bot5/erroring'
+export const failed   = 'bot5/failed'
 
-  resetting = 'bot5/resetting',
+export const starting  = 'bot5/starting'
+export const stopping  = 'bot5/stopping'
 
-  active = 'bot5/active',
-  inactive = 'bot5/inactive',
+export const resetting = 'bot5/resetting'
 
-  recognizing = 'bot5/recognizing',
-  recognized = 'bot5/recognized',
+export const active = 'bot5/active'
+export const inactive = 'bot5/inactive'
 
-  processing = 'bot5/processing',
-  delivering = 'bot5/delivering',
+export const recognizing = 'bot5/recognizing'
+export const recognized = 'bot5/recognized'
 
-  mentioning = 'bot5/mentioning',
-  registering = 'bot5/registering',
-  registered = 'bot5/registered',
+export const processing = 'bot5/processing'
+export const delivering = 'bot5/delivering'
 
-  saying = 'bot5/saying',
-  updating = 'bot5/updating',
-  confirming = 'bot5/confirming',
-  understanding = 'bot5/understanding',
+export const mentioning = 'bot5/mentioning'
+export const registering = 'bot5/registering'
+export const registered = 'bot5/registered'
 
-  introducing = 'bot5/introducing',
-  selecting = 'bot5/selecting',
-  scheduling = 'bot5/scheduling',
-  noticing = 'bot5/noticing',
-  reporting = 'bot5/reporting',
-  parsing = 'bot5/parsing',
-}
+export const saying = 'bot5/saying'
+export const updating = 'bot5/updating'
+export const confirming = 'bot5/confirming'
+export const understanding = 'bot5/understanding'
 
-export {
-  States,
-}
+export const introducing = 'bot5/introducing'
+export const selecting = 'bot5/selecting'
+export const scheduling = 'bot5/scheduling'
+export const noticing = 'bot5/noticing'
+export const reporting = 'bot5/reporting'
+export const parsing = 'bot5/parsing'
+
+/**
+ * 吐槽：https://www.sohu.com/a/222322905_509197
+ */
+export const brainstorming = 'bot5/brainstorming'
+export const roasting = 'bot5/roasting'
+
+/**
+ * retrospect means: a review of the past
+ * @link https://wikidiff.com/reminisce/retrospect
+ */
+export const retrospecting = 'bot5/retrospecting'
+
+/**
+ * Meeting related
+ */
+export const joining      = 'bot5/joining'
+export const presenting   = 'bot5/presenting'
+export const upgrading    = 'bot5/upgrading'
+export const electing     = 'bot5/electing'
+export const elected      = 'bot5/elected'
+export const photoing     = 'bot5/photoing'
+export const housekeeping = 'bot5/housekeeping'
+export const summarizing  = 'bot5/summarizing'
+export const summarized   = 'bot5/summarized'
+export const chatting     = 'bot5/chatting'
+export const drinking     = 'bot5/drinking'
+export const pledging     = 'bot5/pledging'
+export const announcing   = 'bot5/announcing'
