@@ -3,33 +3,66 @@ import {
   types,
 }                   from 'wechaty'
 
-import { Intent } from '../schemas/mod.js'
+import { intents, Intent } from '../schemas/mod.js'
 
 const INTENT_PATTERNS = [
   [
-    [
-      Intent.Start,
-    ],
+    [intents.start],
     [
       /^\/start$/i,
       /开始|开会/i,
     ],
   ],
   [
-    [Intent.Stop],
+    [intents.stop],
     [
       /^\/stop$/i,
       /开完|结束|结会|停止/i,
     ],
   ],
   [
+    [intents.affirm],
     [
-      Intent.Start,
-      Intent.Stop,
-      Intent.Unknown,
+      /^\/(confirm|affirm|yes|ok)$/i,
+      /是|是的|对的|好的|没错|可以啊|好啊|可以的|可以的/i,
+    ],
+  ],
+  [
+    [intents.deny],
+    [
+      /^\/(no|deny|cancel)$/i,
+      /不|不是|不确认|不对|不要|不好|不行|不可以|没有/i,
+    ],
+  ],
+  [
+    [intents.next],
+    [
+      /^\/(next|forward)$/i,
+      /下一步|继续/i,
+    ],
+  ],
+  [
+    [intents.back],
+    [
+      /^\/(back|prev|previous)$/i,
+      /上一步|回退|退回|后退/i,
+    ],
+  ],
+  [
+    [intents.cancel],
+    [
+      /^\/cancel$/i,
+      /取消/i,
+    ],
+  ],
+  [
+    [
+      intents.start,
+      intents.stop,
+      intents.unknown,
     ],
     [
-      /^都可能/i,
+      /^三个Intents的测试$/i,
     ],
   ],
 ] as const
@@ -63,7 +96,7 @@ const messageToIntents = async (message: Message): Promise<Intent[]> => {
       break
 
     default:
-      intentList.push(Intent.Unknown)
+      intentList.push(intents.unknown)
       break
   }
 
@@ -71,7 +104,6 @@ const messageToIntents = async (message: Message): Promise<Intent[]> => {
 }
 
 export {
-  Intent,
   textToIntents,
   messageToIntents,
 }
