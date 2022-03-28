@@ -38,7 +38,7 @@ const payloadCancel    = (reason: string) => ({ reason })
 const payloadGerror     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
 
-const payloadIntents  = (intents: Intent[]) => ({ intents })
+const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })

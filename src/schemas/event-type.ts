@@ -1,3 +1,3 @@
 import type * as events from './events.js'
 
-export type Event = typeof events[keyof typeof events]
+export type Event = ReturnType<typeof events[keyof typeof events]>
