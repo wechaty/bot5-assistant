@@ -197,6 +197,10 @@ export {
   type Event,
   type Context,
   machineFactory,
-  wechatyActorFactory,
+  /**
+   * FIXME: standardize the name of the factory function
+   */
+  wechatyActorFactory as mailboxFactory,
+  events as Events,
   initialContext,
 }
