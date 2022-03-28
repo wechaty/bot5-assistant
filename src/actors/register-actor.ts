@@ -1,22 +1,16 @@
 /* eslint-disable sort-keys */
-import {
-  createMachine,
-  actions,
-}                 from 'xstate'
-import type {
-  Message,
-  Contact,
-}                 from 'wechaty'
+import { createMachine, actions }   from 'xstate'
+import type { Message, Contact }    from 'wechaty'
 
-import * as Mailbox from '../mailbox/mod.js'
 import {
-  Events as Bot5Events,
-  EventPayloads,
-  States,
-  Types,
-}                   from '../schemas/mod.js'
-import { InjectionToken } from '../ioc/tokens.js'
-import * as actors from './mod.js'
+  events,
+  states,
+  types,
+}                           from '../schemas/mod.js'
+import * as Mailbox         from '../mailbox/mod.js'
+import { InjectionToken }   from '../ioc/tokens.js'
+
+import * as actors  from './mod.js'
 
 interface Context {
   message?: Message
@@ -26,13 +20,13 @@ interface Context {
 }
 
 const Events = {
-  MESSAGE    : Bot5Events.MESSAGE,
-  RESET      : Bot5Events.RESET,
-  REPORT     : Bot5Events.REPORT,
-  INTRODUCE  : Bot5Events.INTRODUCE,
-  MENTION    : Bot5Events.MENTION,
-  GERROR     : Bot5Events.GERROR,
-  IDLE       : Bot5Events.IDLE,
+  MESSAGE    : events.message,
+  RESET      : events.reset,
+  REPORT     : events.report,
+  INTRODUCE  : events.introduce,
+  MENTION    : events.mention,
+  GERROR     : events.gerror,
+  IDLE       : events.idle,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -57,11 +51,11 @@ const machineFactory = (
   // logger: Mailbox.Options['logger'],
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
-  initial: States.initializing,
+  initial: states.initializing,
   context: () => initialContext(),
   on: {
-    [Types.RESET]: States.resetting,
-    [Types.INTRODUCE]: {
+    [types.RESET]: states.resetting,
+    [types.INTRODUCE]: {
       actions: [
         wechatyAddress.send(
           ctx => actors.wechaty.Events.SAY(
@@ -79,31 +73,31 @@ const machineFactory = (
   },
   preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
   states: {
-    [States.initializing]: {
-      always: States.idle,
+    [states.initializing]: {
+      always: states.idle,
     },
-    [States.idle]: {
+    [states.idle]: {
       entry: [
         Mailbox.Actions.idle(MACHINE_NAME)('idle'),
       ],
       on: {
-        '*': States.idle,
-        [Types.MESSAGE]: {
+        '*': states.idle,
+        [types.MESSAGE]: {
           actions: [
             actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
             actions.assign({ message: (_, e) => e.payload.message }),
           ],
-          target: States.parsing,
+          target: states.parsing,
         },
-        [Types.REPORT]: {
+        [types.REPORT]: {
           actions: [
             actions.log('states.idle.on.REPORT', MACHINE_NAME),
           ],
-          target: States.reporting,
+          target: states.reporting,
         },
       },
     },
-    [States.reporting]: {
+    [states.reporting]: {
       entry: [
         actions.log(ctx => `states.reporting.entry contacts/${ctxContactsNum(ctx)}`, MACHINE_NAME),
         actions.choose<Context, any>([
@@ -111,7 +105,7 @@ const machineFactory = (
             cond: ctx => ctxContactsNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.reporting.entry -> [CONTACTS]', MACHINE_NAME),
-              Mailbox.Actions.reply(ctx => Bot5Events.CONTACTS(ctx.contacts)),
+              Mailbox.Actions.reply(ctx => events.contacts(ctx.contacts)),
             ],
           },
           {
@@ -122,16 +116,16 @@ const machineFactory = (
           },
         ]),
       ],
-      always: States.idle,
+      always: states.idle,
     },
-    [States.resetting]: {
+    [states.resetting]: {
       entry: [
         actions.log('states.resetting.entry', MACHINE_NAME),
         actions.assign(_ => initialContext()),
       ],
-      always: States.initializing,
+      always: states.initializing,
     },
-    [States.parsing]: {
+    [states.parsing]: {
       entry: [
         actions.log('states.parsing.entry', MACHINE_NAME),
       ],
@@ -145,7 +139,7 @@ const machineFactory = (
         },
       },
       on: {
-        [Types.MENTION]: {
+        [types.MENTION]: {
           actions: [
             actions.log((_, e) => `states.parsing.on.MENTION <- ${e.payload.contacts.map(c => c.name()).join(',')}`, MACHINE_NAME),
             actions.assign({
@@ -155,12 +149,12 @@ const machineFactory = (
               ],
             }),
           ],
-          target: States.confirming,
+          target: states.confirming,
         },
-        [Types.GERROR]: States.erroring,
+        [types.GERROR]: states.erroring,
       },
     },
-    [States.confirming]: {
+    [states.confirming]: {
       entry: [
         actions.log(ctx => `states.confirming.entry contacts/${ctxContactsNum(ctx)}`, MACHINE_NAME),
         actions.choose<Context, any>([
@@ -187,17 +181,17 @@ const machineFactory = (
         ]),
       ],
       on: {
-        [Types.REPORT]: States.reporting,
-        [Types.IDLE]:   States.idle,
+        [types.REPORT]: states.reporting,
+        [types.IDLE]:   states.idle,
       },
       // TODO: ask 'do you need to edit the list?' with 60 seconds timeout with default N
     },
-    [States.erroring]: {
+    [states.erroring]: {
       entry: [
-        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as EventPayloads['GERROR']).payload.gerror})]`, MACHINE_NAME),
+        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as Event['gerror']).payload.gerror})]`, MACHINE_NAME),
         Mailbox.Actions.reply((_, e) => e),
       ],
-      always: States.idle,
+      always: states.idle,
     },
   },
 })
@@ -219,7 +213,7 @@ function mailboxFactory (
 
 export {
   type Context,
-  States,
+  states as States,
   machineFactory,
   mailboxFactory,
   initialContext,

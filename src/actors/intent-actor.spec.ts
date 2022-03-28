@@ -1,26 +1,20 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
-
 import {
   test,
   sinon,
-}                   from 'tstest'
-
+}                           from 'tstest'
 import {
   AnyEventObject,
   createMachine,
   interpret,
-}                   from 'xstate'
+}                           from 'xstate'
+import { createFixture }    from 'wechaty-mocker'
 
-import { createFixture } from 'wechaty-mocker'
+import * as Mailbox         from '../mailbox/mod.js'
+import { events, intents }  from '../schemas/mod.js'
 
-import * as Mailbox from '../mailbox/mod.js'
-
-import * as IntentActor  from './intent-actor.js'
-import {
-  Events,
-  Intent,
-}                   from '../schemas/mod.js'
+import * as IntentActor   from './intent-actor.js'
 
 test('IntentActor happy path smoke testing', async t => {
   for await (const fixtures of createFixture()) {
@@ -34,9 +28,9 @@ test('IntentActor happy path smoke testing', async t => {
     })
 
     const FIXTURES = [
-      ['开始',    [Intent.Start]],
-      ['停止',    [Intent.Stop]],
-      ['都可能',  [Intent.Start, Intent.Stop, Intent.Unknown]],
+      ['开始',    [intents.start]],
+      ['停止',    [intents.stop]],
+      ['都可能',  [intents.start, intents.stop, intents.unknown]],
     ] as const
 
     const CHILD_ID = 'child'
@@ -62,7 +56,7 @@ test('IntentActor happy path smoke testing', async t => {
 
     wechatyFixtures.bot.on('message', msg => {
       interpreter.send(
-        Events.MESSAGE(msg),
+        events.message(msg),
       )
     })
 
@@ -76,11 +70,11 @@ test('IntentActor happy path smoke testing', async t => {
       const actualChildReply = eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY)
       const expectedChildReply = [
         Mailbox.Events.CHILD_REPLY(
-          Events.INTENTS(expectedIntents),
+          events.intents(expectedIntents),
         ),
       ]
       t.same(actualChildReply, expectedChildReply,
-        `should get expected intents [${expectedIntents.map(i => Intent[i])}] for text "${text}"`,
+        `should get expected intents [${expectedIntents}] for text "${text}"`,
       )
     }
 

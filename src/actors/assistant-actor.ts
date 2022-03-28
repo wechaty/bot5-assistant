@@ -3,16 +3,17 @@
  * Finite State Machine for BOT Friday Club Meeting
  *  @link https://github.com/wechaty/bot5-assistant
  */
-import { createMachine } from 'xstate'
-
-import * as Mailbox from '../mailbox/mod.js'
-import { InjectionToken } from '../ioc/tokens.js'
+import { createMachine, actions }   from 'xstate'
 
 import {
-  Events as Bot5Events,
-  States,
-  Types,
-}             from '../schemas/mod.js'
+  events,
+  states,
+  types,
+}                         from '../schemas/mod.js'
+import * as Mailbox       from '../mailbox/mod.js'
+import { InjectionToken } from '../ioc/tokens.js'
+
+import * as Actors from './mod.js'
 
 interface Context {
 }
@@ -24,44 +25,85 @@ function initialContext (): Context {
 }
 
 const Events = {
-  MESSAGE: Bot5Events.MESSAGE,
+  MESSAGE : events.message,
+  REPORT  : events.report,
+  MINUTE  : events.minute,
 }
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
 
 const MACHINE_NAME = 'AssistantMachine'
 
-const machineFactory = () => createMachine<
+const machineFactory = (
+  meetingAddress : Mailbox.Address,
+  noticeAddress  : Mailbox.Address,
+) => createMachine<
   Context,
   Event
 >({
   id: MACHINE_NAME,
   context: () => initialContext(),
-  initial: States.initializing,
+  initial: states.initializing,
   states: {
-    [States.initializing]: {
-      always: States.idle,
+    [states.initializing]: {
+      always: states.idle,
     },
-    [States.idle]: {
+    [states.idle]: {
       on: {
-        [Types.MESSAGE]: States.processing,
+        [types.MESSAGE]: states.processing,
+        [types.REPORT]: states.reporting,
       },
     },
-    [States.processing]: {
+    [states.reporting]: {
+      entry: [
+
+      ],
+    },
+    [states.processing]: {
       on: {
       },
+    },
+    [states.meeting]: {
+      entry: [
+        meetingAddress.send(events.report()),
+      ],
+      on: {
+        [types.MESSAGE]: {
+          actions: [
+            actions.forwardTo(String(meetingAddress)),
+          ],
+        },
+        [types.MINUTE]: states.finished,
+      },
+    },
+    [states.finished]: {
+      entry: [
+        actions.log('states.finished.entry', MACHINE_NAME),
+        noticeAddress.send(ctx =>
+          Actors.notice.Events.NOTICE(
+            `【Friday系统】会议简报已生成：\nTODO: ${ctx}`,
+          ),
+        ),
+      ],
+      always: states.idle,
     },
   },
 })
 
 mailboxFactory.inject = [
   InjectionToken.Logger,
+  InjectionToken.MeetingMailbox,
 ] as const
 
 function mailboxFactory (
   logger: Mailbox.Options['logger'],
+  meetingMailbox: Mailbox.Interface,
+  noticeMailbox: Mailbox.Interface,
 ) {
-  const machine = machineFactory()
+  const machine = machineFactory(
+    meetingMailbox.address,
+    noticeMailbox.address,
+  )
 
   const mailbox = Mailbox.from(machine, { logger })
   mailbox.acquire()

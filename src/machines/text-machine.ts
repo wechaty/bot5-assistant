@@ -1,34 +1,25 @@
 /* eslint-disable sort-keys */
-import {
-  createMachine,
-  actions,
-}                   from 'xstate'
+import { createMachine, actions }   from 'xstate'
+import type * as PUPPET             from 'wechaty-puppet'
 
-import type { Message } from 'wechaty'
-
-import * as Mailbox from '../mailbox/mod.js'
-
-import { speechToText } from '../to-text/mod.js'
-
-import {
-  Events,
-  Types,
-}             from '../schemas/mod.js'
+import * as Mailbox       from '../mailbox/mod.js'
+import { speechToText }   from '../to-text/mod.js'
+import { events, types }  from '../schemas/mod.js'
 
 type Event =
-  | ReturnType<typeof Events.MESSAGE>
-  | ReturnType<typeof Events.NO_AUDIO>
-  | ReturnType<typeof Events.TEXT>
+  | ReturnType<typeof events.message>
+  | ReturnType<typeof events.noAudio>
+  | ReturnType<typeof events.text>
 
 interface Context {
-  message: null | Message
+  message?: PUPPET.payloads.Message
 }
 
 const textMachine = createMachine<Context, Event>(
   {
     initial: 'idle',
     context: {
-      message: null,
+      message: undefined,
     },
     states: {
       idle: {
@@ -36,7 +27,7 @@ const textMachine = createMachine<Context, Event>(
           actions.sendParent(Mailbox.Events.CHILD_IDLE('stt idle')),
         ],
         on: {
-          [Types.MESSAGE]: {
+          [types.MESSAGE]: {
             actions: [
               actions.log((_, e) => 'stt idle on MESSAGE ' + JSON.stringify(e)),
               'saveMessage',
@@ -54,7 +45,7 @@ const textMachine = createMachine<Context, Event>(
           {
             actions: [
               actions.log('states.selecting.always.text'),
-              actions.sendParent(Events.NO_AUDIO()),
+              actions.sendParent(events.noAudio()),
             ],
             target: 'idle',
           },
@@ -68,14 +59,14 @@ const textMachine = createMachine<Context, Event>(
             actions: [
               actions.sendParent((_, e) => {
                 // console.info('stt result', e.data)
-                return Events.TEXT(e.data)
+                return events.text(e.data)
               }),
             ],
           },
           onError: {
             target: 'idle',
             actions: [
-              actions.escalate((_, e) => Events.GERROR(e.data)),
+              actions.escalate((_, e) => events.gerror(e.data)),
             ],
           },
         },
@@ -85,7 +76,7 @@ const textMachine = createMachine<Context, Event>(
   {
     actions: {
       saveMessage: actions.assign({
-        message:  (_, e) => (e as ReturnType<typeof Events.MESSAGE>).payload.message,
+        message:  (_, e) => (e as ReturnType<typeof events.message>).payload.message,
       }),
     },
     services: {

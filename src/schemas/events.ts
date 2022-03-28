@@ -51,7 +51,7 @@ const payloadNotice = (notice: string) => ({ notice })
 const payloadMinute = (minutes: string) => ({ minutes })
 const payloadConversation = (conversationId: string) => ({ conversationId })
 
-export const mention    = createAction(types.MENTION, payloadContacts)()
+export const mention     = createAction(types.MENTION, payloadContacts)()
 export const message     = createAction(types.MESSAGE, payloadMessage)()
 
 export const back        = createAction(types.BACK)()

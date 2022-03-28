@@ -4,8 +4,7 @@
 import {
   test,
   sinon,
-}                   from 'tstest'
-
+}                           from 'tstest'
 import {
   AnyEventObject,
   interpret,
@@ -14,24 +13,23 @@ import {
   // spawn,
   actions,
   StateValue,
-}                   from 'xstate'
-import type * as WECHATY from 'wechaty'
+}                           from 'xstate'
+import type * as WECHATY    from 'wechaty'
 
-import { inspect } from '@xstate/inspect/lib/server.js'
-import { WebSocketServer } from 'ws'
-
-import type * as Mailbox from '../mailbox/mod.js'
+import { inspect }          from '@xstate/inspect/lib/server.js'
+import { WebSocketServer }  from 'ws'
 
 import {
-  Events,
-  States,
-  Types,
+  events,
+  states,
+  types,
 }                             from '../schemas/mod.js'
+import type * as Mailbox      from '../mailbox/mod.js'
 import { audioFixtures }      from '../to-text/mod.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 
-import * as Brainstorming from './brainstorming-actor.js'
-import { bot5Fixtures }   from './bot5-fixture.js'
+import * as Brainstorming   from './brainstorming-actor.js'
+import { bot5Fixtures }     from './bot5-fixture.js'
 
 test('Brainstorming actor smoke testing', async t => {
   for await (
@@ -59,7 +57,7 @@ test('Brainstorming actor smoke testing', async t => {
     } as const
 
     const injector = createBot5Injector({
-      wechaty: wechatyFixture.wechaty,
+      wechatyStore: wechatyFixture.wechaty,
       logger,
       devTools: true,
     })
@@ -109,7 +107,7 @@ test('Brainstorming actor smoke testing', async t => {
         return
       }
       proxyInterpreter.send(
-        Events.MESSAGE(msg),
+        events.message(msg),
       )
     })
 
@@ -118,8 +116,8 @@ test('Brainstorming actor smoke testing', async t => {
      */
     targetEventList.length = 0
     targetStateList.length = 0
-    proxyInterpreter.send(Events.ROOM(wechatyFixture.groupRoom))
-    proxyInterpreter.send(Events.REPORT())
+    proxyInterpreter.send(events.room(wechatyFixture.groupRoom))
+    proxyInterpreter.send(events.report())
     await sandbox.clock.runToLastAsync()
     t.equal(
       targetContext().room?.id,
@@ -127,9 +125,9 @@ test('Brainstorming actor smoke testing', async t => {
       'should set room to context',
     )
     t.same(targetStateList, [
-      States.idle,
-      States.reporting,
-      States.registering,
+      states.idle,
+      states.reporting,
+      states.registering,
     ], 'should in state.{idle,reporting,registering}')
 
     /**
@@ -144,7 +142,7 @@ test('Brainstorming actor smoke testing', async t => {
     targetStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
-    t.same(targetStateList, [States.registering], 'should in state.registering if no mention')
+    t.same(targetStateList, [states.registering], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
 
@@ -176,14 +174,14 @@ test('Brainstorming actor smoke testing', async t => {
       'should set contacts to mary, mike, player',
     )
     t.same(targetStateList, [
-      States.registering,
-      States.feedbacking,
-      States.feedbacking,
+      states.registering,
+      states.feedbacking,
+      states.feedbacking,
     ], 'should transition to registering & feedbacking states')
     t.same(targetEventList.map(e => e.type), [
-      Types.MESSAGE,
-      Types.CONTACTS,
-      Types.NOTICE,
+      types.MESSAGE,
+      types.CONTACTS,
+      types.NOTICE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
 
     await sandbox.clock.runAllAsync()
@@ -202,7 +200,7 @@ test('Brainstorming actor smoke testing', async t => {
       'should no feedbacks because it will updated only all members have replied',
     )
     t.same(targetStateList, [
-      States.feedbacking,
+      states.feedbacking,
     ], 'should in state.feedbacking')
 
     targetEventList.length = 0
@@ -224,23 +222,23 @@ test('Brainstorming actor smoke testing', async t => {
       'should set feedbacks because all members have replied',
     )
     t.same(targetStateList, [
-      States.feedbacking,
-      States.feedbacking,
-      States.reporting,
-      States.reporting,
-      States.idle,
+      states.feedbacking,
+      states.feedbacking,
+      states.reporting,
+      states.reporting,
+      states.idle,
     ], 'should in state.feedbacking,reporting,idle')
     t.same(targetEventList.map(e => e.type), [
-      Types.MESSAGE,
-      Types.MESSAGE,
-      Types.FEEDBACKS,
-      Types.NOTICE,
-      Types.IDLE,
+      types.MESSAGE,
+      types.MESSAGE,
+      types.FEEDBACKS,
+      types.NOTICE,
+      types.IDLE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
     t.same(
-      targetEventList.filter(e => e.type === Types.FEEDBACKS),
+      targetEventList.filter(e => e.type === types.FEEDBACKS),
       [
-        Events.FEEDBACKS({
+        events.feedbacks({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
           [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
           [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,

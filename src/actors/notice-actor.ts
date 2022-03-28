@@ -3,19 +3,16 @@
  * Finite State Machine for BOT Friday Club Meeting
  *  @link https://github.com/wechaty/bot5-assistant
  */
-import {
-  createMachine,
-  actions,
-}                   from 'xstate'
-import { isActionOf } from 'typesafe-actions'
+import { createMachine, actions }   from 'xstate'
+import { isActionOf }               from 'typesafe-actions'
 
-import * as Mailbox from '../mailbox/mod.js'
-import { InjectionToken } from '../ioc/tokens.js'
 import {
-  Events as Bot5Events,
-  States,
-  Types,
-}             from '../schemas/mod.js'
+  events,
+  states,
+  types,
+}                           from '../schemas/mod.js'
+import * as Mailbox         from '../mailbox/mod.js'
+import { InjectionToken }   from '../ioc/tokens.js'
 
 import * as Actors from './mod.js'
 
@@ -31,8 +28,8 @@ function initialContext (): Context {
 }
 
 const Events = {
-  NOTICE: Bot5Events.NOTICE,
-  CONVERSATION: Bot5Events.CONVERSATION,
+  NOTICE       : events.notice,
+  CONVERSATION : events.conversation,
 }
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -47,15 +44,19 @@ const machineFactory = (
 >({
   id: MACHINE_NAME,
   context: () => initialContext(),
-  initial: States.initializing,
+  initial: states.initializing,
   states: {
-    [States.initializing]: {
-      always: States.idle,
+    [states.initializing]: {
+      always: states.idle,
     },
-    [States.idle]: {
+    [states.idle]: {
       on: {
-        [Types.NOTICE]: States.noticing,
-        [Types.CONVERSATION]: {
+        '*': {
+          actions: actions.forwardTo(String(wechatyAddress)),
+          target: states.idle,  // enforce external transition
+        },
+        [types.NOTICE]: states.noticing,
+        [types.CONVERSATION]: {
           actions: [
             actions.log((_, e) => `states.idle.on.CONVERSATION ${e.payload.conversationId}`, MACHINE_NAME),
             actions.assign({
@@ -65,7 +66,7 @@ const machineFactory = (
         },
       },
     },
-    [States.noticing]: {
+    [states.noticing]: {
       entry: [
         actions.log('states.noticing.entry', MACHINE_NAME),
         wechatyAddress.send((ctx, e) =>
@@ -74,10 +75,10 @@ const machineFactory = (
               `【信使系统】${e.payload.notice}`,
               ctx.conversationId,
             )
-            : Bot5Events.NOP(),
+            : events.nop(),
         ),
       ],
-      always: States.idle,
+      always: states.idle,
     },
   },
 })

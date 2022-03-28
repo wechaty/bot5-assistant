@@ -1,25 +1,18 @@
 /* eslint-disable sort-keys */
-import * as WECHATY from 'wechaty'
-import {
-  createMachine,
-  actions,
-}                   from 'xstate'
+import * as WECHATY                 from 'wechaty'
+import * as PUPPET                  from 'wechaty-puppet'
+import * as CQRS                    from 'wechaty-cqrs'
+import { createMachine, actions }   from 'xstate'
+import { FileBox }                  from 'file-box'
 
-import { textToIntents } from '../machines/message-to-intents.js'
-
-import * as Mailbox from '../mailbox/mod.js'
-
-import {
-  Events as Bot5Events,
-  States,
-  Types,
-}                     from '../schemas/mod.js'
-
-import { speechToText } from '../to-text/mod.js'
-import { InjectionToken } from '../ioc/tokens.js'
+import { states, events, types }  from '../schemas/mod.js'
+import { textToIntents }          from '../machines/message-to-intents.js'
+import * as Mailbox               from '../mailbox/mod.js'
+import { speechToText }           from '../to-text/mod.js'
+import { InjectionToken }         from '../ioc/tokens.js'
 
 export interface Context {
-  message?: WECHATY.Message
+  message?: PUPPET.payloads.Message
   text?: string
   gerror?: string
 }
@@ -34,7 +27,7 @@ function initialContext (): Context {
 }
 
 const Events = {
-  MESSAGE: Bot5Events.MESSAGE,
+  MESSAGE: events.message,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -44,7 +37,7 @@ const MACHINE_NAME = 'IntentMachine'
 function machineFactory () {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
-    initial: States.idle,
+    initial: states.idle,
     /**
      * Issue statelyai/xstate#2891:
      *  The context provided to the expr inside a State
@@ -54,68 +47,68 @@ function machineFactory () {
     preserveActionOrder: true,
     context: () => initialContext(),
     states: {
-      [States.idle]: {
+      [states.idle]: {
         entry: [
           actions.log('states.idle.entry', MACHINE_NAME),
           Mailbox.Actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
-          '*': States.idle,
-          [Types.MESSAGE]: {
+          '*': states.idle,
+          [types.MESSAGE]: {
             actions: [
               actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
               actions.assign({ message: (_, event) => event.payload.message }),
             ],
-            target: States.checking,
+            target: states.checking,
           },
         },
       },
-      [States.checking]: {
+      [states.checking]: {
         always: [
           {
-            cond: ctx => ctx.message?.type() === WECHATY.types.Message.Text,
+            cond: ctx => ctx.message?.type === PUPPET.types.Message.Text,
             actions: [
-              actions.assign({ text: ctx => ctx.message?.text() }),
+              actions.assign({ text: ctx => ctx.message?.text }),
               actions.log('states.checking.always.MESSAGE.Text', MACHINE_NAME),
             ],
-            target: States.understanding,
+            target: states.understanding,
           },
           {
-            cond: ctx => ctx.message?.type() === WECHATY.types.Message.Audio,
+            cond: ctx => ctx.message?.type === PUPPET.types.Message.Audio,
             actions: [
               actions.log('states.checking.always.MESSAGE.Audio', MACHINE_NAME),
             ],
-            target: States.recognizing,
+            target: states.recognizing,
           },
           {
             actions: [
-              actions.log((_, e) => `states.checking.always.MESSAGE is neither Text nor Audio: ${e.payload.message.type()}`, MACHINE_NAME),
+              actions.log((_, e) => `states.checking.always.MESSAGE is neither Text nor Audio: ${PUPPET.types.Message[e.payload.message.type]}`, MACHINE_NAME),
             ],
-            target: States.idle,
+            target: states.idle,
           },
         ],
       },
-      [States.recognizing]: {
+      [states.recognizing]: {
         entry: [
           actions.log('states.recognizing.entry', MACHINE_NAME),
         ],
         invoke: {
-          src: ctx => speechToText(ctx.message?.toFileBox()),
+          src: ctx => speechToText(FileBox.fromJSON(ctx.message?.fileBox)),
           onDone: {
             actions: [
               actions.assign({ text: (_, event) => event.data }),
             ],
-            target: States.understanding,
+            target: states.understanding,
           },
           onError: {
             actions: [
               actions.assign({ gerror: (_, event) => event.data }),
             ],
-            target: States.erroring,
+            target: states.erroring,
           },
         },
       },
-      [States.understanding]: {
+      [states.understanding]: {
         entry: [
           actions.log(ctx => `states.understanding.entry ${ctx.text}`, MACHINE_NAME),
         ],
@@ -124,27 +117,27 @@ function machineFactory () {
           onDone: {
             actions: [
               // TODO: support entities
-              Mailbox.Actions.reply((_, e) => Bot5Events.INTENTS(e.data)),
+              Mailbox.Actions.reply((_, e) => events.intents(e.data)),
             ],
-            target: States.idle,
+            target: states.idle,
           },
           onError: {
             actions: [
               actions.assign({ gerror: (_, event) => event.data }),
             ],
-            target: States.erroring,
+            target: states.erroring,
           },
         },
       },
-      [States.erroring]: {
+      [states.erroring]: {
         entry: [
           actions.log(ctx => `states.erroring.entry ${ctx.gerror}`, MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => Bot5Events.GERROR(ctx.gerror!)),
+          Mailbox.Actions.reply(ctx => events.gerror(ctx.gerror!)),
         ],
         exit: [
           actions.assign({ gerror: _ => undefined }),
         ],
-        always: States.idle,
+        always: states.idle,
       },
     },
   })

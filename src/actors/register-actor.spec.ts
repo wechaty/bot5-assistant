@@ -1,34 +1,23 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
-
-import {
-  test,
-  sinon,
-}                   from 'tstest'
-
 import {
   AnyEventObject,
   interpret,
   createMachine,
   Interpreter,
   // spawn,
-}                   from 'xstate'
-import type * as WECHATY from 'wechaty'
+}                         from 'xstate'
+import { test, sinon }    from 'tstest'
+import type * as WECHATY  from 'wechaty'
+import { createFixture }  from 'wechaty-mocker'
+import type { mock }      from 'wechaty-puppet-mock'
 
-import { createFixture } from 'wechaty-mocker'
-import type { mock } from 'wechaty-puppet-mock'
-
-import {
-  Events,
-  Types,
-  States,
-}                 from '../schemas/mod.js'
-
-import * as Mailbox from '../mailbox/mod.js'
-import * as Register from './register-actor.js'
+import { events, types, states }    from '../schemas/mod.js'
+import * as Mailbox                 from '../mailbox/mod.js'
+import * as Register                from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
-  const registerMachine = Register.machineFactory(Mailbox.nullAddress)
+  const registerMachine = Register.machineFactory(Mailbox.nil.address)
   const REGISTER_MACHINE_ID = 'register-machine-id'
   const PROXY_MACHINE_ID = 'proxy-machine-id'
   const proxyMachine = createMachine({
@@ -58,7 +47,7 @@ test('registerMachine smoke testing', async t => {
   const registerEventList: AnyEventObject[] = []
   registerRef().onEvent(e => registerEventList.push(e))
 
-  t.equal(registerState(), States.idle, 'should be idle state')
+  t.equal(registerState(), states.idle, 'should be idle state')
   t.same(registerContext().contacts, [], 'should be empty mention list')
 
   for await (const fixtures of createFixture()) {
@@ -95,13 +84,13 @@ test('registerMachine smoke testing', async t => {
     const noMentionMessage = await messageFutureNoMention
 
     registerRef().send(
-      Events.MESSAGE(noMentionMessage),
+      events.message(noMentionMessage),
     )
     t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), States.parsing, 'should be in parsing state')
+    t.equal(registerState(), states.parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      Types.MESSAGE,
+      types.MESSAGE,
     ], 'should be MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -110,11 +99,11 @@ test('registerMachine smoke testing', async t => {
     t.same(proxyEventList, [
       Mailbox.Events.CHILD_IDLE('idle'),
     ], 'should have 1 idle event after one message, with empty contacts listfor non-mention message')
-    t.equal(registerState(), States.idle, 'should be back to idle state')
+    t.equal(registerState(), states.idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
       'done.invoke.RegisterMachine.bot5/parsing:invocation[0]',
-      Types.MENTION,
-      Types.IDLE,
+      types.MENTION,
+      types.IDLE,
     ], 'should be done.invoke.RegisterMachine.bot5/parsing:invocation[0], MENTION, IDLE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -132,13 +121,13 @@ test('registerMachine smoke testing', async t => {
     proxyEventList.length = 0
     registerEventList.length = 0
     registerRef().send(
-      Events.MESSAGE(mentionMessage),
+      events.message(mentionMessage),
     )
     t.equal(proxyEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), States.parsing, 'should be in parsing state')
+    t.equal(registerState(), states.parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      Types.MESSAGE,
+      types.MESSAGE,
     ], 'should got MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -156,16 +145,16 @@ test('registerMachine smoke testing', async t => {
       [
         Mailbox.Events.CHILD_IDLE('idle'),
         Mailbox.Events.CHILD_REPLY(
-          Events.CONTACTS(CONTACT_MENTION_LIST),
+          events.contacts(CONTACT_MENTION_LIST),
         ),
       ],
       'should have 2 events after one message with contacts list for mention message',
     )
-    t.equal(registerState(), States.idle, 'should be in idle state')
+    t.equal(registerState(), states.idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
       'done.invoke.RegisterMachine.bot5/parsing:invocation[0]',
-      Types.MENTION,
-      Types.REPORT,
+      types.MENTION,
+      types.REPORT,
     ], 'should got done.invoke.RegisterMachine.bot5/parsing:invocation[0], MENTION, REPORT event')
     t.same(
       registerContext().contacts.map(c => c.id),
@@ -229,14 +218,14 @@ test('registerActor smoke testing', async t => {
 
     eventList.length = 0
     interpreter.send(
-      Events.MESSAGE(
+      events.message(
         await messageFutureNoMention,
       ),
     )
     t.same(
       eventList.map(e => e.type),
       [
-        Types.MESSAGE,
+        types.MESSAGE,
       ],
       'should receive mailbox events for processing the new MESSAGE event',
     )
@@ -250,19 +239,19 @@ test('registerActor smoke testing', async t => {
 
     eventList.length = 0
     interpreter.send(
-      Events.MESSAGE(
+      events.message(
         await messageFutureMentions,
       ),
     )
     t.same(eventList.map(e => e.type), [
-      Types.MESSAGE,
+      types.MESSAGE,
     ], 'should receive mailbox events for processing the new mention MESSAGE event')
 
     eventList.length = 0
     const idleFuture = new Promise<void>(resolve =>
       interpreter.onEvent(e => {
         // console.info('event:', e)
-        if (e.type === Types.CONTACTS) {
+        if (e.type === types.CONTACTS) {
           resolve()
         }
       }),
@@ -274,7 +263,7 @@ test('registerActor smoke testing', async t => {
     await idleFuture
     // console.info(eventList)
     t.same(eventList, [
-      Events.CONTACTS(CONTACT_MENTION_LIST),
+      events.contacts(CONTACT_MENTION_LIST),
     ], 'should get CONTACT events with mention list')
   }
 

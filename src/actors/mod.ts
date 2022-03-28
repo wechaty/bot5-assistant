@@ -1,14 +1,15 @@
 import type { ActionCreator } from 'typesafe-actions'
 
-import type * as Mailbox from '../mailbox/mod.js'
+import type * as Mailbox  from '../mailbox/mod.js'
+import * as wechaty       from '../wechaty-actor/mod.js'
 
 import * as assistant     from './assistant-actor.js'
 import * as feedback      from './feedback-actor.js'
 import * as intent        from './intent-actor.js'
 import * as meeting       from './meeting-actor.js'
 import * as register      from './register-actor.js'
-import * as wechaty       from './wechaty-actor.js'
 import * as brainstorming from './brainstorming-actor.js'
+import * as notice        from './notice-actor.js'
 
 interface ActorModel {
   mailboxFactory: (...args: any[]) => Mailbox.Interface
@@ -26,6 +27,7 @@ const actors: {
   feedback,
   intent,
   meeting,
+  notice,
   register,
   wechaty,
 }
@@ -39,4 +41,5 @@ export {
   meeting,
   register,
   wechaty,
+  notice,
 }
