@@ -6,9 +6,9 @@ import {
   interpret,
   createMachine,
   Interpreter,
-  // spawn,
 }                       from 'xstate'
 import { test, sinon }  from 'tstest'
+import * as CQRS        from 'wechaty-cqrs'
 
 import * as Mailbox       from '../mailbox/mod.js'
 import * as WechatyActor  from '../wechaty-actor/mod.js'
@@ -26,8 +26,11 @@ test('noticeActor smoke testing', async t => {
       useFakeTimers: { now: Date.now() }, // for make TencentCloud API timestamp happy
     })
 
+    const bus$ = CQRS.from(wechatyFixtures.wechaty)
+
     const wechatyMachine = WechatyActor.mailboxFactory(
-      wechatyFixtures.wechaty,
+      bus$,
+      wechatyFixtures.wechaty.puppet.id,
       Mailbox.nil.logger,
     )
     const noticeMachine = NoticeActor.machineFactory(
@@ -78,9 +81,10 @@ test('noticeActor smoke testing', async t => {
 
     moList.length = 0
     proxyInterpreter.send(
-      WechatyActor.Events.SAY(
-        EXPECTED_TEXT,
+      CQRS.commands.SendMessageCommand(
+        CQRS.uuid.NIL,
         mockerFixtures.groupRoom.id,
+        CQRS.sayables.text(EXPECTED_TEXT),
       ),
     )
     await sandbox.clock.runAllAsync()

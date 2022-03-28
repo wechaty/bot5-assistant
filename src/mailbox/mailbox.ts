@@ -50,7 +50,7 @@ import {
   Types,
 }                   from './types.js'
 /**
- * The Interface
+ * The Mailbox Interface
  */
 interface Interface<
   TEvent extends EventObject = EventObject,
@@ -63,7 +63,7 @@ interface Interface<
 }
 
 /**
- * The Class
+ * The Mailbox Class Implementation
  */
 class MailboxImpl<
   TContext extends {} = {},

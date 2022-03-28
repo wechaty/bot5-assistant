@@ -26,8 +26,6 @@ import {
   SendActionOptions,
   SendAction,
   GuardMeta,
-  createMachine,
-  interpret,
 }                   from 'xstate'
 
 interface Address {

@@ -43,13 +43,7 @@ const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
 
-const payloadIdle = (reason?: string) => ({ reason })
-const payloadCheck = () => ({})
-const payloadProcess = () => ({})
-const payloadParse = () => ({})
-const payloadNotice = (notice: string) => ({ notice })
 const payloadMinute = (minutes: string) => ({ minutes })
-const payloadConversation = (conversationId: string) => ({ conversationId })
 
 export const mention     = createAction(types.MENTION, payloadContacts)()
 export const message     = createAction(types.MESSAGE, payloadMessage)()
@@ -95,12 +89,20 @@ export const complete  = createAction(types.COMPLETE, payloadData)()
 export const introduce = createAction(types.INTRODUCE)()
 export const report = createAction(types.REPORT)()
 
+const payloadIdle = (data?: string) => ({ reason: data })
 export const idle = createAction(types.IDLE, payloadIdle)()
-export const check = createAction(types.CHECK, payloadCheck)()
 
-export const process = createAction(types.PROCESS, payloadProcess)()
-export const parse = createAction(types.PARSE, payloadParse)()
+export const check = createAction(types.CHECK)()
+
+export const process = createAction(types.PROCESS)()
+export const parse = createAction(types.PARSE)()
+
+const payloadNotice = (notice: string) => ({ notice })
 export const notice = createAction(types.NOTICE, payloadNotice)()
+
 export const minute = createAction(types.MINUTE, payloadMinute)()
+
+const payloadConversation = (conversationId: string) => ({ conversationId })
 export const conversation = createAction(types.CONVERSATION, payloadConversation)()
+
 export const nop = createAction(types.NOP)()

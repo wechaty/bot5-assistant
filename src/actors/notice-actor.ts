@@ -5,6 +5,7 @@
  */
 import { createMachine, actions }   from 'xstate'
 import { isActionOf }               from 'typesafe-actions'
+import * as CQRS                    from 'wechaty-cqrs'
 
 import {
   events,
@@ -13,8 +14,6 @@ import {
 }                           from '../schemas/mod.js'
 import * as Mailbox         from '../mailbox/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
-
-import * as Actors from './mod.js'
 
 interface Context {
   conversationId?: string,
@@ -27,21 +26,18 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const Events = {
+const EVENTS = {
   NOTICE       : events.notice,
   CONVERSATION : events.conversation,
 }
 
-type Event = ReturnType<typeof Events[keyof typeof Events]>
+type Event = ReturnType<typeof EVENTS[keyof typeof EVENTS]>
 
 const MACHINE_NAME = 'ConversationMachine'
 
 const machineFactory = (
   wechatyAddress: Mailbox.Address,
-) => createMachine<
-  Context,
-  Event
->({
+) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   context: () => initialContext(),
   initial: states.initializing,
@@ -63,6 +59,7 @@ const machineFactory = (
               conversationId: (_, e) => e.payload.conversationId,
             }),
           ],
+          target: states.idle,  // enforce external transition
         },
       },
     },
@@ -70,10 +67,13 @@ const machineFactory = (
       entry: [
         actions.log('states.noticing.entry', MACHINE_NAME),
         wechatyAddress.send((ctx, e) =>
-          isActionOf(Events.NOTICE, e) && ctx.conversationId
-            ? Actors.wechaty.Events.SAY(
-              `【信使系统】${e.payload.notice}`,
+          isActionOf(EVENTS.NOTICE, e) && ctx.conversationId
+            ? CQRS.commands.SendMessageCommand(
+              CQRS.uuid.NIL,
               ctx.conversationId,
+              CQRS.sayables.text(
+                `【信使系统】${e.payload.notice}`,
+              ),
             )
             : events.nop(),
         ),
@@ -104,5 +104,5 @@ export {
   type Context,
   machineFactory,
   mailboxFactory,
-  Events,
+  EVENTS as Events,
 }
