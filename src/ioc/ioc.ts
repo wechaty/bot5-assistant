@@ -3,6 +3,13 @@ import {
   createInjector,
 }                       from 'typed-inject'
 import type { Wechaty } from 'wechaty'
+// import type {
+//   // Ducks,
+//   Bundle,
+// }                         from 'ducks'
+// import type {
+//   Duck as WechatyDuck,
+// }                         from 'wechaty-redux'
 
 import type * as Mailbox from '../mailbox/mod.js'
 import * as actors from '../actors/mod.js'
@@ -14,7 +21,7 @@ resolveAll.inject = [
   InjectionToken.IntentMailbox,
   InjectionToken.FeedbackMailbox,
   InjectionToken.RegisterMailbox,
-  InjectionToken.Wechaty,
+  // InjectionToken.WechatyDuck,
   InjectionToken.Logger,
 ] as const
 
@@ -39,7 +46,7 @@ function resolveAll (
 }
 
 interface IocOptions {
-  wechaty: Wechaty
+  // wechatyDuck: Bundle<typeof WechatyDuck>
   //
   logger?:    Mailbox.Options['logger']
   devTools?:  Mailbox.Options['devTools']
@@ -48,7 +55,7 @@ interface IocOptions {
 const createBot5Injector = (options: IocOptions) => createInjector()
   .provideValue(InjectionToken.DevTools,  options.devTools)
   .provideValue(InjectionToken.Logger,    options.logger)
-  .provideValue(InjectionToken.Wechaty,   options.wechaty)
+  // .provideValue(InjectionToken.WechatyDuck, options.wechatyDuck)
   //
   .provideFactory(InjectionToken.WechatyMailbox,  actors.wechaty.mailboxFactory)
   .provideFactory(InjectionToken.IntentMailbox,   actors.intent.mailboxFactory)
