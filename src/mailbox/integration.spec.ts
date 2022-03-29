@@ -25,8 +25,8 @@ test('Mailbox.from(DingDong.machine) as an actor should enforce process messages
   })
 
   const ITEM_NUMBERS = [...Array(3).keys()]
-  const DING_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.Events.DING(i))
-  const DONG_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.Events.DONG(i))
+  const DING_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.events.DING(i))
+  const DONG_EVENT_LIST = ITEM_NUMBERS.map(i => DingDong.events.DONG(i))
 
   const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
   mailbox.acquire()
@@ -62,10 +62,10 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
   const ITEM_NUMBERS = [...Array(3).keys()]
 
   const DING_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    DingDong.Events.DING(i),
+    DingDong.events.DING(i),
   )
   const DONG_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    DingDong.Events.DONG(i),
+    DingDong.events.DONG(i),
   )
 
   const mailbox = Mailbox.from(DingDong.machine) as Mailbox.MailboxImpl
@@ -87,7 +87,7 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
     states: {
       testing: {
         on: {
-          [DingDong.Types.DING]: {
+          [DingDong.types.DING]: {
             actions: actions.send(
               (_, e) => e,
               { to: CHILD_ID },
@@ -112,7 +112,7 @@ test('parentMachine with invoke.src=Mailbox.address(DingDong.machine) should pro
   await sandbox.clock.runAllAsync()
 
   t.same(
-    eventList.filter(e => e.type === DingDong.Types.DONG),
+    eventList.filter(e => e.type === DingDong.types.DONG),
     DONG_EVENT_LIST,
     `should get replied DONG events from all(${DONG_EVENT_LIST.length}) DING events`,
   )
@@ -129,10 +129,10 @@ test('Mailbox.from(CoffeeMaker.machine) as an actor should enforce process messa
   const ITEM_NUMBERS = [...Array(3).keys()]
 
   const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)),
+    CoffeeMaker.events.MAKE_ME_COFFEE(String(i)),
   )
   const EXPECTED_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i =>
-    CoffeeMaker.Events.COFFEE(String(i)),
+    CoffeeMaker.events.COFFEE(String(i)),
   )
 
   const mailbox = Mailbox.from(CoffeeMaker.machine) as Mailbox.MailboxImpl

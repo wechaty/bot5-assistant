@@ -5,11 +5,9 @@ import {
   test,
 }                   from 'tstest'
 
-import {
-  Events,
-}                                   from './events.js'
+import * as events  from './events.js'
 
 test('tbw', async t => {
-  void Events
+  void events
   t.pass('tbw')
 })

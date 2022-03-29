@@ -18,21 +18,17 @@
  */
 /* eslint-disable sort-keys */
 
-import {
-  test,
-  sinon,
-}                   from 'tstest'
-
+import { test, sinon }    from 'tstest'
 import {
   AnyEventObject,
   createMachine,
   actions,
   interpret,
-}                   from 'xstate'
+}                         from 'xstate'
 
-import * as Mailbox  from './mod.js'
-import * as Baby   from './baby-machine.fixture.js'
-import * as DingDong from './ding-dong-machine.fixture.js'
+import * as Mailbox   from './mod.js'
+import * as Baby      from './baby-machine.fixture.js'
+import * as DingDong  from './ding-dong-machine.fixture.js'
 
 test('Mailbox.from() smoke testing (w/BabyMachine)', async t => {
   const sandbox = sinon.createSandbox({
@@ -63,15 +59,15 @@ test('Mailbox.from() smoke testing (w/BabyMachine)', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
-  const SLEEP_EVENT = Baby.Events.SLEEP(10)
+  const SLEEP_EVENT = Baby.events.SLEEP(10)
   eventList.length = 0
   interpreter.send(SLEEP_EVENT)
   t.same(
     eventList,
     [
       SLEEP_EVENT,
-      // Baby.Events.REST(),
-      // Baby.Events.DREAM(),
+      // Baby.events.REST(),
+      // Baby.events.DREAM(),
     ],
     // 'should receive DEAD_LETTER with REST and DREAM event after received the 1st EVENT sleep',
     'should receive the 1st EVENT sleep',
@@ -87,10 +83,10 @@ test('Mailbox.from() smoke testing (w/BabyMachine)', async t => {
   t.same(
     eventList,
     [
-      Baby.Events.EAT(),
-      Baby.Events.REST(),
-      Baby.Events.DREAM(),
-      Baby.Events.CRY(),
+      Baby.events.EAT(),
+      Baby.events.REST(),
+      Baby.events.DREAM(),
+      Baby.events.CRY(),
     ],
     'should receive baby events before wakeup',
   )
@@ -100,8 +96,8 @@ test('Mailbox.from() smoke testing (w/BabyMachine)', async t => {
   t.same(
     eventList,
     [
-      Baby.Events.PEE(),
-      Baby.Events.PLAY(),
+      Baby.events.PEE(),
+      Baby.events.PLAY(),
     ],
     'should get one dead letter with PEE&PLAY event after sleep',
   )
@@ -139,18 +135,18 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs (w/BabyMachine)
     .start()
 
   eventList.length = 0
-  interpreter.send(Baby.Events.SLEEP(10))
+  interpreter.send(Baby.events.SLEEP(10))
   t.same(
     eventList,
     [
-      Baby.Events.SLEEP(10),
+      Baby.events.SLEEP(10),
     ],
     'should received SLEEP event',
   )
 
   eventList.length = 0
-  interpreter.send(Baby.Events.SLEEP(20))
-  t.same(eventList, [Baby.Events.SLEEP(20)], 'should received SLEEP event')
+  interpreter.send(Baby.events.SLEEP(20))
+  t.same(eventList, [Baby.events.SLEEP(20)], 'should received SLEEP event')
 
   /**
    * Finish 1st (will right enter the 2nd)
@@ -160,10 +156,10 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs (w/BabyMachine)
   t.same(
     eventList,
     [
-      Baby.Events.EAT(),
-      Baby.Events.REST(),
-      Baby.Events.DREAM(),
-      Baby.Events.CRY(),
+      Baby.events.EAT(),
+      Baby.events.REST(),
+      Baby.events.DREAM(),
+      Baby.events.CRY(),
     ],
     'should before enter 2nd SLEEP after 10 ms',
   )
@@ -177,12 +173,12 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs (w/BabyMachine)
   t.same(
     eventList,
     [
-      Baby.Events.PEE(),
-      Baby.Events.PLAY(),
-      Baby.Events.EAT(),
-      Baby.Events.REST(),
-      Baby.Events.DREAM(),
-      Baby.Events.CRY(),
+      Baby.events.PEE(),
+      Baby.events.PLAY(),
+      Baby.events.EAT(),
+      Baby.events.REST(),
+      Baby.events.DREAM(),
+      Baby.events.CRY(),
     ],
     'should before enter 3rd SLEEP after another 20 ms',
   )
@@ -193,8 +189,8 @@ test('mailbox address interpret smoke testing: 3 parallel EVENTs (w/BabyMachine)
   eventList.length = 0
   await sandbox.clock.tickAsync(30)
   t.same(eventList, [
-    Baby.Events.PEE(),
-    Baby.Events.PLAY(),
+    Baby.events.PEE(),
+    Baby.events.PLAY(),
   ], 'should enter wakeup state')
 
   mailbox.dispose()
@@ -232,7 +228,7 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond (w/BabyMach
 
   Array.from({ length: 3 }).forEach(_ => {
     // console.info('EVENT: sleep sending...')
-    interpreter.send(Baby.Events.SLEEP(10))
+    interpreter.send(Baby.events.SLEEP(10))
     // console.info('EVENT: sleep sending... done')
   })
 
@@ -241,12 +237,12 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond (w/BabyMach
   t.same(
     eventList
       .map(e => e.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 1st 10 ms',
   )
@@ -256,14 +252,14 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond (w/BabyMach
   t.same(
     eventList
       .map(e => e.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.PEE,
+      Baby.types.PLAY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 2nd 10 ms',
   )
@@ -273,14 +269,14 @@ test('mailbox address interpret smoke testing: 3 EVENTs with respond (w/BabyMach
   t.same(
     eventList
       .map(e => e.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.PEE,
+      Baby.types.PLAY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should receive event child.events.PLAY after 3rd 10 ms',
   )
@@ -302,9 +298,9 @@ test('Mailbox Address smoke testing (w/DingDongMachine)', async t => {
   const testMachine = createMachine({
     on: {
       TEST: {
-        actions: actions.send(DingDong.Events.DING(0), { to: ADDRESS }),
+        actions: actions.send(DingDong.events.DING(0), { to: ADDRESS }),
       },
-      [DingDong.Types.DONG]: {
+      [DingDong.types.DONG]: {
         actions: spy,
       },
     },

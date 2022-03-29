@@ -1,63 +1,62 @@
 /* eslint-disable sort-keys */
-import {
-  createMachine,
-  actions,
-}                   from 'xstate'
+import { createMachine, actions }   from 'xstate'
 
 import * as Mailbox from './mod.js'
 
-enum States {
+enum State {
   idle = 'ding-dong/idle',
   busy = 'ding-dong/busy',
 }
+const states = State
 
-enum Types {
+enum Type {
   DING = 'ding-dong/DING',
   DONG = 'ding-dong/DONG',
 }
+const types = Type
 
-const Events = {
-  DING : (i: number) => ({ type: Types.DING, i }) as const,
-  DONG : (i: number) => ({ type: Types.DONG, i }) as const,
+const events = {
+  DING : (i: number) => ({ type: types.DING, i }) as const,
+  DONG : (i: number) => ({ type: types.DONG, i }) as const,
 } as const
+
+type Events = typeof events
+type Event = ReturnType<Events[keyof Events]>
 
 interface Context {
   i: number,
 }
-type Event =
-  | ReturnType<typeof Events.DING>
-  | ReturnType<typeof Events.DONG>
 
 const MAX_DELAY_MS = 10
 
 const machine = createMachine<Context, Event>({
   id: 'ding-dong',
-  initial: States.idle,
+  initial: states.idle,
   context: {
     i: -1,
   },
   states: {
-    [States.idle]: {
+    [states.idle]: {
       entry: [
         Mailbox.Actions.idle('DingDongMachine')('idle'),
       ],
       on: {
-        '*': States.idle,
-        [Types.DING]: {
-          target: States.busy,
+        '*': states.idle,
+        [types.DING]: {
+          target: states.busy,
           actions: actions.assign({
             i: (_, e) => e.i,
           }),
         },
       },
     },
-    [States.busy]: {
+    [states.busy]: {
       after: {
         randomMs: {
           actions: [
-            Mailbox.Actions.reply(ctx => Events.DONG(ctx.i)),
+            Mailbox.Actions.reply(ctx => events.DONG(ctx.i)),
           ],
-          target: States.idle,
+          target: states.idle,
         },
       },
     },
@@ -69,9 +68,13 @@ const machine = createMachine<Context, Event>({
 })
 
 export {
+  events,
   machine,
-  Events,
-  States,
-  Types,
   MAX_DELAY_MS,
+  states,
+  type Event,
+  type Events,
+  type State,
+  type Type,
+  types,
 }

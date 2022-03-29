@@ -22,8 +22,8 @@
  */
 
 /* eslint-disable sort-keys */
-import EventEmitter from 'events'
-import type { Disposable } from 'typed-inject'
+import EventEmitter         from 'events'
+import type { Disposable }  from 'typed-inject'
 
 import {
   StateMachine,
@@ -36,7 +36,7 @@ import {
 import type * as contexts      from './contexts.js'
 import type {
   Event,
-}                         from './events.js'
+}                         from './event-type.js'
 import {
   Options,
   MAILBOX_TARGET_MACHINE_ID,

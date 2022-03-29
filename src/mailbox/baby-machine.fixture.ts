@@ -6,12 +6,13 @@ import {
 
 import { Actions as MailboxActions } from './actions.js'
 
-enum States {
+enum State {
   awake   = 'baby/awake',
   asleep  = 'baby/asleep',
 }
+const states = State
 
-enum Types {
+enum Type {
   SLEEP = 'baby/SLEEP',
   // asleep
   DREAM = 'baby/DREAM',
@@ -22,21 +23,24 @@ enum Types {
   REST = 'baby/REST',
   EAT  = 'baby/EAT',
 }
+const types = Type
 
-const Events = {
-  SLEEP : (ms: number)  => ({ type: Types.SLEEP, ms }),
+const events = {
+  SLEEP : (ms: number)  => ({ type: types.SLEEP, ms }),
   // asleep
-  DREAM : ()  => ({ type: Types.DREAM }),
-  CRY   : ()  => ({ type: Types.CRY   }),
-  PEE   : ()  => ({ type: Types.PEE   }),
+  DREAM : ()  => ({ type: types.DREAM }),
+  CRY   : ()  => ({ type: types.CRY   }),
+  PEE   : ()  => ({ type: types.PEE   }),
   // awake
-  PLAY : () => ({ type: Types.PLAY  }),
-  REST : () => ({ type: Types.REST  }),
-  EAT  : () => ({ type: Types.EAT   }),
+  PLAY : () => ({ type: types.PLAY  }),
+  REST : () => ({ type: types.REST  }),
+  EAT  : () => ({ type: types.EAT   }),
 }
 
+type Events = typeof events
+type Event   = ReturnType<typeof events.SLEEP>
+
 type Context = { ms?: number }
-type Event   = ReturnType<typeof Events.SLEEP>
 
 const MACHINE_NAME = 'BabyMachine'
 
@@ -53,13 +57,13 @@ const MACHINE_NAME = 'BabyMachine'
 const machine = createMachine<Context, Event, any>({
   context: {},
   id: 'baby',
-  initial: States.awake,
+  initial: states.awake,
   states: {
-    [States.awake]: {
+    [states.awake]: {
       entry: [
         actions.log((_, e, { _event }) => `states.awake.entry <- [${e.type}]@${_event.origin}`, MACHINE_NAME),
         MailboxActions.idle(MACHINE_NAME)('awake'),
-        MailboxActions.reply(Events.PLAY()),
+        MailboxActions.reply(events.PLAY()),
       ],
       exit: [
         actions.log('states.awake.exit', MACHINE_NAME),
@@ -68,7 +72,7 @@ const machine = createMachine<Context, Event, any>({
          *  https://github.com/statelyai/xstate/issues/2880
          */
         // actions.sendParent(events.EAT()),
-        MailboxActions.reply(Events.EAT()),
+        MailboxActions.reply(events.EAT()),
       ],
       on: {
         /**
@@ -80,38 +84,38 @@ const machine = createMachine<Context, Event, any>({
          *    by waiting a IDLE event feedback whenever it has sent an event to the target.
          */
         '*': {
-          target: States.awake,
+          target: states.awake,
           actions: [
             actions.log((_, e, { _event }) => `states.awake.on.* <- [${e.type}]@${_event.origin || ''}`, MACHINE_NAME),
           ],
         },
-        [Types.SLEEP]: {
-          target: States.asleep,
+        [types.SLEEP]: {
+          target: states.asleep,
           actions: [
             actions.log((_, e) => `states.awake.on.SLEEP ${JSON.stringify(e)}`, MACHINE_NAME),
-            MailboxActions.reply(Events.REST()),
+            MailboxActions.reply(events.REST()),
           ],
         },
       },
     },
-    [States.asleep]: {
+    [states.asleep]: {
       entry: [
         actions.log((_, e) => `states.asleep.entry ${JSON.stringify(e)}`, MACHINE_NAME),
         // Huan(202112): move this assign to previous state.on(SLEEP)
         //  FIXME: `(parameter) e: never` (after move to previous state.on.SLEEP)
         actions.assign({ ms: (_, e) => e.ms }),
-        MailboxActions.reply(Events.DREAM()),
+        MailboxActions.reply(events.DREAM()),
       ],
       exit: [
         actions.log(_ => 'states.asleep.exit', MACHINE_NAME),
         actions.assign({ ms: _ => undefined }),
-        MailboxActions.reply(Events.PEE()),
+        MailboxActions.reply(events.PEE()),
       ],
       after: {
         cryMs: {
-          actions: MailboxActions.reply(Events.CRY()),
+          actions: MailboxActions.reply(events.CRY()),
         },
-        ms: States.awake,
+        ms: states.awake,
       },
     },
   },
@@ -132,8 +136,12 @@ const machine = createMachine<Context, Event, any>({
 
 export {
   type Context,
-  Events,
+  type State,
+  type Type,
+  type Event,
+  type Events,
+  events,
   machine,
-  States,
-  Types,
+  states,
+  types,
 }

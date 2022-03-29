@@ -48,13 +48,13 @@ test('DingDong.machine process one DING event', async t => {
   })
 
   interpreter.start()
-  interpreter.send(DingDong.Events.DING(1))
+  interpreter.send(DingDong.events.DING(1))
   t.same(
     eventList.map(e => e.type),
     [
       'xstate.init',
       Mailbox.Types.CHILD_IDLE,
-      DingDong.Types.DING,
+      DingDong.types.DING,
     ],
     'should have received init/RECEIVE/DING events after initializing',
   )
@@ -66,7 +66,7 @@ test('DingDong.machine process one DING event', async t => {
     eventList,
     [
       Mailbox.Events.CHILD_IDLE('idle'),
-      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(1)),
+      Mailbox.Events.CHILD_REPLY(DingDong.events.DONG(1)),
     ],
     'should have received DONG/RECEIVE events after runAllAsync',
   )
@@ -99,8 +99,8 @@ test('DingDong.machine process 2+ message at once: only be able to process the f
     .start()
 
   interpreter.send([
-    DingDong.Events.DING(0),
-    DingDong.Events.DING(1),
+    DingDong.events.DING(0),
+    DingDong.events.DING(1),
   ])
 
   await sandbox.clock.runAllAsync()
@@ -109,7 +109,7 @@ test('DingDong.machine process 2+ message at once: only be able to process the f
     eventList
       .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
     [
-      Mailbox.Events.CHILD_REPLY(DingDong.Events.DONG(0)),
+      Mailbox.Events.CHILD_REPLY(DingDong.events.DONG(0)),
     ],
     'should reply DONG to the first DING event',
   )

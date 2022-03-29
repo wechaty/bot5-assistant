@@ -17,17 +17,11 @@
  *   limitations under the License.
  *
  */
-import type {
-  EventObject,
-  StateMachine,
-}               from 'xstate'
+import type { EventObject, StateMachine } from 'xstate'
 
-import {
-  MailboxImpl,
-  Interface,
-}               from './mailbox.js'
-import { wrap } from './wrap.js'
-import type { Options } from './options.js'
+import { MailboxImpl, Interface }   from './mailbox.js'
+import { wrap }                     from './wrap.js'
+import type { Options }             from './options.js'
 
 /**
  * Create a Mailbox for the target machine

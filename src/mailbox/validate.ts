@@ -32,7 +32,7 @@ import {
   Types,
   isMailboxType,
 }                     from './types.js'
-import { Events }     from './events.js'
+import * as events    from './events.js'
 import * as contexts  from './contexts.js'
 
 /**
@@ -156,7 +156,7 @@ function validateReceiveFormOtherEvents (
 }
 
 /**
- * Events.* is only for Mailbox system.
+ * events.* is only for Mailbox system.
  *  They should not be sent to child machine.
  */
 function validateSkipMailboxEvents (
@@ -164,7 +164,7 @@ function validateSkipMailboxEvents (
   eventList: AnyEventObject[],
 ): void {
   const mailboxEventList = Object
-    .values(Events)
+    .values(events)
     .map(e => e())
 
   mailboxEventList.forEach(mailboxEvent => {
@@ -180,7 +180,7 @@ function validateSkipMailboxEvents (
  *
  * Validate a state machine for satisfying the Mailbox address protocol:
  *  1. skip all EVENTs send from mailbox itself (Mailbox.*)
- *  2. send parent `Events.CHILD_IDLE()` event after each received events and back to the idle state
+ *  2. send parent `events.CHILD_IDLE()` event after each received events and back to the idle state
  *
  * @returns
  *  Success: will return true
@@ -212,7 +212,7 @@ function validate (
   validateReceiveFormOtherEvents(interpreter, eventList)
 
   /**
-   * child machine should not reply any Events.* events
+   * child machine should not reply any events.* events
    */
   validateSkipMailboxEvents(interpreter, eventList)
 

@@ -65,7 +65,7 @@ test('wrap() transition nextState smoke testing', async t => {
   nextState = mailbox.transition(nextState, Baby.Events.SLEEP(10))
   // console.info(nextState.actions)
   t.equal(nextState.context.queue.length, 2, 'should have 0 event in queue after sent two SLEEP event')
-  t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.Types.SLEEP), 'should be both sleep event')
+  t.same(nextState.context.queue.map(c => c.type), new Array(2).fill(Baby.types.SLEEP), 'should be both sleep event')
 })
 
 test('wrap interpret smoke testing: 1 event (with BabyMachine)', async t => {
@@ -116,7 +116,7 @@ test('wrap interpret smoke testing: 1 event (with BabyMachine)', async t => {
   t.same(
     eventList.filter(e => e.type === Types.DEAD_LETTER).map(e => (e as any).payload.message.type),
     [
-      Baby.Types.PLAY,
+      Baby.types.PLAY,
     ],
     'should received DEAD_LETTER with PLAY event',
   )
@@ -443,13 +443,13 @@ test('mailbox wrap interpret smoke testing: 3 EVENTs with respond (more tests)',
     eventList
       .filter(e => e.type === Types.DEAD_LETTER)
       .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.PLAY,
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.PLAY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 1st 10 ms',
   )
@@ -466,14 +466,14 @@ test('mailbox wrap interpret smoke testing: 3 EVENTs with respond (more tests)',
     eventList
       .filter(e => e.type === Types.DEAD_LETTER)
       .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.PEE,
+      Baby.types.PLAY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should enter next SLEEP(DREAM) after 2nd 10 ms',
   )
@@ -490,14 +490,14 @@ test('mailbox wrap interpret smoke testing: 3 EVENTs with respond (more tests)',
     eventList
       .filter(e => e.type === Types.DEAD_LETTER)
       .map(e => (e as ReturnType<typeof Events.DEAD_LETTER>).payload.message.type)
-      .filter(t => Object.values<string>(Baby.Types).includes(t)),
+      .filter(t => Object.values<string>(Baby.types).includes(t)),
     [
-      Baby.Types.PEE,
-      Baby.Types.PLAY,
-      Baby.Types.EAT,
-      Baby.Types.REST,
-      Baby.Types.DREAM,
-      Baby.Types.CRY,
+      Baby.types.PEE,
+      Baby.types.PLAY,
+      Baby.types.EAT,
+      Baby.types.REST,
+      Baby.types.DREAM,
+      Baby.types.CRY,
     ],
     'should receive event child.events.PLAY after 3rd 10 ms',
   )
@@ -582,11 +582,11 @@ test('Mailbox.wrap proxy smoke testing', async t => {
   eventList.length = stateList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.PLAY,
-    Baby.Types.EAT,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
-    Baby.Types.CRY,
+    Baby.types.PLAY,
+    Baby.types.EAT,
+    Baby.types.REST,
+    Baby.types.DREAM,
+    Baby.types.CRY,
   ], 'should be before wakeup')
   t.same(stateList,
     new Array(5).fill(ParentStates.testing),
@@ -596,8 +596,8 @@ test('Mailbox.wrap proxy smoke testing', async t => {
   eventList.length = stateList.length = 0
   await sandbox.clock.runToLastAsync()
   t.same(eventList, [
-    Baby.Types.PEE,
-    Baby.Types.PLAY,
+    Baby.types.PEE,
+    Baby.types.PLAY,
   ], 'should be wakeup')
   t.same(stateList,
     new Array(2).fill(ParentStates.testing),
@@ -617,39 +617,39 @@ test('Mailbox.wrap proxy smoke testing', async t => {
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.EAT,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
-    Baby.Types.CRY,
+    Baby.types.EAT,
+    Baby.types.REST,
+    Baby.types.DREAM,
+    Baby.types.CRY,
   ], 'should before wakeup after 10 ms, and fail sleep again')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.PEE,
-    Baby.Types.PLAY,
-    Baby.Types.EAT,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
-    Baby.Types.CRY,
+    Baby.types.PEE,
+    Baby.types.PLAY,
+    Baby.types.EAT,
+    Baby.types.REST,
+    Baby.types.DREAM,
+    Baby.types.CRY,
   ], 'should wakeup after 10 ms ,and fail sleep again, twice')
 
   eventList.length = 0
   await sandbox.clock.tickAsync(10)
   t.same(eventList, [
-    Baby.Types.PEE,
-    Baby.Types.PLAY,
-    Baby.Types.EAT,
-    Baby.Types.REST,
-    Baby.Types.DREAM,
-    Baby.Types.CRY,
+    Baby.types.PEE,
+    Baby.types.PLAY,
+    Baby.types.EAT,
+    Baby.types.REST,
+    Baby.types.DREAM,
+    Baby.types.CRY,
   ], 'should wakeup another 10 ms, and no more SLEEP in the queue')
 
   eventList.length = 0
   await sandbox.clock.runAllAsync()
   t.same(eventList, [
-    Baby.Types.PEE,
-    Baby.Types.PLAY,
+    Baby.types.PEE,
+    Baby.types.PLAY,
   ], 'should be PEE & PLAY 2 more EVENT')
 
   proxyInterpreter.stop()

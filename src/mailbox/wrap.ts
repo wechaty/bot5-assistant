@@ -30,14 +30,10 @@ import {
 import { IS_DEVELOPMENT } from './config.js'
 
 import * as contexts      from './contexts.js'
-import {
-  Events,
-  Event,
-}                         from './events.js'
+import * as events        from './events.js'
+import type { Event }     from './event-type.js'
 import { States }         from './states.js'
-import {
-  Types,
-}                         from './types.js'
+import { Types }          from './types.js'
 import { validate }       from './validate.js'
 
 import {
@@ -135,7 +131,7 @@ function wrap <
           },
           [States.checking]: {
             entry: [
-              actions.log((_, e) => `states.queue.checking.entry <- [DISPATCH(${(e as ReturnType<typeof Events.DISPATCH>).payload.debug})]`, MAILBOX_ADDRESS_NAME),
+              actions.log((_, e) => `states.queue.checking.entry <- [DISPATCH(${(e as ReturnType<typeof events.DISPATCH>).payload.debug})]`, MAILBOX_ADDRESS_NAME),
             ],
             always: [
               {
@@ -154,7 +150,7 @@ function wrap <
           [States.dequeuing]: {
             entry: [
               actions.log(ctx => `states.queue.dequeuing.entry [${contexts.queueMessageType(ctx)}]@${contexts.queueMessageOrigin(ctx)}`, MAILBOX_ADDRESS_NAME),
-              actions.send(ctx => Events.DEQUEUE(contexts.queueMessage(ctx)!)),
+              actions.send(ctx => events.DEQUEUE(contexts.queueMessage(ctx)!)),
               // contexts.sendCurrentMessageToChild,
             ],
             exit: [
@@ -190,7 +186,7 @@ function wrap <
              */
             entry: [
               actions.log('states.child.idle.entry', MAILBOX_ADDRESS_NAME),
-              actions.send(Events.DISPATCH(States.idle)),
+              actions.send(events.DISPATCH(States.idle)),
             ],
             on: {
               /**
@@ -201,22 +197,22 @@ function wrap <
                */
               [Types.DEQUEUE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]@${contexts.metaOrigin((e as ReturnType<typeof Events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME) as any,
+                  actions.log((_, e) => `states.child.idle.on.DEQUEUE [${(e as ReturnType<typeof events.DEQUEUE>).payload.message.type}]@${contexts.metaOrigin((e as ReturnType<typeof events.DEQUEUE>).payload.message)}`, MAILBOX_ADDRESS_NAME) as any,
                   contexts.assignChildMessage,
                 ],
                 target: States.busy,
               },
               [Types.NEW_MESSAGE]: {
                 actions: [
-                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE (${(e as ReturnType<typeof Events.NEW_MESSAGE>).payload.debug})`, MAILBOX_ADDRESS_NAME) as any,
-                  actions.send(_ => Events.DISPATCH(Types.NEW_MESSAGE)) as any,
+                  actions.log((_, e) => `states.child.idle.on.NEW_MESSAGE (${(e as ReturnType<typeof events.NEW_MESSAGE>).payload.debug})`, MAILBOX_ADDRESS_NAME) as any,
+                  actions.send(_ => events.DISPATCH(Types.NEW_MESSAGE)) as any,
                 ],
               },
             },
           },
           [States.busy]: {
             entry: [
-              actions.log((_, e) => `states.child.busy.entry DEQUEUE [${(e as ReturnType<typeof Events.DEQUEUE>).payload.message.type}]`, MAILBOX_ADDRESS_NAME),
+              actions.log((_, e) => `states.child.busy.entry DEQUEUE [${(e as ReturnType<typeof events.DEQUEUE>).payload.message.type}]`, MAILBOX_ADDRESS_NAME),
               contexts.sendChildMessage,
             ],
             on: {

@@ -35,7 +35,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
     states: {
       testing: {
         on: {
-          [CoffeeMaker.Types.MAKE_ME_COFFEE]: {
+          [CoffeeMaker.types.MAKE_ME_COFFEE]: {
             actions: actions.send((_, e) => e, { to: CHILD_ID }),
           },
         },
@@ -56,13 +56,13 @@ test('CoffeeMaker.machine smoke testing', async t => {
   })
 
   interpreter.start()
-  interpreter.send(CoffeeMaker.Events.MAKE_ME_COFFEE(CUSTOMER))
+  interpreter.send(CoffeeMaker.events.MAKE_ME_COFFEE(CUSTOMER))
   t.same(
     eventList.map(e => e.type),
     [
       'xstate.init',
       Mailbox.Types.CHILD_IDLE,
-      CoffeeMaker.Types.MAKE_ME_COFFEE,
+      CoffeeMaker.types.MAKE_ME_COFFEE,
     ],
     'should have received init/RECEIVE/MAKE_ME_COFFEE events after initializing',
   )
@@ -73,7 +73,7 @@ test('CoffeeMaker.machine smoke testing', async t => {
     eventList
       .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
     [
-      Mailbox.Events.CHILD_REPLY(CoffeeMaker.Events.COFFEE(CUSTOMER)),
+      Mailbox.Events.CHILD_REPLY(CoffeeMaker.events.COFFEE(CUSTOMER)),
     ],
     'should have received COFFEE/RECEIVE events after runAllAsync',
   )
@@ -88,8 +88,8 @@ test('XState machine will lost incoming messages(events) when receiving multiple
   })
 
   const ITEM_NUMBERS = [...Array(10).keys()]
-  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i => CoffeeMaker.Events.MAKE_ME_COFFEE(String(i)))
-  const COFFEE_EVENT_LIST         = ITEM_NUMBERS.map(i => CoffeeMaker.Events.COFFEE(String(i)))
+  const MAKE_ME_COFFEE_EVENT_LIST = ITEM_NUMBERS.map(i => CoffeeMaker.events.MAKE_ME_COFFEE(String(i)))
+  const COFFEE_EVENT_LIST         = ITEM_NUMBERS.map(i => CoffeeMaker.events.COFFEE(String(i)))
 
   const containerMachine = createMachine({
     invoke: {
@@ -97,7 +97,7 @@ test('XState machine will lost incoming messages(events) when receiving multiple
       src: CoffeeMaker.machine,
     },
     on: {
-      [CoffeeMaker.Types.MAKE_ME_COFFEE]: {
+      [CoffeeMaker.types.MAKE_ME_COFFEE]: {
         actions: [
           actions.send((_, e) => e, { to: 'child' }),
         ],

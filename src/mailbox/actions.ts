@@ -23,11 +23,11 @@ import {
   SendActionOptions,
 }                         from 'xstate'
 
-import { Events }         from './events.js'
+import * as events        from './events.js'
 import { isMailboxType }  from './types.js'
 import * as contexts      from './contexts.js'
 
-const idle = (name: string) => (info: string) => {
+const idle = (name: string) => (data: string) => {
   const moduleName = `${name}<Mailbox>`
 
   return actions.choose([
@@ -47,8 +47,8 @@ const idle = (name: string) => (info: string) => {
        * send CHILD_IDLE event to the mailbox for receiving new messages
        */
       actions: [
-        actions.log((_, _e) => `actions.idle -> [CHILD_IDLE(${info})]`, moduleName),
-        actions.sendParent(_ => Events.CHILD_IDLE(info)),
+        actions.log((_, _e) => `actions.idle -> [CHILD_IDLE(${data})]`, moduleName),
+        actions.sendParent(_ => events.CHILD_IDLE(data)),
       ],
     },
   ]) as any
@@ -60,7 +60,7 @@ const idle = (name: string) => (info: string) => {
  *  1. implict: all events are sent to the mailbox and be treated as the reply to the current message
  *  2. explicit: only the events that are explicitly sent to the mailbox via `sendParent`, are treated as the reply to the current message
  *
- * Current: explicit. (see: contexts.respondChildMessage)
+ * Current: explicit(2). (see: contexts.respondChildMessage)
  */
 const reply: typeof actions.sendParent = (event, options) => {
   /**
@@ -76,12 +76,12 @@ const reply: typeof actions.sendParent = (event, options) => {
 
   if (typeof event === 'function') {
     return actions.sendParent(
-      (ctx, e, meta) => Events.CHILD_REPLY(event(ctx, e, meta)),
+      (ctx, e, meta) => events.CHILD_REPLY(event(ctx, e, meta)),
       delayedOptions,
     )
   } else if (typeof event === 'string') {
     return actions.sendParent(
-      Events.CHILD_REPLY({ type: event }),
+      events.CHILD_REPLY({ type: event }),
       delayedOptions,
     )
   } else {
@@ -92,7 +92,7 @@ const reply: typeof actions.sendParent = (event, options) => {
        * How to fix TS2322: "could be instantiated with a different subtype of constraint 'object'"?
        *  @link https://stackoverflow.com/a/56701587/1123955
        */
-      Events.CHILD_REPLY(event) as any,
+      events.CHILD_REPLY(event) as any,
       delayedOptions,
     )
   }

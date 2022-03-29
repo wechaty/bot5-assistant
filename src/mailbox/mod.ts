@@ -10,7 +10,7 @@ import {
   AddressImpl,
 }                   from './address.js'
 import { Actions }  from './actions.js'
-import { Events }   from './events.js'
+import * as events  from './events.js'
 import { States }   from './states.js'
 import { Types }    from './types.js'
 
@@ -31,7 +31,7 @@ export {
   nil,
   //
   Actions,
-  Events,
+  events,
   Types,
   States,
   //

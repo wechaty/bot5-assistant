@@ -26,8 +26,16 @@ import {
   SendActionOptions,
   SendAction,
   GuardMeta,
-}                   from 'xstate'
+}                       from 'xstate'
 
+/**
+ * Mailbox Address Interface
+ *
+ * @interface Address
+ *
+ * All methods in this interface should be as the same interface of the `actions` in `xstate`
+ *  so that they will be compatible with `xstate`
+ */
 interface Address {
   send<TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
     event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
@@ -57,17 +65,17 @@ class AddressImpl implements Address {
   }
 
   /**
-   * The same API with XState `actions.send` method, but only for the current address.
+   * The same API with XState `actions.send` method, but only for the current binding address.
    */
   send<TContext, TEvent extends EventObject, TSentEvent extends EventObject = AnyEventObject> (
-    event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-    options?: SendActionOptions<TContext, TEvent>,
+    event    : Event<TSentEvent> | SendExpr<TContext, TEvent,  TSentEvent>,
+    options? : SendActionOptions<TContext,            TEvent>,
   ): SendAction<TContext, TEvent, TSentEvent> {
     /**
      * Huan(202201): Issue #11 - Race condition: Mailbox think the target machine is busy when it's not
      * @link https://github.com/wechaty/bot5-assistant/issues/11
      *
-     * add a `delay:0` when sending events to put the send action to the next tick
+     * add a `delay:0` when sending events to put the send action to the v8 event loop next tick
      */
     return actions.send(event, {
       delay: 0,

@@ -14,8 +14,8 @@ import {
   SCXML,
 }                 from 'xstate'
 
-import * as contexts from './contexts.js'
-import { MAILBOX_TARGET_MACHINE_ID } from './options.js'
+import * as contexts                  from './contexts.js'
+import { MAILBOX_TARGET_MACHINE_ID }  from './options.js'
 
 test('assignEnqueue', async t => {
   const CONTEXT = contexts.initialContext()
