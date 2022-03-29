@@ -14,7 +14,7 @@ import * as notice        from './notice-actor.js'
 interface ActorModel {
   mailboxFactory: (...args: any[]) => Mailbox.Interface
   // machineFactory: (...args: any[]) => StateMachine<any, any, any>
-  Events: {
+  events: {
     [key: string]: ActionCreator,
   }
 }

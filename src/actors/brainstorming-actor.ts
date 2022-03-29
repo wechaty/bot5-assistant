@@ -188,7 +188,7 @@ function machineFactory (
       [states.registering]: {
         entry: [
           actions.log('states.registering.entry', MACHINE_NAME),
-          registerAddress.send(actors.register.Events.REPORT()),
+          registerAddress.send(actors.register.events.report()),
         ],
         on: {
           [types.MESSAGE]: {
@@ -206,7 +206,7 @@ function machineFactory (
       [states.feedbacking]: {
         entry: [
           actions.log('states.feedbacking.entry', MACHINE_NAME),
-          feedbackAddress.send(actors.register.Events.REPORT()),
+          feedbackAddress.send(actors.register.Events.report()),
         ],
         on: {
           [types.MESSAGE]: {

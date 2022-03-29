@@ -28,13 +28,13 @@ test('noticeActor smoke testing', async t => {
 
     const bus$ = CQRS.from(wechatyFixtures.wechaty)
 
-    const wechatyMachine = WechatyActor.mailboxFactory(
+    const wechatyMailbox = WechatyActor.mailboxFactory(
       bus$,
       wechatyFixtures.wechaty.puppet.id,
       Mailbox.nil.logger,
     )
     const noticeMachine = NoticeActor.machineFactory(
-      wechatyMachine.address,
+      wechatyMailbox.address,
     )
 
     const CHILD_ID = 'testing-child-id'

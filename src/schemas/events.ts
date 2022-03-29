@@ -26,7 +26,6 @@ import type { Intent }  from './intent-type.js'
 
 const payloadMessage   = (message: PUPPET.payloads.Message)     => ({ message })
 const payloadRoom      = (room: PUPPET.payloads.Room)           => ({ room })
-const payloadContacts  = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
@@ -45,7 +44,13 @@ const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, 
 
 const payloadMinute = (minutes: string) => ({ minutes })
 
-export const mention     = createAction(types.MENTION, payloadContacts)()
+const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
+export const mention    = createAction(types.MENTION,   payloadContacts)()
+export const contacts   = createAction(types.CONTACTS,  payloadContacts)()
+export const attendees  = createAction(types.ATTENDEES, payloadContacts)()
+export const admins     = createAction(types.ADMINS,    payloadContacts)()
+export const chairs     = createAction(types.CHAIRS,    payloadContacts)()
+
 export const message     = createAction(types.MESSAGE, payloadMessage)()
 
 export const back        = createAction(types.BACK)()
@@ -55,11 +60,6 @@ export const noAudio    = createAction(types.NO_AUDIO)()
 export const noMention  = createAction(types.NO_MENTION)()
 
 export const room = createAction(types.ROOM, payloadRoom)()
-
-export const contacts   = createAction(types.CONTACTS,  payloadContacts)()
-export const attendees  = createAction(types.ATTENDEES, payloadContacts)()
-export const admins     = createAction(types.ADMINS,    payloadContacts)()
-export const chairs     = createAction(types.CHAIRS,    payloadContacts)()
 
 export const start       = createAction(types.START)()
 export const stop        = createAction(types.STOP)()
