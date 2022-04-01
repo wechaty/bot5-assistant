@@ -23,9 +23,9 @@ import * as UUID                    from 'uuid'
 import { actions, createMachine }   from 'xstate'
 import { GError }                   from 'gerror'
 import { firstValueFrom }           from 'rxjs'
-import { ActionType, isActionOf }          from 'typesafe-actions'
+import { ActionType, isActionOf }   from 'typesafe-actions'
+import * as Mailbox                 from 'mailbox'
 
-import * as Mailbox       from '../mailbox/mod.js'
 import { InjectionToken } from '../ioc/tokens.js'
 
 import type { CommandQuery } from './dto.js'
@@ -83,7 +83,7 @@ const machineFactory = (
     [states.idle]: {
       entry: [
         actions.log('state.idle.entry', MACHINE_NAME),
-        Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+        Mailbox.actions.idle(MACHINE_NAME)('idle'),
       ],
       on: {
         // '*': states.idle, // must have a external transition for all events to trigger the Mailbox state transition
@@ -148,7 +148,7 @@ const machineFactory = (
     [states.responding]: {
       entry: [
         actions.log((_, e) => `states.responding.entry <- [${e.type}]`),
-        Mailbox.Actions.reply((_, e) => e),
+        Mailbox.actions.reply((_, e) => e),
       ],
       always: states.idle,
     },

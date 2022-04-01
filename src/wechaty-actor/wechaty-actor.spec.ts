@@ -32,14 +32,13 @@ import type * as WECHATY    from 'wechaty'
 import * as CQRS            from 'wechaty-cqrs'
 import * as PUPPET          from 'wechaty-puppet'
 import { createFixture }    from 'wechaty-mocker'
-
-import * as Mailbox from '../mailbox/mod.js'
+import * as Mailbox         from 'mailbox'
 
 import { machineFactory } from './wechaty-actor.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
   const wechatyMachine = machineFactory({} as any, '')
-  t.doesNotThrow(() => Mailbox.validate(wechatyMachine), 'should pass validate')
+  t.doesNotThrow(() => Mailbox.helpers.validate(wechatyMachine), 'should pass validate')
 })
 
 test('wechatyActor SAY with concurrency', async t => {
@@ -57,12 +56,12 @@ test('wechatyActor SAY with concurrency', async t => {
 
     const testActor = createMachine({
       invoke: {
-        src: Mailbox.wrap(wechatyMachine),
+        src: Mailbox.helpers.wrap(wechatyMachine),
         id: WECHATY_MACHINE_ID,
       },
       on: {
         '*': {
-          actions: Mailbox.Actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
         },
       },
     })
@@ -118,7 +117,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
       },
       on: {
         '*': {
-          actions: Mailbox.Actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
         },
       },
     })
@@ -164,7 +163,7 @@ test.only('wechatyMachine message send / recv', async t => {
       },
       on: {
         '*': {
-          actions: Mailbox.Actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
         },
       },
     })
