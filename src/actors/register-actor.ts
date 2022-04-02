@@ -2,9 +2,9 @@
 import { createMachine, actions }   from 'xstate'
 import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
+import * as Mailbox                 from 'mailbox'
 
 import * as schemas         from '../schemas/mod.js'
-import * as Mailbox         from '../mailbox/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
 // import * as actors  from './mod.js'
@@ -80,7 +80,7 @@ const machineFactory = (
     /**
      * Huan(202203): FIXME
      *  process events outside of the `state.idle` state might block the MailBox
-     *  because it does not call `Mailbox.Actions.idle(...)`?
+     *  because it does not call `Mailbox.actions.idle(...)`?
      */
     [types.RESET]: schemas.states.resetting,
     [types.INTRODUCE]: {
@@ -109,7 +109,7 @@ const machineFactory = (
     },
     [states.idle]: {
       entry: [
-        Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+        Mailbox.actions.idle(MACHINE_NAME)('idle'),
       ],
       on: {
         '*': states.idle,
@@ -136,7 +136,7 @@ const machineFactory = (
             cond: ctx => ctxContactsNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.reporting.entry -> [CONTACTS]', MACHINE_NAME),
-              Mailbox.Actions.reply(ctx => events.contacts(ctx.contacts)),
+              Mailbox.actions.reply(ctx => events.contacts(ctx.contacts)),
             ],
           },
           {
@@ -225,7 +225,7 @@ const machineFactory = (
     [states.erroring]: {
       entry: [
         actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as schemas.Events['gerror']).payload.gerror})]`, MACHINE_NAME),
-        Mailbox.Actions.reply((_, e) => e),
+        Mailbox.actions.reply((_, e) => e),
       ],
       always: states.idle,
     },
@@ -242,8 +242,6 @@ function mailboxFactory (
 ) {
   const machine = machineFactory(wechatyMailbox.address)
   const mailbox = Mailbox.from(machine, { logger })
-
-  mailbox.acquire()
   return mailbox
 }
 

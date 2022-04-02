@@ -6,13 +6,13 @@
 import { createMachine, actions }   from 'xstate'
 import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
+import * as Mailbox                 from 'mailbox'
 
 import {
   events,
   states,
   types,
 }                           from '../schemas/mod.js'
-import * as Mailbox         from '../mailbox/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
 interface Context {
@@ -95,8 +95,6 @@ function mailboxFactory (
   const machine = machineFactory(wechatyMailbox.address)
 
   const mailbox = Mailbox.from(machine, { logger })
-  mailbox.acquire()
-
   return mailbox
 }
 

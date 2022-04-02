@@ -1,17 +1,14 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 import {
-  test,
-  sinon,
-}                           from 'tstest'
-import {
   AnyEventObject,
   createMachine,
   interpret,
 }                           from 'xstate'
+import { test, sinon }      from 'tstest'
+import * as Mailbox         from 'mailbox'
 import { createFixture }    from 'wechaty-mocker'
 
-import * as Mailbox         from '../mailbox/mod.js'
 import { events, intents }  from '../schemas/mod.js'
 
 import * as IntentActor   from './intent-actor.js'
@@ -43,7 +40,7 @@ test('IntentActor happy path smoke testing', async t => {
       on: {
         '*': {
           actions: [
-            Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
+            Mailbox.actions.proxyToChild('TestMachine')(CHILD_ID),
           ],
         },
       },

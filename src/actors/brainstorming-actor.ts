@@ -13,7 +13,7 @@ import {
   states,
   types,
 }                           from '../schemas/mod.js'
-import * as Mailbox         from '../mailbox/mod.js'
+import * as Mailbox         from 'mailbox'
 import { InjectionToken }   from '../ioc/mod.js'
 
 import * as actors          from './mod.js'
@@ -123,7 +123,7 @@ function machineFactory (
       [states.idle]: {
         entry: [
           actions.log('states.idle.entry', MACHINE_NAME),
-          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+          Mailbox.actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           [types.REPORT]: {
@@ -143,7 +143,7 @@ function machineFactory (
               cond: ctx => ctxFeedbacksNum(ctx) > 0,
               actions: [
                 actions.log('states.reporting.entry -> [FEEDBACKS], [IDLE]', MACHINE_NAME),
-                Mailbox.Actions.reply(ctx => Events.FEEDBACKS(ctx.feedbacks)),
+                Mailbox.actions.reply(ctx => Events.FEEDBACKS(ctx.feedbacks)),
                 actions.send(Events.IDLE()),
               ],
             },

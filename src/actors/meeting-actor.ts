@@ -4,8 +4,8 @@
  *  @link https://github.com/wechaty/bot5-assistant
  */
 import { createMachine, actions }   from 'xstate'
+import * as Mailbox                 from 'mailbox'
 
-import * as Mailbox         from '../mailbox/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
 import {
@@ -123,7 +123,7 @@ const machineFactory = (
       [states.idle]: {
         entry: [
           actions.log('states.idle.entry', MACHINE_NAME),
-          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+          Mailbox.actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           '*': states.idle, // enforce external transision
@@ -159,7 +159,7 @@ const machineFactory = (
             {
               cond: ctx => !!ctx.minutes,
               actions: [
-                Mailbox.Actions.reply(ctx =>
+                Mailbox.actions.reply(ctx =>
                   events.minute(ctx.minutes!),
                 ),
                 actions.send(events.idle()),
@@ -520,8 +520,6 @@ function mailboxFactory (
   )
 
   const mailbox = Mailbox.from(machine, { logger })
-  mailbox.acquire()
-
   return mailbox
 }
 

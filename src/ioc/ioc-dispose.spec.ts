@@ -1,15 +1,8 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 
-import {
-  test,
-  sinon,
-}                   from 'tstest'
-
-import {
-  Disposable,
-  createInjector,
-}                   from 'typed-inject'
+import { test, sinon }                  from 'tstest'
+import { Disposable, createInjector }   from 'typed-inject'
 
 test('dispose()', async t => {
   const spy = sinon.spy()
@@ -34,11 +27,13 @@ test('dispose()', async t => {
   function test (foo: Object) {
     void foo
     spy('test()')
+    return 42
   }
 
-  injector.injectFunction(test)
-  await injector.dispose()
+  const result = injector.injectFunction(test)
+  t.equal(result, 42, 'should get 42 as return value')
 
+  await injector.dispose()
   t.same(spy.args, [
     ['fooFactory()'],
     ['test()'],

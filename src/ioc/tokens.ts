@@ -1,4 +1,5 @@
 enum InjectionToken {
+  Bus$      = 'Bus$',
   Logger    = 'Logger',
   DevTools  = 'DevTools',
   //

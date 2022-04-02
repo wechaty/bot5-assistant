@@ -4,10 +4,10 @@ import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 import { createMachine, actions }   from 'xstate'
 import { FileBox }                  from 'file-box'
+import * as Mailbox                 from 'mailbox'
 
 import { states, events, types }  from '../schemas/mod.js'
 import { textToIntents }          from '../machines/message-to-intents.js'
-import * as Mailbox               from '../mailbox/mod.js'
 import { speechToText }           from '../to-text/mod.js'
 import { InjectionToken }         from '../ioc/tokens.js'
 
@@ -50,7 +50,7 @@ function machineFactory () {
       [states.idle]: {
         entry: [
           actions.log('states.idle.entry', MACHINE_NAME),
-          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+          Mailbox.actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           '*': states.idle,
@@ -117,7 +117,7 @@ function machineFactory () {
           onDone: {
             actions: [
               // TODO: support entities
-              Mailbox.Actions.reply((_, e) => events.intents(e.data)),
+              Mailbox.actions.reply((_, e) => events.intents(e.data)),
             ],
             target: states.idle,
           },
@@ -132,7 +132,7 @@ function machineFactory () {
       [states.erroring]: {
         entry: [
           actions.log(ctx => `states.erroring.entry ${ctx.gerror}`, MACHINE_NAME),
-          Mailbox.Actions.reply(ctx => events.gerror(ctx.gerror!)),
+          Mailbox.actions.reply(ctx => events.gerror(ctx.gerror!)),
         ],
         exit: [
           actions.assign({ gerror: _ => undefined }),
@@ -154,8 +154,6 @@ function mailboxFactory (
   const machine = machineFactory()
 
   const mailbox = Mailbox.from(machine, { logger })
-  mailbox.acquire()
-
   return mailbox
 }
 

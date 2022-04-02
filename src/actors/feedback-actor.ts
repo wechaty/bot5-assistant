@@ -1,22 +1,12 @@
 /* eslint-disable sort-keys */
-import {
-  actions,
-  createMachine,
-}                       from 'xstate'
-import type {
-  Message,
-  Contact,
-}                       from 'wechaty'
-import { GError }       from 'gerror'
+import { actions, createMachine }   from 'xstate'
+import type { Message, Contact }    from 'wechaty'
+import { GError }                   from 'gerror'
+import * as Mailbox                 from 'mailbox'
 
-import {
-  events,
-  states,
-  types,
-}                         from '../schemas/mod.js'
-import * as Mailbox       from '../mailbox/mod.js'
-import { messageToText }  from '../to-text/mod.js'
-import { InjectionToken } from '../ioc/tokens.js'
+import { events, states, types }    from '../schemas/mod.js'
+import { messageToText }            from '../to-text/mod.js'
+import { InjectionToken }           from '../ioc/tokens.js'
 
 import * as actors  from './mod.js'
 
@@ -93,13 +83,13 @@ function machineFactory (
       },
       [states.idle]: {
         entry: [
-          Mailbox.Actions.idle(MACHINE_NAME)('idle'),
+          Mailbox.actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
           /**
            * Huan(202112):
            *  Every EVENTs received in state.idle must have a `target` to make sure it is a `external` event.
-           *  so that the Mailbox.Actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
+           *  so that the Mailbox.actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
            */
           '*': states.idle,
           [types.CONTACTS]: {
@@ -159,7 +149,7 @@ function machineFactory (
           [types.GERROR]: {
             actions: [
               actions.log('states.parsing.on.GERROR', MACHINE_NAME),
-              Mailbox.Actions.reply((_, e) => events.gerror((e as ReturnType<typeof Events.GERROR>).payload.gerror)),
+              Mailbox.actions.reply((_, e) => events.gerror((e as ReturnType<typeof Events.GERROR>).payload.gerror)),
             ],
             target: states.idle,
           },
@@ -272,7 +262,7 @@ function machineFactory (
             {
               actions: [
                 actions.log('states.reporting.entry feedbacks reported', MACHINE_NAME),
-                Mailbox.Actions.reply(ctx => events.feedbacks(ctx.feedbacks)),
+                Mailbox.actions.reply(ctx => events.feedbacks(ctx.feedbacks)),
               ],
             },
           ]),
@@ -300,8 +290,6 @@ function mailboxFactory (
     // logger
   )
   const mailbox = Mailbox.from(machine, { logger })
-
-  mailbox.acquire()
   return mailbox
 }
 

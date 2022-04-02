@@ -1,8 +1,8 @@
 /* eslint-disable sort-keys */
 import { createMachine, actions }   from 'xstate'
 import type * as PUPPET             from 'wechaty-puppet'
+import * as Mailbox                 from 'mailbox'
 
-import * as Mailbox       from '../mailbox/mod.js'
 import { speechToText }   from '../to-text/mod.js'
 import { events, types }  from '../schemas/mod.js'
 

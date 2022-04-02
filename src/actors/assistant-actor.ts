@@ -10,7 +10,7 @@ import {
   states,
   types,
 }                         from '../schemas/mod.js'
-import * as Mailbox       from '../mailbox/mod.js'
+import * as Mailbox       from 'mailbox'
 import { InjectionToken } from '../ioc/tokens.js'
 
 import * as Actors from './mod.js'

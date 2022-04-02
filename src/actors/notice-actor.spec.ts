@@ -9,8 +9,8 @@ import {
 }                       from 'xstate'
 import { test, sinon }  from 'tstest'
 import * as CQRS        from 'wechaty-cqrs'
+import * as Mailbox     from 'mailbox'
 
-import * as Mailbox       from '../mailbox/mod.js'
 import * as WechatyActor  from '../wechaty-actor/mod.js'
 
 import * as NoticeActor   from './notice-actor.js'
@@ -46,7 +46,7 @@ test('noticeActor smoke testing', async t => {
       on: {
         '*': {
           actions: [
-            Mailbox.Actions.proxyToChild('ProxyMachine')(CHILD_ID),
+            Mailbox.actions.proxyToChild('ProxyMachine')(CHILD_ID),
           ],
         },
       },

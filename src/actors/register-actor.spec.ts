@@ -11,9 +11,9 @@ import { test, sinon }    from 'tstest'
 import type * as WECHATY  from 'wechaty'
 import { createFixture }  from 'wechaty-mocker'
 import type { mock }      from 'wechaty-puppet-mock'
+import * as Mailbox       from 'mailbox'
 
 import { events, types, states }    from '../schemas/mod.js'
-import * as Mailbox                 from '../mailbox/mod.js'
 import * as RegisterActor           from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
@@ -28,7 +28,7 @@ test('registerMachine smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild(PROXY_MACHINE_ID)(REGISTER_MACHINE_ID),
+        actions: Mailbox.actions.proxyToChild(PROXY_MACHINE_ID)(REGISTER_MACHINE_ID),
       },
     },
   })
@@ -184,7 +184,7 @@ test('registerActor smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
+        actions: Mailbox.actions.proxyToChild('TestMachine')(CHILD_ID),
       },
     },
   })

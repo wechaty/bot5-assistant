@@ -23,13 +23,13 @@ import {
 }                         from 'rxjs/operators'
 import { createFixture }  from 'wechaty-mocker'
 import type { mock }      from 'wechaty-puppet-mock'
+import * as Mailbox       from 'mailbox'
 
 import {
   events,
   states,
   types,
 }                         from '../schemas/mod.js'
-import * as Mailbox       from '../mailbox/mod.js'
 import { audioFixtures }  from '../to-text/mod.js'
 import { isMailboxType }  from '../mailbox/types.js'
 
@@ -258,7 +258,7 @@ test('feedbackActor smoke testing', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.Actions.proxyToChild('TestMachine')(CHILD_ID),
+        actions: Mailbox.actions.proxyToChild('TestMachine')(CHILD_ID),
       },
     },
   })
@@ -326,7 +326,7 @@ test('feedbackActor smoke testing', async t => {
 
     t.same(
       eventList
-        .filter(e => !isMailboxType(e.type))
+        .filter(e => !Mailbox.helpers.isMailboxType(e.type))
         .map(e => e.type),
       [
         types.CONTACTS,

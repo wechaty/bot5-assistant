@@ -189,7 +189,6 @@ function wechatyActorFactory (
   const machine = machineFactory(bus$, puppetId)
   const mailbox = Mailbox.from(machine, { logger })
 
-  mailbox.acquire()
   return mailbox
 }
 

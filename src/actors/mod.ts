@@ -1,6 +1,6 @@
-import type { ActionCreator } from 'typesafe-actions'
+import type { ActionCreator }   from 'typesafe-actions'
+import type * as Mailbox        from 'mailbox'
 
-import type * as Mailbox  from '../mailbox/mod.js'
 import * as wechaty       from '../wechaty-actor/mod.js'
 
 import * as assistant     from './assistant-actor.js'

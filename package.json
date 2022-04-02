@@ -67,7 +67,7 @@
   "dependencies": {
     "file-box": "^1.4.15",
     "lru-cache": "^7.5.0",
-    "mailbox": "^0.4.3",
+    "mailbox": "^0.5.2",
     "request": "^2.88.2",
     "tencentcloud-sdk-nodejs": "^4.0.306",
     "typed-inject": "^3.0.1",

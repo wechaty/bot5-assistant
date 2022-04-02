@@ -1,8 +1,9 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-import {
-  createInjector,
-}                       from 'typed-inject'
-import type { Wechaty } from 'wechaty'
+import { createInjector }   from 'typed-inject'
+import type { Wechaty }     from 'wechaty'
+import type * as Mailbox    from 'mailbox'
+import type { Observable }  from 'rxjs'
+
 // import type {
 //   // Ducks,
 //   Bundle,
@@ -11,7 +12,6 @@ import type { Wechaty } from 'wechaty'
 //   Duck as WechatyDuck,
 // }                         from 'wechaty-redux'
 
-import type * as Mailbox from '../mailbox/mod.js'
 import * as actors from '../actors/mod.js'
 
 import { InjectionToken } from './tokens.js'
@@ -21,7 +21,6 @@ resolveAll.inject = [
   InjectionToken.IntentMailbox,
   InjectionToken.FeedbackMailbox,
   InjectionToken.RegisterMailbox,
-  // InjectionToken.WechatyDuck,
   InjectionToken.Logger,
 ] as const
 
@@ -46,13 +45,13 @@ function resolveAll (
 }
 
 interface IocOptions {
-  // wechatyDuck: Bundle<typeof WechatyDuck>
-  //
-  logger?:    Mailbox.Options['logger']
-  devTools?:  Mailbox.Options['devTools']
+  bus$      : Observable<any>,
+  devTools? : Mailbox.Options['devTools']
+  logger?   : Mailbox.Options['logger']
 }
 
 const createBot5Injector = (options: IocOptions) => createInjector()
+  .provideValue(InjectionToken.Bus$,      options.bus$)
   .provideValue(InjectionToken.DevTools,  options.devTools)
   .provideValue(InjectionToken.Logger,    options.logger)
   // .provideValue(InjectionToken.WechatyDuck, options.wechatyDuck)

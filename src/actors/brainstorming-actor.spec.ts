@@ -18,13 +18,13 @@ import type * as WECHATY    from 'wechaty'
 
 import { inspect }          from '@xstate/inspect/lib/server.js'
 import { WebSocketServer }  from 'ws'
+import type * as Mailbox    from 'mailbox'
 
 import {
   events,
   states,
   types,
 }                             from '../schemas/mod.js'
-import type * as Mailbox      from '../mailbox/mod.js'
 import { audioFixtures }      from '../to-text/mod.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 
