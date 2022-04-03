@@ -19,7 +19,6 @@
  */
 /* eslint-disable sort-keys */
 import * as CQRS                    from 'wechaty-cqrs'
-import * as UUID                    from 'uuid'
 import { actions, createMachine }   from 'xstate'
 import { GError }                   from 'gerror'
 import { firstValueFrom }           from 'rxjs'
@@ -108,6 +107,17 @@ const machineFactory = (
             ],
           },
           {
+            cond: (_, e) => isActionOf(events.batch, e),
+            actions: [
+              actions.log((_, e) => [
+                'states.batching.entry -> ',
+                `[${[ ...new Set((e as ReturnType<typeof events.batch>).payload.commandQueryList.map(cq => cq.type)) ].join(',')}] `,
+                `#${(e as ReturnType<typeof events.batch>).payload.commandQueryList.length}`,
+              ], MACHINE_NAME),
+              actions.send((_, e) => e),
+            ],
+          },
+          {
             actions: [
               actions.log((_, e) => `states.preparing.entry skip non-Command/Query [${e.type}]`),
               actions.send(events.idle()),
@@ -118,6 +128,7 @@ const machineFactory = (
       on: {
         [types.IDLE]    : states.idle,
         [types.EXECUTE] : states.executing,
+        [types.BATCH]   : states.batching,
       },
     },
 
@@ -145,6 +156,35 @@ const machineFactory = (
       },
     },
 
+    [states.batching]: {
+      entry: [
+        actions.log((_, e) => [
+          'states.batching.entry -> ',
+          `[${[ ...new Set((e as ReturnType<typeof events.batch>).payload.commandQueryList.map(cq => cq.type)) ].join(',')}] `,
+          `#${(e as ReturnType<typeof events.batch>).payload.commandQueryList.length}`,
+        ].join(''), MACHINE_NAME),
+      ],
+      invoke: {
+        src: 'batch',
+        onDone: {
+          actions: [
+            actions.send((_, e) => events.batchResponse(e.data)),
+          ],
+        },
+        onError: {
+          actions: [
+            actions.send((ctx: any, e) => events.batchResponse([
+              // TODO: how to make the length the same as the batached request?
+              CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
+            ])),
+          ],
+        },
+      },
+      on: {
+        [types.BATCH_RESPONSE]: states.responding,
+      },
+    },
+
     [states.responding]: {
       entry: [
         actions.log((_, e) => `states.responding.entry <- [${e.type}]`),
@@ -156,14 +196,35 @@ const machineFactory = (
   },
 }, {
   services: {
-    execute: (ctx, e) => {
-      if (!isActionOf(events.execute)(e)) {
-        throw new Error(`${MACHINE_NAME} state.executing.invoke: unknown event [${e.type}]`)
+    batch: async (ctx, e) => {
+      if (!isActionOf(events.batch, e)) {
+        throw new Error(`${MACHINE_NAME} service.batch: unknown event [${e.type}]`)
+      }
+
+      const commandQueryList = e.payload.commandQueryList
+
+      if (commandQueryList.some(commandQuery => commandQuery.meta.puppetId !== CQRS.uuid.NIL)) {
+        throw new Error(`${MACHINE_NAME} service.batch: command/query meta.puppetId must be set to uuid.NIL`)
+      }
+
+      commandQueryList.forEach(commandQuery => { commandQuery.meta.puppetId = ctx.puppetId })
+
+      return Promise.all(
+        commandQueryList.map(commandQuery =>
+          firstValueFrom(
+            CQRS.execute$(bus$)(commandQuery),
+          ),
+        ),
+      )
+    },
+    execute: async (ctx, e) => {
+      if (!isActionOf(events.execute, e)) {
+        throw new Error(`${MACHINE_NAME} service.execut: unknown event [${e.type}]`)
       }
 
       const commandQuery = e.payload.commandQuery
 
-      if (commandQuery.meta.puppetId === UUID.NIL) {
+      if (commandQuery.meta.puppetId === CQRS.uuid.NIL) {
         commandQuery.meta.puppetId = ctx.puppetId
       } else if (commandQuery.meta.puppetId !== ctx.puppetId) {
         throw new Error(`${MACHINE_NAME} state.executing.invoke: puppetId mismatch. (given: "${commandQuery.meta.puppetId}", expected: "${ctx.puppetId}")`)

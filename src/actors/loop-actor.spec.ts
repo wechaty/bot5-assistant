@@ -57,8 +57,14 @@ test('loop machine', async t => {
     datas: Exclude<ReturnType<typeof RESPONSE>['payload'], undefined>[]
   }
 
-  const loopMachine = createMachine<Context, Event>({
-    id: 'looper',
+
+  // [].map(i => i*2)
+  // map
+  //   actor CommandQuerey[]
+  //   => Response[]
+
+  const mapMachine = createMachine<Context, Event>({
+    id: 'map',
     context: {
       ids: [],
       datas: [],
@@ -123,7 +129,7 @@ test('loop machine', async t => {
                   cond: (_, e) => !!e.payload,
                   actions: [
                     actions.assign<Context, ReturnType<typeof RESPONSE>>({
-                      datas: (ctx, e) => [...ctx.datas, e.payload!],
+                      datas: (ctx, e) => [ ...ctx.datas, e.payload! ],
                     }),
                   ],
                 },
@@ -145,12 +151,12 @@ test('loop machine', async t => {
   const consumerMachine = createMachine({
     id: 'consumer',
     invoke: {
-      id: 'looper',
-      src: loopMachine,
+      id: 'map',
+      src: mapMachine,
     },
     on: {
       '*': {
-        actions: Mailbox.actions.proxyToChild('consumer')('looper'),
+        actions: Mailbox.actions.proxyToChild('consumer')('map'),
       },
     },
   })
