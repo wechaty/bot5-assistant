@@ -97,6 +97,7 @@ export const scheduling = 'bot5/scheduling'
 export const noticing = 'bot5/noticing'
 export const reporting = 'bot5/reporting'
 export const parsing = 'bot5/parsing'
+export const loading = 'bot5/loading'
 
 /**
  * 吐槽：https://www.sohu.com/a/222322905_509197

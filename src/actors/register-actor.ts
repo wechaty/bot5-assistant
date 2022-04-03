@@ -30,7 +30,10 @@ const events = {
   idle       : schemas.events.idle,
 } as const
 
-type Event = ReturnType<typeof events[keyof typeof events]>
+type Event =
+  | ReturnType<typeof events[keyof typeof events]>
+  | CQRS.duck.Event
+
 type Events = {
   [key in keyof typeof events]: typeof events[key]
 }
@@ -41,6 +44,7 @@ const states = {
   idle         : schemas.states.idle,
   initializing : schemas.states.initializing,
   parsing      : schemas.states.parsing,
+  // loading      : schemas.states.loading,
   reporting    : schemas.states.reporting,
   resetting    : schemas.states.resetting,
 } as const
@@ -49,8 +53,8 @@ type State = typeof states[keyof typeof states]
 
 interface Context {
   message?: PUPPET.payloads.Message
-  contacts: PUPPET.payloads.Contact[]
-  chairs:   PUPPET.payloads.Contact[]
+  contacts: PUPPET.payloads.Contact[],
+  chairs:   PUPPET.payloads.Contact[],
   gerror?:  string
 }
 
@@ -65,7 +69,7 @@ function initialContext (): Context {
 }
 
 const ctxRoom         = (ctx: Context) => ctx.message!.roomId!
-const ctxContactsNum  = (ctx: Context) => ctx.contacts.length
+const ctxContactsNum  = (ctx: Context) => Object.keys(ctx.contacts).length
 
 const MACHINE_NAME = 'RegisterMachine'
 
@@ -156,20 +160,30 @@ const machineFactory = (
       ],
       always: states.initializing,
     },
-    [states.parsing]: {
+    loading: {
       entry: [
-        actions.log('states.parsing.entry', MACHINE_NAME),
+        wechatyAddress.send((ctx, e) => CQRS.queries.GetContactPayloadQuery(
+          CQRS.uuid.NIL,
+          e.payload.contactId,
+        )),
       ],
-      invoke: {
-        src: async ctx => ctx.message && 'mentionIdList' in ctx.message // PUPPET.payloads.MessageRoom
-          ? Promise.all(ctx.message.mentionIdList.map(id => PUPPET.(id)))
-          : [],
-        onDone: {
-          actions: actions.send((_, e) => events.mention(e.data)),
-        },
-        onError: {
-          actions: actions.send((_, e) => events.gerror(e.data)),
-        },
+      on: {
+        [CQRS.duck.types.GET_CONTACT_PAYLOAD_QUERY_RESPONSE]: 'looping',
+      }
+    },
+    looping: {
+      entry: [
+        actions.choose([
+          {
+            cond: ctx => ctxContactsNum(ctx) < 1,
+          }
+        ])
+      ]
+      onDone: {
+        actions: actions.send((_, e) => events.mention(e.data)),
+      },
+      onError: {
+        actions: actions.send((_, e) => events.gerror(e.data)),
       },
       on: {
         [types.MENTION]: {
@@ -178,7 +192,7 @@ const machineFactory = (
             actions.assign({
               contacts: (ctx, e) => [
                 ...ctx.contacts,
-                ...e.payload.contacts.filter(c => !ctx.contacts.includes(c)),
+                ...e.payload.contacts.filter(c => !ctx.contacts.map(c => c.id).includes(c.id)),
               ],
             }),
           ],
@@ -186,6 +200,37 @@ const machineFactory = (
         },
         [types.GERROR]: states.erroring,
       },
+    },
+    [states.parsing]: {
+      entry: [
+        actions.log('states.parsing.entry', MACHINE_NAME),
+        actions.choose([
+          {
+            cond: ctx => !!ctx.message
+              && 'mentionIdList' in ctx.message
+              && !!ctx.message.mentionIdList
+              /**
+               * Condition: there are more contact payloads need to be loaded
+               */
+              && ctx.message.mentionIdList.length > ctx.contacts.length,
+            actions: actions.send(ctx => ({
+              type: 'LOAD',
+              payload: {
+                contactId: (ctx.message as PUPPET.payloads.MessageRoom)
+                  .mentionIdList!
+                  .filter(id => !ctx.contacts
+                    .map(c => c.id)
+                    .includes(id),
+                  ),
+              },
+            }))
+          }
+        ])
+        actions.send(ctx => ctx.message && 'mentionIdList' in ctx.message && ctx.message.mentionIdList
+          ? ({ type: 'LOOP', payload: { mentionIds: ctx.message.mentionIdList, contacts: [] } })
+          : ({ type: 'LOOP', payload: { mentionIds: [], contacts: [] } })
+        ),
+      ],
     },
     [states.confirming]: {
       entry: [
@@ -202,7 +247,7 @@ const machineFactory = (
                     '【注册系统】',
                     `恭喜：${ctx.contacts.map(c => c.name).join('、')}，共${ctx.contacts.length}名组织成员注册成功！`,
                   ].join(''),
-                  ctx.contacts.map(c => c.id),
+                  Object.values(ctx.contacts).map(c => c.id),
                 ),
               )),
               actions.send(events.report()),

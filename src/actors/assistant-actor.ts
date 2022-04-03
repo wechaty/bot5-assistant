@@ -106,8 +106,6 @@ function mailboxFactory (
   )
 
   const mailbox = Mailbox.from(machine, { logger })
-  mailbox.acquire()
-
   return mailbox
 }
 

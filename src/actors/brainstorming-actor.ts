@@ -265,8 +265,6 @@ function mailboxFactory (
     devTools,
   })
 
-  mailbox.acquire()
-
   return mailbox
 }
 
