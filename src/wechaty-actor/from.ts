@@ -24,15 +24,14 @@ import * as Mailbox     from 'mailbox'
 
 import { InjectionToken } from '../ioc/tokens.js'
 
-import { type Context, initialContext }   from './context.js'
-import { factory as machineFactory }      from './machine.js'
+import { factory as machineFactory }  from './machine.js'
 
 from.inject = [
   InjectionToken.WechatyCqrsBus$,
   InjectionToken.Logger,
 ] as const
 
-function from (
+export function from (
   bus$     : CQRS.Bus,
   puppetId : string,
   logger?  : Mailbox.Options['logger'],
@@ -41,14 +40,4 @@ function from (
   const mailbox = Mailbox.from(machine, { logger })
 
   return mailbox
-}
-
-export {
-  type Context,
-  machineFactory,
-  /**
-   * FIXME: standardize the name of the factory function
-   */
-  from as factory,
-  initialContext,
 }

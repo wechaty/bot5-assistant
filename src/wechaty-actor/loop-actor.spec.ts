@@ -57,7 +57,6 @@ test('loop machine', async t => {
     datas: Exclude<ReturnType<typeof RESPONSE>['payload'], undefined>[]
   }
 
-
   // [].map(i => i*2)
   // map
   //   actor CommandQuerey[]
@@ -156,7 +155,7 @@ test('loop machine', async t => {
     },
     on: {
       '*': {
-        actions: Mailbox.actions.proxyToChild('consumer')('map'),
+        actions: Mailbox.actions.proxy('consumer')('map'),
       },
     },
   })

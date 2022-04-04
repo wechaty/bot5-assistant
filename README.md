@@ -8,6 +8,42 @@ BOT5 Meeting Assistant BOT powered by RSVP.ai & Wechaty & XState.
 
 ![BOT5 Club](docs/images/caq-bot5-qingyu.webp)
 
+## User Journey Diagram
+
+Learn more from [BOT Friday Club Seminar Chair Manual](http://bot5.ml/manuals/chair/)
+
+To be writen...
+
+### Registering
+
+```mermaid
+journey
+  title Registering - BOT Friday Club Seminar
+  section Register
+    Make tea: 5: Chair
+    Go upstairs: 3: Chair
+    Do work: 1: Member
+    Miao: 3: Cat, Member
+  section Go home
+    Go downstairs: 5: Chair
+    Sit down: 5: Member
+```
+
+### Mindstorming
+
+```mermaid
+journey
+  title Mindstorming - BOT Friday Club Seminar
+  section Mindsotming
+    Make tea: 5: Chair
+    Go upstairs: 3: Chair
+    Do work: 1: Member
+    Miao: 3: Cat, Member
+  section Member PTT
+    Go downstairs: 5: Chair
+    Sit down: 5: Member
+```
+
 ## Getting Started
 
 ### Step 1: Install

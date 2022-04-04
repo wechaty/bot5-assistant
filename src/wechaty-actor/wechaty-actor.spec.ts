@@ -34,11 +34,12 @@ import { createFixture }    from 'wechaty-mocker'
 import * as Mailbox         from 'mailbox'
 import { isActionOf }       from 'typesafe-actions'
 
-import { factory, machineFactory }  from './wechaty-actor.js'
-import * as events                  from './events.js'
+import { factory }  from './machine.js'
+import { from }     from './from.js'
+import * as events  from './events.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
-  const wechatyMachine = machineFactory({} as any, '')
+  const wechatyMachine = factory({} as any, '')
   t.doesNotThrow(() => Mailbox.helpers.validate(wechatyMachine), 'should pass validate')
 })
 
@@ -51,7 +52,7 @@ test('wechatyActor SAY with concurrency', async t => {
   } of createFixture()) {
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = machineFactory(bus$, wechaty.puppet.id)
+    const wechatyMachine = factory(bus$, wechaty.puppet.id)
 
     const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
@@ -109,7 +110,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
 
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = machineFactory(bus$, wechaty.puppet.id)
+    const wechatyMachine = factory(bus$, wechaty.puppet.id)
 
     const testMachine = createMachine({
       invoke: {
@@ -155,7 +156,7 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = machineFactory(bus$, wechaty.puppet.id)
+    const wechatyMachine = factory(bus$, wechaty.puppet.id)
 
     const testMachine = createMachine({
       invoke: {
@@ -235,7 +236,7 @@ test('wechatyMachine BATCH events', async t => {
     const bus$ = CQRS.from(wechaty)
     const puppetId = wechaty.puppet.id
 
-    const wechatyMailbox = factory(bus$, wechaty.puppet.id)
+    const wechatyMailbox = from(bus$, wechaty.puppet.id)
     wechatyMailbox.open()
 
     const testMachine = createMachine({

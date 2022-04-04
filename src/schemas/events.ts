@@ -24,7 +24,6 @@ import type { Wechaty }   from 'wechaty'
 import * as types       from './types.js'
 import type { Intent }  from './intent-type.js'
 
-const payloadMessage   = (message: PUPPET.payloads.Message)     => ({ message })
 const payloadRoom      = (room: PUPPET.payloads.Room)           => ({ room })
 
 const payloadText      = (text: string)     => ({ text })
@@ -34,7 +33,6 @@ const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
-const payloadGerror     = (gerror: string) => ({ gerror })
 const payloadData      = (data: any) => ({ data })
 
 const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
@@ -51,7 +49,8 @@ export const attendees  = createAction(types.ATTENDEES, payloadContacts)()
 export const admins     = createAction(types.ADMINS,    payloadContacts)()
 export const chairs     = createAction(types.CHAIRS,    payloadContacts)()
 
-export const message     = createAction(types.MESSAGE, payloadMessage)()
+const payloadMessage  = (message: PUPPET.payloads.Message) => ({ message })
+export const message  = createAction(types.MESSAGE, payloadMessage)()
 
 export const back        = createAction(types.BACK)()
 export const next        = createAction(types.NEXT)()
@@ -72,7 +71,10 @@ export const feedback     = createAction(types.FEEDBACK, payloadFeedback)()
 
 export const cancel  = createAction(types.CANCEL, payloadCancel)()
 export const abort  = createAction(types.ABORT, payloadAbort)()
-export const gerror  = createAction(types.GERROR, payloadGerror)()
+
+const payloadGerror = (gerror: string) => ({ gerror })
+export const gerror = createAction(types.GERROR, payloadGerror)()
+
 export const reset  = createAction(types.RESET, payloadReset)()
 
 export const intents = createAction(types.INTENTS, payloadIntents)()
@@ -83,11 +85,11 @@ export const wechaty  = createAction(types.WECHATY, payloadWechaty)()
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
  */
-export const finish  = createAction(types.FINISH, payloadData)()
-export const complete  = createAction(types.COMPLETE, payloadData)()
+export const finish   = createAction(types.FINISH, payloadData)()
+export const complete = createAction(types.COMPLETE, payloadData)()
 
-export const introduce = createAction(types.INTRODUCE)()
-export const report = createAction(types.REPORT)()
+export const introduce  = createAction(types.INTRODUCE)()
+export const report     = createAction(types.REPORT)()
 
 const payloadIdle = (data?: string) => ({ reason: data })
 export const idle = createAction(types.IDLE, payloadIdle)()

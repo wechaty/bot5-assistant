@@ -4,6 +4,7 @@ import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
+import * as ACTOR           from '../wechaty-actor/mod.js'
 import * as schemas         from '../schemas/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
@@ -17,25 +18,28 @@ const types = {
   MESSAGE   : schemas.types.MESSAGE,
   REPORT    : schemas.types.REPORT,
   RESET     : schemas.types.RESET,
+  NEXT      : schemas.types.NEXT,
 } as const
 
 const events = {
-  contacts   : schemas.events.contacts,
-  message    : schemas.events.message,
-  reset      : schemas.events.reset,
-  report     : schemas.events.report,
-  introduce  : schemas.events.introduce,
-  mention    : schemas.events.mention,
-  gerror     : schemas.events.gerror,
-  idle       : schemas.events.idle,
+  CONTACTS   : schemas.events.contacts,
+  GERROR     : schemas.events.gerror,
+  IDLE       : schemas.events.idle,
+  INTRODUCE  : schemas.events.introduce,
+  MENTION    : schemas.events.mention,
+  MESSAGE    : schemas.events.message,
+  NEXT       : schemas.events.next,
+  REPORT     : schemas.events.report,
+  RESET      : schemas.events.reset,
 } as const
 
 type Event =
   | ReturnType<typeof events[keyof typeof events]>
   | CQRS.duck.Event
+  | ACTOR.Event
 
 type Events = {
-  [key in keyof typeof events]: typeof events[key]
+  [key in keyof typeof events]: ReturnType<typeof events[key]>
 }
 
 const states = {
@@ -43,8 +47,8 @@ const states = {
   erroring     : schemas.states.erroring,
   idle         : schemas.states.idle,
   initializing : schemas.states.initializing,
+  mentioning   : schemas.states.mentioning,
   parsing      : schemas.states.parsing,
-  // loading      : schemas.states.loading,
   reporting    : schemas.states.reporting,
   resetting    : schemas.states.resetting,
 } as const
@@ -52,24 +56,24 @@ const states = {
 type State = typeof states[keyof typeof states]
 
 interface Context {
-  message?: PUPPET.payloads.Message
-  contacts: PUPPET.payloads.Contact[],
-  chairs:   PUPPET.payloads.Contact[],
+  message?: PUPPET.payloads.MessageRoom
+  contacts: { [id: string]: PUPPET.payloads.Contact },
+  chairs:   { [id: string]: PUPPET.payloads.Contact },
   gerror?:  string
 }
 
 function initialContext (): Context {
   const context: Context = {
     message  : undefined,
-    contacts : [],
-    chairs   : [],
+    contacts : {},
+    chairs   : {},
     gerror   : undefined,
   }
   return JSON.parse(JSON.stringify(context))
 }
 
-const ctxRoom         = (ctx: Context) => ctx.message!.roomId!
-const ctxContactsNum  = (ctx: Context) => Object.keys(ctx.contacts).length
+const ctxRoomId     = (ctx: Context) => ctx.message!.roomId!
+const ctxContactNum = (ctx: Context) => Object.keys(ctx.contacts).length
 
 const MACHINE_NAME = 'RegisterMachine'
 
@@ -79,6 +83,7 @@ const machineFactory = (
 ) => createMachine<Context, Event>({
   id: MACHINE_NAME,
   initial: states.initializing,
+  preserveActionOrder: true,
   context: () => initialContext(),
   on: {
     /**
@@ -92,21 +97,21 @@ const machineFactory = (
         wechatyAddress.send(
           ctx => CQRS.commands.SendMessageCommand(
             CQRS.uuid.NIL,
-            ctxRoom(ctx),
+            ctxRoomId(ctx),
             CQRS.sayables.text(
               [
                 '【注册系统】说用说明书：',
                 '请主席发送一条消息，同时一次性 @ 所有参会人员，即可完成参会活动人员注册。',
-                `当前注册人数：${ctx.contacts.length}`,
+                `当前注册人数：${Object.keys(ctx.contacts).length}`,
               ].join(''),
-              ctx.chairs.map(c => c.id),
+              Object.keys(ctx.chairs),
             ),
           ),
         ),
       ],
     },
   },
-  preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
+  // preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
   states: {
     [states.initializing]: {
       always: states.idle,
@@ -120,7 +125,7 @@ const machineFactory = (
         [types.MESSAGE]: {
           actions: [
             actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
-            actions.assign({ message: (_, e) => e.payload.message }),
+            actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom }),
           ],
           target: states.parsing,
         },
@@ -134,19 +139,19 @@ const machineFactory = (
     },
     [states.reporting]: {
       entry: [
-        actions.log(ctx => `states.reporting.entry contacts/${ctxContactsNum(ctx)}`, MACHINE_NAME),
+        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, MACHINE_NAME),
         actions.choose<Context, any>([
           {
-            cond: ctx => ctxContactsNum(ctx) > 0,
+            cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.reporting.entry -> [CONTACTS]', MACHINE_NAME),
-              Mailbox.actions.reply(ctx => events.contacts(ctx.contacts)),
+              Mailbox.actions.reply(ctx => events.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
             actions: [
               actions.log(_ => 'states.reporting.entry ctx.contacts is empty', MACHINE_NAME),
-              actions.send(events.introduce()),
+              actions.send(events.INTRODUCE()),
             ],
           },
         ]),
@@ -160,103 +165,76 @@ const machineFactory = (
       ],
       always: states.initializing,
     },
-    loading: {
-      entry: [
-        wechatyAddress.send((ctx, e) => CQRS.queries.GetContactPayloadQuery(
-          CQRS.uuid.NIL,
-          e.payload.contactId,
-        )),
-      ],
-      on: {
-        [CQRS.duck.types.GET_CONTACT_PAYLOAD_QUERY_RESPONSE]: 'looping',
-      }
-    },
-    looping: {
-      entry: [
-        actions.choose([
-          {
-            cond: ctx => ctxContactsNum(ctx) < 1,
-          }
-        ])
-      ]
-      onDone: {
-        actions: actions.send((_, e) => events.mention(e.data)),
-      },
-      onError: {
-        actions: actions.send((_, e) => events.gerror(e.data)),
-      },
-      on: {
-        [types.MENTION]: {
-          actions: [
-            actions.log((_, e) => `states.parsing.on.MENTION <- ${e.payload.contacts.map(c => c.name).join(',')}`, MACHINE_NAME),
-            actions.assign({
-              contacts: (ctx, e) => [
-                ...ctx.contacts,
-                ...e.payload.contacts.filter(c => !ctx.contacts.map(c => c.id).includes(c.id)),
-              ],
-            }),
-          ],
-          target: states.confirming,
-        },
-        [types.GERROR]: states.erroring,
-      },
-    },
     [states.parsing]: {
       entry: [
-        actions.log('states.parsing.entry', MACHINE_NAME),
-        actions.choose([
-          {
-            cond: ctx => !!ctx.message
-              && 'mentionIdList' in ctx.message
-              && !!ctx.message.mentionIdList
-              /**
-               * Condition: there are more contact payloads need to be loaded
-               */
-              && ctx.message.mentionIdList.length > ctx.contacts.length,
-            actions: actions.send(ctx => ({
-              type: 'LOAD',
-              payload: {
-                contactId: (ctx.message as PUPPET.payloads.MessageRoom)
-                  .mentionIdList!
-                  .filter(id => !ctx.contacts
-                    .map(c => c.id)
-                    .includes(id),
-                  ),
-              },
-            }))
-          }
-        ])
-        actions.send(ctx => ctx.message && 'mentionIdList' in ctx.message && ctx.message.mentionIdList
-          ? ({ type: 'LOOP', payload: { mentionIds: ctx.message.mentionIdList, contacts: [] } })
-          : ({ type: 'LOOP', payload: { mentionIds: [], contacts: [] } })
-        ),
+        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as Events['MESSAGE']).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, MACHINE_NAME),
+        wechatyAddress.send((_, e) => {
+          const messagePayload = (e as Events['MESSAGE']).payload.message
+          const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
+
+          return ACTOR.events.batch(
+            mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
+              CQRS.uuid.NIL,
+              id,
+            )),
+          )
+        }),
       ],
+      on: {
+        [ACTOR.types.BATCH_RESPONSE]: {
+          actions: [
+            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, MACHINE_NAME),
+            actions.send((_, e) => events.MENTION(e.payload.responseList
+              .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
+              .map(response => response.payload.contact)
+              .filter(Boolean) as PUPPET.payloads.Contact[],
+            )),
+          ],
+        },
+        [types.GERROR]: states.erroring,
+        [types.MENTION]: states.mentioning,
+      },
+    },
+    [states.mentioning]: {
+      entry: [
+        actions.log((_, e) => `states.mentioning.entry ${(e as Events['MENTION']).payload.contacts.map(c => c.name).join(',')}`, MACHINE_NAME),
+        actions.assign<Context, Events['MENTION']>({
+          contacts: (ctx, e) => ({
+            ...ctx.contacts,
+            ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+          }),
+        }),
+        actions.send(events.NEXT()),
+      ],
+      on: {
+        [types.NEXT]: states.confirming,
+      },
     },
     [states.confirming]: {
       entry: [
-        actions.log(ctx => `states.confirming.entry contacts/${ctxContactsNum(ctx)}`, MACHINE_NAME),
+        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, MACHINE_NAME),
         actions.choose<Context, any>([
           {
-            cond: ctx => ctxContactsNum(ctx) > 0,
+            cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
               wechatyAddress.send(ctx => CQRS.commands.SendMessageCommand(
                 CQRS.uuid.NIL,
-                ctxRoom(ctx),
+                ctxRoomId(ctx),
                 CQRS.sayables.text(
                   [
                     '【注册系统】',
-                    `恭喜：${ctx.contacts.map(c => c.name).join('、')}，共${ctx.contacts.length}名组织成员注册成功！`,
+                    `恭喜：${Object.values(ctx.contacts).map(c => c.name).join('、')}，共${Object.keys(ctx.contacts).length}名组织成员注册成功！`,
                   ].join(''),
                   Object.values(ctx.contacts).map(c => c.id),
                 ),
               )),
-              actions.send(events.report()),
+              actions.send(events.REPORT()),
             ],
           },
           {
             actions: [
-              actions.send(events.introduce()),
-              actions.send(events.idle()),
+              actions.send(events.INTRODUCE()),
+              actions.send(events.IDLE()),
             ],
           },
         ]),

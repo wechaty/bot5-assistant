@@ -24,37 +24,19 @@ import { GError }                   from 'gerror'
 import { isActionOf }               from 'typesafe-actions'
 import * as Mailbox                 from 'mailbox'
 
+import { MACHINE_NAME }             from './constants.js'
 import type { CommandQuery }        from './dto.js'
 import type { Event }               from './event-type.js'
-import { MACHINE_NAME }             from './constants.js'
 import { Context, initialContext }  from './context.js'
+import * as services                from './machine-services/mod.js'
 import * as events                  from './events.js'
 import * as states                  from './states.js'
 import * as types                   from './types.js'
-import * as services                from './services/mod.js'
 
 export const factory = (
   bus$     : CQRS.Bus,
   puppetId : string,
 ) => createMachine<Context, Event>({
-  /**
-   * Introducing: TypeScript typegen for XState
-   *  @link https://stately.ai/blog/introducing-typescript-typegen-for-xstate
-   */
-  // tsTypes: {},
-  // schema: {
-  //   context: {} as Context,
-  //   events: {} as Event,
-  // },
-
-  /**
-   * Issue statelyai/xstate#2891:
-   *  The context provided to the expr inside a State
-   *  should be exactly the **context in this state**
-   * @see https://github.com/statelyai/xstate/issues/2891
-   */
-  preserveActionOrder: true,
-
   id: MACHINE_NAME,
   context: initialContext(puppetId),
   initial: states.idle,
@@ -171,6 +153,9 @@ export const factory = (
 
   },
 }, {
+  /**
+   * FIXME: batch is never used in the machine definition
+   */
   services: {
     batch   : (ctx, e) => services.batch(bus$)(ctx, e),
     execute : services.execute(bus$),
