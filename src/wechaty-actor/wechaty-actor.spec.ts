@@ -224,7 +224,7 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
 })
 
-test.only('wechatyMachine batch events', async t => {
+test('wechatyMachine BATCH events', async t => {
   for await (const {
     wechaty: {
       wechaty,
@@ -251,11 +251,10 @@ test.only('wechatyMachine batch events', async t => {
       .onEvent(e => eventList.push(e))
       .start()
 
-    const future = new Promise<ReturnType<typeof events.batchResponse>>(resolve =>
-      interpreter.onEvent(e => {
-        console.info('in Promise onEvent:', e)
-        isActionOf(events.batchResponse, e) && resolve(e)
-      }),
+    const future = new Promise<ReturnType<typeof events.batchResponse>>(
+      resolve => interpreter.onEvent(
+        e => isActionOf(events.batchResponse, e) && resolve(e),
+      ),
     )
 
     interpreter.send(
@@ -277,8 +276,8 @@ test.only('wechatyMachine batch events', async t => {
       CQRS.responses.GetAuthQrCodeQueryResponse({     ...res, qrcode: undefined }),
     ])
 
-    await new Promise(resolve => setTimeout(resolve, 100))
-    console.info(eventList)
+    // await new Promise(resolve => setTimeout(resolve, 100))
+    // console.info(eventList)
 
     const response = await future
     response.payload.responseList.forEach(r => { 'id' in r.meta && (r.meta.id = CQRS.uuid.NIL) })
