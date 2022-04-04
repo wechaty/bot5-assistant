@@ -8,11 +8,7 @@ import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
 import * as Mailbox                 from 'mailbox'
 
-import {
-  events,
-  states,
-  types,
-}                           from '../schemas/mod.js'
+import * as schemas         from '../schemas/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
 interface Context {
@@ -26,14 +22,26 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const EVENTS = {
-  NOTICE       : events.notice,
-  CONVERSATION : events.conversation,
-}
+const types = {
+  NOTICE: schemas.types.NOTICE,
+  CONVERSATION: schemas.types.CONVERSATION,
+} as const
 
-type Event = ReturnType<typeof EVENTS[keyof typeof EVENTS]>
+const states = {
+  initializing: schemas.states.initializing,
+  idle: schemas.states.idle,
+  noticing: schemas.states.noticing,
+} as const
 
-const MACHINE_NAME = 'ConversationMachine'
+const events = {
+  NOTICE       : schemas.events.notice,
+  CONVERSATION : schemas.events.conversation,
+  NOP: schemas.events.nop,
+} as const
+
+type Event = ReturnType<typeof events[keyof typeof events]>
+
+const MACHINE_NAME = 'NoticeMachine'
 
 const machineFactory = (
   wechatyAddress: Mailbox.Address,
@@ -48,7 +56,7 @@ const machineFactory = (
     [states.idle]: {
       on: {
         '*': {
-          actions: actions.forwardTo(String(wechatyAddress)),
+          // actions: actions.forwardTo(String(wechatyAddress)),
           target: states.idle,  // enforce external transition
         },
         [types.NOTICE]: states.noticing,
@@ -67,7 +75,7 @@ const machineFactory = (
       entry: [
         actions.log('states.noticing.entry', MACHINE_NAME),
         wechatyAddress.send((ctx, e) =>
-          isActionOf(EVENTS.NOTICE, e) && ctx.conversationId
+          isActionOf(events.NOTICE, e) && ctx.conversationId
             ? CQRS.commands.SendMessageCommand(
               CQRS.uuid.NIL,
               ctx.conversationId,
@@ -75,7 +83,7 @@ const machineFactory = (
                 `【信使系统】${e.payload.notice}`,
               ),
             )
-            : events.nop(),
+            : events.NOP(),
         ),
       ],
       always: states.idle,
@@ -102,5 +110,5 @@ export {
   type Context,
   machineFactory,
   mailboxFactory,
-  EVENTS as Events,
+  events as Events,
 }
