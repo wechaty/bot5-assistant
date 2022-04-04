@@ -23,7 +23,6 @@ import {
   createMachine,
   interpret,
   AnyEventObject,
-  // spawn,
 }                           from 'xstate'
 import { firstValueFrom }   from 'rxjs'
 import { filter }           from 'rxjs/operators'
@@ -33,8 +32,10 @@ import * as CQRS            from 'wechaty-cqrs'
 import * as PUPPET          from 'wechaty-puppet'
 import { createFixture }    from 'wechaty-mocker'
 import * as Mailbox         from 'mailbox'
+import { isActionOf }       from 'typesafe-actions'
 
-import { machineFactory } from './wechaty-actor.js'
+import { factory, machineFactory }  from './wechaty-actor.js'
+import * as events                  from './events.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
   const wechatyMachine = machineFactory({} as any, '')
@@ -61,7 +62,7 @@ test('wechatyActor SAY with concurrency', async t => {
       },
       on: {
         '*': {
-          actions: Mailbox.actions.proxyToChild('TestActor')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxy('TestActor')(WECHATY_MACHINE_ID),
         },
       },
     })
@@ -117,7 +118,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
       },
       on: {
         '*': {
-          actions: Mailbox.actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxy('TestMachine')(WECHATY_MACHINE_ID),
         },
       },
     })
@@ -132,7 +133,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
       wechaty.once('message', resolve),
     )
     interpreter.send(
-      CQRS.commands.SendMessageCommand(wechaty.puppet.id, room.id, PUPPET.payloads.sayable.text(EXPECTED_TEXT, [player.id])),
+      CQRS.commands.SendMessageCommand(wechaty.puppet.id, room.id, PUPPET.payloads.sayable.text(EXPECTED_TEXT, [ player.id ])),
     )
     const message = await future
     t.equal(message.text(), EXPECTED_TEXT, `should get said message "${EXPECTED_TEXT}"`)
@@ -142,7 +143,7 @@ test('wechatyMachine interpreter smoke testing', async t => {
 
 })
 
-test.only('wechatyMachine message send / recv', async t => {
+test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
   const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
   for await (const {
@@ -158,12 +159,12 @@ test.only('wechatyMachine message send / recv', async t => {
 
     const testMachine = createMachine({
       invoke: {
-        src: wechatyMachine,
-        id: WECHATY_MACHINE_ID,
+        src : wechatyMachine,
+        id  : WECHATY_MACHINE_ID,
       },
       on: {
         '*': {
-          actions: Mailbox.actions.proxyToChild('TestMachine')(WECHATY_MACHINE_ID),
+          actions: Mailbox.actions.proxy('TestMachine')(WECHATY_MACHINE_ID),
         },
       },
     })
@@ -172,6 +173,9 @@ test.only('wechatyMachine message send / recv', async t => {
     const interpreter = interpret(testMachine)
       .onTransition(s => eventList.push(s.event))
       .start()
+
+    // We need to wait the bullet to fly a while because here we are testing the machine (instead of Mailbox actor)
+    await new Promise(setImmediate)
 
     /**
      * isLoggedIn
@@ -183,10 +187,13 @@ test.only('wechatyMachine message send / recv', async t => {
       CQRS.queries.GetIsLoggedInQuery(wechaty.puppet.id),
     )
     const response = await future
-    t.equal(response.payload.isLoggedIn, true, 'should get response for logged in state')
+    t.equal(response.payload.isLoggedIn, true, 'should get isLoggedIn response from bot')
+
+    // We need to wait the bullet to fly a while because here we are testing the machine (instead of Mailbox actor)
+    await new Promise(setImmediate)
 
     /**
-     * isLoggedIn
+     * currentUserId
      */
     const future2 = firstValueFrom(bus$.pipe(
       filter(CQRS.is(CQRS.responses.GetCurrentUserIdQueryResponse)),
@@ -195,7 +202,92 @@ test.only('wechatyMachine message send / recv', async t => {
       CQRS.queries.GetCurrentUserIdQuery(wechaty.puppet.id),
     )
     const response2 = await future2
-    t.equal(response2.payload.contactId, bot.id, 'should get response for bot id')
+    t.equal(response2.payload.contactId, bot.id, 'should get currentUesrId response from bot')
+
+    // We need to wait the bullet to fly a while because here we are testing the machine (instead of Mailbox actor)
+    await new Promise(setImmediate)
+
+    /**
+     * authQrCode
+     */
+    const future3 = firstValueFrom(bus$.pipe(
+      filter(CQRS.is(CQRS.responses.GetAuthQrCodeQueryResponse)),
+    ))
+    interpreter.send(
+      CQRS.queries.GetAuthQrCodeQuery(wechaty.puppet.id),
+    )
+    const response3 = await future3
+    t.equal(response3.payload.qrcode, undefined, 'should get auth qrcode response from bot')
+
+    interpreter.stop()
+  }
+
+})
+
+test.only('wechatyMachine batch events', async t => {
+  for await (const {
+    wechaty: {
+      wechaty,
+      bot,
+    },
+  } of createFixture()) {
+
+    const bus$ = CQRS.from(wechaty)
+    const puppetId = wechaty.puppet.id
+
+    const wechatyMailbox = factory(bus$, wechaty.puppet.id)
+    wechatyMailbox.open()
+
+    const testMachine = createMachine({
+      on: {
+        '*': {
+          actions: Mailbox.actions.proxy('TestMachine')(wechatyMailbox),
+        },
+      },
+    })
+
+    const eventList: AnyEventObject[] = []
+    const interpreter = interpret(testMachine)
+      .onEvent(e => eventList.push(e))
+      .start()
+
+    const future = new Promise<ReturnType<typeof events.batchResponse>>(resolve =>
+      interpreter.onEvent(e => {
+        console.info('in Promise onEvent:', e)
+        isActionOf(events.batchResponse, e) && resolve(e)
+      }),
+    )
+
+    interpreter.send(
+      events.batch([
+        CQRS.queries.GetIsLoggedInQuery(puppetId),
+        CQRS.queries.GetCurrentUserIdQuery(puppetId),
+        CQRS.queries.GetAuthQrCodeQuery(puppetId),
+      ]),
+    )
+
+    const res = {
+      id: CQRS.uuid.NIL,
+      puppetId,
+    }
+
+    const EXPECTED = events.batchResponse([
+      CQRS.responses.GetIsLoggedInQueryResponse({     ...res, isLoggedIn: true }),
+      CQRS.responses.GetCurrentUserIdQueryResponse({  ...res, contactId: bot.id }),
+      CQRS.responses.GetAuthQrCodeQueryResponse({     ...res, qrcode: undefined }),
+    ])
+
+    await new Promise(resolve => setTimeout(resolve, 100))
+    console.info(eventList)
+
+    const response = await future
+    response.payload.responseList.forEach(r => { 'id' in r.meta && (r.meta.id = CQRS.uuid.NIL) })
+
+    t.same(
+      JSON.parse(JSON.stringify(response)),
+      JSON.parse(JSON.stringify(EXPECTED)),
+      'should get batch response',
+    )
 
     interpreter.stop()
   }
