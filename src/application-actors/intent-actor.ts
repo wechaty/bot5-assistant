@@ -28,11 +28,11 @@ function initialContext (): Context {
 }
 
 const states = {
-  idle: schemas.states.idle,
-  checking: schemas.states.checking,
-  understanding: schemas.states.understanding,
-  erroring: schemas.states.erroring,
-  recognizing: schemas.states.recognizing,
+  idle          : schemas.states.idle,
+  checking      : schemas.states.checking,
+  understanding : schemas.states.understanding,
+  erroring      : schemas.states.erroring,
+  recognizing   : schemas.states.recognizing,
 } as const
 
 const types = {

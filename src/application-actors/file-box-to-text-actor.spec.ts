@@ -1,17 +1,14 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
-import { interpret, createMachine, actions }    from 'xstate'
-import { from, firstValueFrom }                 from 'rxjs'
-import { filter, map, tap }                     from 'rxjs/operators'
-import { FileBox, FileBoxInterface }            from 'file-box'
-import { test }                                 from 'tstest'
-import * as WECHATY                             from 'wechaty'
-import path                                     from 'path'
-import { fileURLToPath }                        from 'url'
-import * as Mailbox                             from 'mailbox'
+import { interpret, createMachine }     from 'xstate'
+import { FileBox, FileBoxInterface }    from 'file-box'
+import { test }                         from 'tstest'
+import path                             from 'path'
+import { fileURLToPath }                from 'url'
+import * as Mailbox                     from 'mailbox'
+import { isActionOf }                   from 'typesafe-actions'
 
-import * as actor   from './file-box-to-text-machine.js'
-import { isActionOf } from 'typesafe-actions'
+import * as actor   from './file-box-to-text-actor.js'
 
 test('machine initialState', async t => {
   t.equal(actor.machine.initialState.value, actor.states.idle, 'should be initial state idle')
