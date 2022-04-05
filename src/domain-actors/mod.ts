@@ -5,7 +5,7 @@ import * as wechaty       from '../wechaty-actor/mod.js'
 
 import * as assistant     from './assistant-actor.js'
 import * as feedback      from './feedback-actor.js'
-import * as intent        from './intent-actor.js'
+import * as intent        from '../application-actors/intent-actor.js'
 import * as meeting       from './meeting-actor.js'
 import * as register      from './register-actor.js'
 import * as brainstorming from './brainstorming-actor.js'

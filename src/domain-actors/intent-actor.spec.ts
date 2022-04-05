@@ -11,7 +11,7 @@ import { createFixture }    from 'wechaty-mocker'
 
 import { events, intents }  from '../schemas/mod.js'
 
-import * as IntentActor   from './intent-actor.js'
+import * as IntentActor   from '../application-actors/intent-actor.js'
 
 test('IntentActor happy path smoke testing', async t => {
   for await (const fixtures of createFixture()) {
@@ -40,7 +40,7 @@ test('IntentActor happy path smoke testing', async t => {
       on: {
         '*': {
           actions: [
-            Mailbox.actions.proxyToChild('TestMachine')(CHILD_ID),
+            Mailbox.actions.proxy('TestMachine')(CHILD_ID),
           ],
         },
       },

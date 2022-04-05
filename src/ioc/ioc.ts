@@ -12,7 +12,7 @@ import type { Observable }  from 'rxjs'
 //   Duck as WechatyDuck,
 // }                         from 'wechaty-redux'
 
-import * as actors from '../actors/mod.js'
+import * as actors from '../domain-actors/mod.js'
 
 import { InjectionToken } from './tokens.js'
 
