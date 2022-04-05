@@ -4,33 +4,59 @@ import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
 import { speechToText }   from '../to-text/mod.js'
-import { events, types }  from '../schemas/mod.js'
+import * as schemas       from '../schemas/mod.js'
+
+const events = {
+  MESSAGE: schemas.events.MESSAGE,
+  GERROR: schemas.events.GERROR,
+  NO_AUDIO: schemas.events.NO_AUDIO,
+  TEXT: schemas.events.TEXT,
+} as const
 
 type Event =
-  | ReturnType<typeof events.message>
-  | ReturnType<typeof events.noAudio>
-  | ReturnType<typeof events.text>
+  | ReturnType<typeof events[keyof typeof events]>
+
+type Events = {
+  [key in keyof typeof events]: ReturnType<typeof events[key]>
+}
+
+const types = {
+  MESSAGE: schemas.types.MESSAGE,
+} as const
 
 interface Context {
   message?: PUPPET.payloads.Message
+  address?: {
+    wechaty: string
+  }
 }
+
+const initialContext = (): Context => {
+  const context: Context = {
+    message : undefined,
+    address : undefined,
+  }
+  return JSON.parse(JSON.stringify(context))
+}
+
+const MACHINE_NAME = 'TextMachine'
 
 const textMachine = createMachine<Context, Event>(
   {
     initial: 'idle',
-    context: {
-      message: undefined,
-    },
+    context: initialContext,
     states: {
       idle: {
         entry: [
-          actions.sendParent(Mailbox.Events.CHILD_IDLE('stt idle')),
+          Mailbox.actions.idle(MACHINE_NAME)('stt idle'),
         ],
         on: {
           [types.MESSAGE]: {
             actions: [
-              actions.log((_, e) => 'stt idle on MESSAGE ' + JSON.stringify(e)),
-              'saveMessage',
+              actions.log((_, e) => `states.idle.on.MESSAGE ${JSON.stringify(e)}`, MACHINE_NAME),
+              actions.assign({
+                message:  (_, e) => (e as Events['MESSAGE']).payload.message,
+              }),
             ],
             target: 'selecting',
           },
@@ -45,7 +71,7 @@ const textMachine = createMachine<Context, Event>(
           {
             actions: [
               actions.log('states.selecting.always.text'),
-              actions.sendParent(events.noAudio()),
+              actions.sendParent(events.NO_AUDIO()),
             ],
             target: 'idle',
           },
@@ -59,14 +85,14 @@ const textMachine = createMachine<Context, Event>(
             actions: [
               actions.sendParent((_, e) => {
                 // console.info('stt result', e.data)
-                return events.text(e.data)
+                return events.TEXT(e.data)
               }),
             ],
           },
           onError: {
             target: 'idle',
             actions: [
-              actions.escalate((_, e) => events.gerror(e.data)),
+              actions.escalate((_, e) => events.GERROR(e.data)),
             ],
           },
         },
@@ -74,11 +100,6 @@ const textMachine = createMachine<Context, Event>(
     },
   },
   {
-    actions: {
-      saveMessage: actions.assign({
-        message:  (_, e) => (e as ReturnType<typeof events.message>).payload.message,
-      }),
-    },
     services: {
       stt: async context => context.message && speechToText(await context.message.toFileBox()),
     },

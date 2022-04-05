@@ -22,15 +22,15 @@ const types = {
 } as const
 
 const events = {
-  CONTACTS   : schemas.events.contacts,
-  GERROR     : schemas.events.gerror,
-  IDLE       : schemas.events.idle,
-  INTRODUCE  : schemas.events.introduce,
-  MENTION    : schemas.events.mention,
-  MESSAGE    : schemas.events.message,
-  NEXT       : schemas.events.next,
-  REPORT     : schemas.events.report,
-  RESET      : schemas.events.reset,
+  CONTACTS   : schemas.events.CONTACTS,
+  GERROR     : schemas.events.GERROR,
+  IDLE       : schemas.events.IDLE,
+  INTRODUCE  : schemas.events.INTRODUCE,
+  MENTION    : schemas.events.MENTION,
+  MESSAGE    : schemas.events.MESSAGE,
+  NEXT       : schemas.events.NEXT,
+  REPORT     : schemas.events.REPORT,
+  RESET      : schemas.events.RESET,
 } as const
 
 type Event =
@@ -247,7 +247,7 @@ const machineFactory = (
     },
     [states.erroring]: {
       entry: [
-        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as schemas.Events['gerror']).payload.gerror})]`, MACHINE_NAME),
+        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as schemas.Events['GERROR']).payload.gerror})]`, MACHINE_NAME),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: states.idle,

@@ -43,68 +43,66 @@ const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, 
 const payloadMinute = (minutes: string) => ({ minutes })
 
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
-export const mention    = createAction(types.MENTION,   payloadContacts)()
-export const contacts   = createAction(types.CONTACTS,  payloadContacts)()
-export const attendees  = createAction(types.ATTENDEES, payloadContacts)()
-export const admins     = createAction(types.ADMINS,    payloadContacts)()
-export const chairs     = createAction(types.CHAIRS,    payloadContacts)()
+export const MENTION    = createAction(types.MENTION,   payloadContacts)()
+export const CONTACTS   = createAction(types.CONTACTS,  payloadContacts)()
+export const ATTENDEES  = createAction(types.ATTENDEES, payloadContacts)()
+export const ADMINS     = createAction(types.ADMINS,    payloadContacts)()
+export const CHAIRS     = createAction(types.CHAIRS,    payloadContacts)()
 
 const payloadMessage  = (message: PUPPET.payloads.Message) => ({ message })
-export const message  = createAction(types.MESSAGE, payloadMessage)()
+export const MESSAGE  = createAction(types.MESSAGE, payloadMessage)()
 
-export const back        = createAction(types.BACK)()
-export const next        = createAction(types.NEXT)()
+export const BACK        = createAction(types.BACK)()
+export const NEXT        = createAction(types.NEXT)()
 
-export const noAudio    = createAction(types.NO_AUDIO)()
-export const noMention  = createAction(types.NO_MENTION)()
+export const NO_AUDIO    = createAction(types.NO_AUDIO)()
+export const NO_MENTION  = createAction(types.NO_MENTION)()
 
-export const room = createAction(types.ROOM, payloadRoom)()
+export const ROOM = createAction(types.ROOM, payloadRoom)()
 
-export const start       = createAction(types.START)()
-export const stop        = createAction(types.STOP)()
+export const START       = createAction(types.START)()
+export const STOP        = createAction(types.STOP)()
 
-export const text        = createAction(types.TEXT, payloadText)()
-export const say         = createAction(types.SAY, payloadSay)()
+export const TEXT        = createAction(types.TEXT, payloadText)()
+export const SAY         = createAction(types.SAY, payloadSay)()
 
-export const feedbacks    = createAction(types.FEEDBACKS, payloadFeedbacks)()
-export const feedback     = createAction(types.FEEDBACK, payloadFeedback)()
+export const FEEDBACKS    = createAction(types.FEEDBACKS, payloadFeedbacks)()
+export const FEEDBACK     = createAction(types.FEEDBACK, payloadFeedback)()
 
-export const cancel  = createAction(types.CANCEL, payloadCancel)()
-export const abort  = createAction(types.ABORT, payloadAbort)()
+export const CANCEL  = createAction(types.CANCEL, payloadCancel)()
+export const ABORT  = createAction(types.ABORT, payloadAbort)()
 
 const payloadGerror = (gerror: string) => ({ gerror })
-export const gerror = createAction(types.GERROR, payloadGerror)()
+export const GERROR = createAction(types.GERROR, payloadGerror)()
 
-export const reset  = createAction(types.RESET, payloadReset)()
+export const RESET  = createAction(types.RESET, payloadReset)()
 
-export const intents = createAction(types.INTENTS, payloadIntents)()
-
-export const wechaty  = createAction(types.WECHATY, payloadWechaty)()
+export const INTENTS = createAction(types.INTENTS, payloadIntents)()
 
 /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
  */
-export const finish   = createAction(types.FINISH, payloadData)()
-export const complete = createAction(types.COMPLETE, payloadData)()
+export const FINISH   = createAction(types.FINISH, payloadData)()
+export const COMPLETE = createAction(types.COMPLETE, payloadData)()
 
-export const introduce  = createAction(types.INTRODUCE)()
-export const report     = createAction(types.REPORT)()
+export const INTRODUCE  = createAction(types.INTRODUCE)()
+export const REPORT     = createAction(types.REPORT)()
 
 const payloadIdle = (data?: string) => ({ reason: data })
-export const idle = createAction(types.IDLE, payloadIdle)()
+export const IDLE = createAction(types.IDLE, payloadIdle)()
 
-export const check = createAction(types.CHECK)()
+export const CHECK = createAction(types.CHECK)()
 
-export const process = createAction(types.PROCESS)()
-export const parse = createAction(types.PARSE)()
+export const PROCESS = createAction(types.PROCESS)()
+export const PARSE = createAction(types.PARSE)()
 
 const payloadNotice = (notice: string) => ({ notice })
-export const notice = createAction(types.NOTICE, payloadNotice)()
+export const NOTICE = createAction(types.NOTICE, payloadNotice)()
 
-export const minute = createAction(types.MINUTE, payloadMinute)()
+export const MINUTE = createAction(types.MINUTE, payloadMinute)()
 
 const payloadConversation = (conversationId: string) => ({ conversationId })
-export const conversation = createAction(types.CONVERSATION, payloadConversation)()
+export const CONVERSATION = createAction(types.CONVERSATION, payloadConversation)()
 
-export const nop = createAction(types.NOP)()
+export const NOP = createAction(types.NOP)()

@@ -107,7 +107,7 @@ test('Brainstorming actor smoke testing', async t => {
         return
       }
       proxyInterpreter.send(
-        events.message(msg),
+        events.MESSAGE(msg),
       )
     })
 
@@ -116,8 +116,8 @@ test('Brainstorming actor smoke testing', async t => {
      */
     targetEventList.length = 0
     targetStateList.length = 0
-    proxyInterpreter.send(events.room(wechatyFixture.groupRoom))
-    proxyInterpreter.send(events.report())
+    proxyInterpreter.send(events.ROOM(wechatyFixture.groupRoom))
+    proxyInterpreter.send(events.REPORT())
     await sandbox.clock.runToLastAsync()
     t.equal(
       targetContext().room?.id,
@@ -238,7 +238,7 @@ test('Brainstorming actor smoke testing', async t => {
     t.same(
       targetEventList.filter(e => e.type === types.FEEDBACKS),
       [
-        events.feedbacks({
+        events.FEEDBACKS({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
           [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
           [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,

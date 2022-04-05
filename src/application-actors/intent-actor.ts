@@ -6,10 +6,11 @@ import { createMachine, actions }   from 'xstate'
 import { FileBox }                  from 'file-box'
 import * as Mailbox                 from 'mailbox'
 
-import { states, events, types }  from '../schemas/mod.js'
-import { textToIntents }          from '../machines/message-to-intents.js'
-import { speechToText }           from '../to-text/mod.js'
-import { InjectionToken }         from '../ioc/tokens.js'
+import * as ACTOR           from '../wechaty-actor/mod.js'
+import * as schemas         from '../schemas/mod.js'
+import { textToIntents }    from '../machines/message-to-intents.js'
+import { speechToText }     from '../to-text/mod.js'
+import { InjectionToken }   from '../ioc/tokens.js'
 
 export interface Context {
   message?: PUPPET.payloads.Message
@@ -26,15 +27,37 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const Events = {
-  MESSAGE: events.message,
+const states = {
+  idle: schemas.states.idle,
+  checking: schemas.states.checking,
+  understanding: schemas.states.understanding,
+  erroring: schemas.states.erroring,
+  recognizing: schemas.states.recognizing,
 } as const
 
-type Event = ReturnType<typeof Events[keyof typeof Events]>
+const types = {
+  MESSAGE: schemas.types.MESSAGE,
+} as const
+
+const events = {
+  MESSAGE: schemas.events.MESSAGE,
+  GERROR: schemas.events.GERROR,
+  INTENTS: schemas.events.INTENTS,
+} as const
+
+type Event =
+  | ReturnType<typeof events[keyof typeof events]>
+  | ACTOR.Event
+
+type Events = {
+  [key in keyof typeof events]: ReturnType<typeof events[key]>
+}
 
 const MACHINE_NAME = 'IntentMachine'
 
-function machineFactory () {
+function machineFactory (
+  wechatyAddress: Mailbox.Address,
+) {
   const machine = createMachine<Context, Event>({
     id: MACHINE_NAME,
     initial: states.idle,
@@ -82,7 +105,7 @@ function machineFactory () {
           },
           {
             actions: [
-              actions.log((_, e) => `states.checking.always.MESSAGE is neither Text nor Audio: ${PUPPET.types.Message[e.payload.message.type]}`, MACHINE_NAME),
+              actions.log((_, e) => `states.checking.always.MESSAGE is neither Text nor Audio: ${PUPPET.types.Message[(e as Events['MESSAGE']).payload.message.type]}`, MACHINE_NAME),
             ],
             target: states.idle,
           },
@@ -90,8 +113,22 @@ function machineFactory () {
       },
       [states.recognizing]: {
         entry: [
-          actions.log('states.recognizing.entry', MACHINE_NAME),
+          actions.log((_, e) => `states.recognizing.entry MessageType ${PUPPET.types.Message[(e as Events['MESSAGE']).payload.message.type]}`, MACHINE_NAME),
+          wechatyAddress.send((_, e) => ACTOR.events.execute(
+            CQRS.queries.GetSayablePayloadQuery(
+              CQRS.uuid.NIL,
+              (e as Events['MESSAGE']).payload.message.id,
+            ),
+          )),
         ],
+        on: {
+          [ACTOR.types.RESPONSE]: {
+            actions: [
+              actions.log((_, e) => `states.recognizing.on.RESPONSE sayable type: "${(e.payload.response as InstanceType<typeof CQRS.responses.GetSayablePayloadQueryResponse>).payload.sayable?.type}"`, MACHINE_NAME),
+
+            ],
+          },
+        },
         invoke: {
           src: ctx => speechToText(FileBox.fromJSON(ctx.message?.fileBox)),
           onDone: {
@@ -117,7 +154,7 @@ function machineFactory () {
           onDone: {
             actions: [
               // TODO: support entities
-              Mailbox.actions.reply((_, e) => events.intents(e.data)),
+              Mailbox.actions.reply((_, e) => events.INTENTS(e.data)),
             ],
             target: states.idle,
           },
@@ -132,7 +169,7 @@ function machineFactory () {
       [states.erroring]: {
         entry: [
           actions.log(ctx => `states.erroring.entry ${ctx.gerror}`, MACHINE_NAME),
-          Mailbox.actions.reply(ctx => events.gerror(ctx.gerror!)),
+          Mailbox.actions.reply(ctx => events.GERROR(ctx.gerror!)),
         ],
         exit: [
           actions.assign({ gerror: _ => undefined }),
@@ -161,5 +198,5 @@ export {
   machineFactory,
   mailboxFactory,
   initialContext,
-  Events,
+  events as Events,
 }

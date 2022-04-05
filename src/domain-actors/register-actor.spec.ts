@@ -6,7 +6,6 @@ import {
   createMachine,
   Interpreter,
   AnyInterpreter,
-  // spawn,
 }                         from 'xstate'
 import { test, sinon }    from 'tstest'
 import type * as WECHATY  from 'wechaty'
@@ -92,7 +91,7 @@ test('registerMachine smoke testing', async t => {
     const noMentionMessage = await messageFutureNoMention
 
     registerInterpreter().send(
-      events.message(noMentionMessage.payload!),
+      events.MESSAGE(noMentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
@@ -135,7 +134,7 @@ test('registerMachine smoke testing', async t => {
     consumerEventList.length = 0
     registerEventList.length = 0
     registerInterpreter().send(
-      events.message(mentionMessage.payload!),
+      events.MESSAGE(mentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
@@ -161,7 +160,7 @@ test('registerMachine smoke testing', async t => {
       [
         Mailbox.events.CHILD_IDLE('idle'),
         Mailbox.events.CHILD_REPLY(
-          events.contacts(CONTACT_MENTION_LIST.map(c => c.payload!)),
+          events.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
         ),
         Mailbox.events.CHILD_IDLE('idle'),
       ],
@@ -240,7 +239,7 @@ test.only('registerActor smoke testing', async t => {
 
     eventList.length = 0
     interpreter.send(
-      events.message(
+      events.MESSAGE(
         (await messageFutureNoMention).payload!,
       ),
     )
@@ -261,7 +260,7 @@ test.only('registerActor smoke testing', async t => {
 
     eventList.length = 0
     interpreter.send(
-      events.message(
+      events.MESSAGE(
         (await messageFutureMentions).payload!,
       ),
     )
@@ -285,7 +284,7 @@ test.only('registerActor smoke testing', async t => {
     await idleFuture
     // console.info(eventList)
     t.same(eventList, [
-      events.contacts(CONTACT_MENTION_LIST.map(c => c.payload!)),
+      events.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
     ], 'should get CONTACT events with mention list')
 
   }

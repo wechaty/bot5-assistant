@@ -34,9 +34,9 @@ const states = {
 } as const
 
 const events = {
-  NOTICE       : schemas.events.notice,
-  CONVERSATION : schemas.events.conversation,
-  NOP: schemas.events.nop,
+  NOTICE       : schemas.events.NOTICE,
+  CONVERSATION : schemas.events.CONVERSATION,
+  NOP: schemas.events.NOP,
 } as const
 
 type Event = ReturnType<typeof events[keyof typeof events]>

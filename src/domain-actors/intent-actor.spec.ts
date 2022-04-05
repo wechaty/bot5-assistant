@@ -53,7 +53,7 @@ test('IntentActor happy path smoke testing', async t => {
 
     wechatyFixtures.bot.on('message', msg => {
       interpreter.send(
-        events.message(msg),
+        events.MESSAGE(msg),
       )
     })
 
@@ -67,7 +67,7 @@ test('IntentActor happy path smoke testing', async t => {
       const actualChildReply = eventList.filter(e => e.type === Mailbox.Types.CHILD_REPLY)
       const expectedChildReply = [
         Mailbox.Events.CHILD_REPLY(
-          events.intents(expectedIntents),
+          events.INTENTS(expectedIntents),
         ),
       ]
       t.same(actualChildReply, expectedChildReply,

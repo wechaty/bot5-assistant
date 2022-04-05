@@ -43,22 +43,22 @@ const ctxChair      = (ctx: Context) => ctx.chairs[0]
 const ctxViceChairs = (ctx: Context) => ctx.chairs.slice(1)
 
 const Events = {
-  START: events.start,
-  CANCEL: events.cancel,
-  FINISH: events.finish,
-  REPORT: events.report,
-  IDLE: events.idle,
-  PROCESS: events.process,
-  ROOM: events.room,
-  MESSAGE: events.message,
-  CONTACTS: events.contacts,
-  BACK: events.back,
-  NEXT: events.next,
-  ATTENDEES: events.attendees,
-  CHAIRS: events.chairs,
-  RESET: events.reset,
-  INTENTS: events.intents,
-  FEEDBACKS: events.feedbacks,
+  START: events.START,
+  CANCEL: events.CANCEL,
+  FINISH: events.FINISH,
+  REPORT: events.REPORT,
+  IDLE: events.IDLE,
+  PROCESS: events.PROCESS,
+  ROOM: events.ROOM,
+  MESSAGE: events.MESSAGE,
+  CONTACTS: events.CONTACTS,
+  BACK: events.BACK,
+  NEXT: events.NEXT,
+  ATTENDEES: events.ATTENDEES,
+  CHAIRS: events.CHAIRS,
+  RESET: events.RESET,
+  INTENTS: events.INTENTS,
+  FEEDBACKS: events.FEEDBACKS,
 }
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -74,7 +74,7 @@ const machineFactory = (
 ) => {
   const say = (...texts: string[]) =>
     noticeAddress.send(
-      events.notice(
+      events.NOTICE(
         texts.join('\n'),
       ),
     )
@@ -89,7 +89,7 @@ const machineFactory = (
   const nextIntentToNext = actions.choose<Context, Event['intents']>([
     {
       cond: (_, e) => e.payload.intents.includes(intents.next),
-      actions: actions.send(events.next()),
+      actions: actions.send(events.NEXT()),
     },
   ])
 
@@ -160,14 +160,14 @@ const machineFactory = (
               cond: ctx => !!ctx.minutes,
               actions: [
                 Mailbox.actions.reply(ctx =>
-                  events.minute(ctx.minutes!),
+                  events.MINUTE(ctx.minutes!),
                 ),
-                actions.send(events.idle()),
+                actions.send(events.IDLE()),
               ],
             },
             {
               actions: [
-                actions.send(events.process()),
+                actions.send(events.PROCESS()),
               ],
             },
           ]),
@@ -303,7 +303,7 @@ const machineFactory = (
       },
       [states.registering]: {
         entry: [
-          registerAddress.send(events.report()),
+          registerAddress.send(events.REPORT()),
           say(
             '【会议系统】',
             '当前模块：活动成员注册',
@@ -329,7 +329,7 @@ const machineFactory = (
               actions.assign({
                 attendees: (_, e) => e.payload.contacts,
               }),
-              actions.send(events.next()),
+              actions.send(events.NEXT()),
             ],
           },
           [types.BACK]: states.introducing,
@@ -383,7 +383,7 @@ const machineFactory = (
             '分享自己在本次活动上想到的新的好点子(1 MIN per person)',
             '不讨论（讨论留到After Party）',
           ),
-          brainstormingAddress.send(events.report()),
+          brainstormingAddress.send(events.REPORT()),
         ],
         exit: [
           say(
@@ -402,7 +402,7 @@ const machineFactory = (
               actions.assign({
                 brainstorms: (_, e) => e.payload.feedbacks,
               }),
-              actions.send(events.next()),
+              actions.send(events.NEXT()),
             ],
           },
           [types.BACK]: states.upgrading,

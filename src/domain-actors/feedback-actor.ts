@@ -18,15 +18,15 @@ type Context = {
 }
 
 const Events = {
-  ADMINS   : events.admins,
-  CONTACTS : events.contacts,
-  MESSAGE  : events.message,
-  RESET    : events.reset,
-  REPORT   : events.report,
-  FEEDBACK : events.feedback,
-  GERROR   : events.gerror,
-  IDLE     : events.idle,
-  PROCESS  : events.process,
+  ADMINS   : events.ADMINS,
+  CONTACTS : events.CONTACTS,
+  MESSAGE  : events.MESSAGE,
+  RESET    : events.RESET,
+  REPORT   : events.REPORT,
+  FEEDBACK : events.FEEDBACK,
+  GERROR   : events.GERROR,
+  IDLE     : events.IDLE,
+  PROCESS  : events.PROCESS,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -149,7 +149,7 @@ function machineFactory (
           [types.GERROR]: {
             actions: [
               actions.log('states.parsing.on.GERROR', MACHINE_NAME),
-              Mailbox.actions.reply((_, e) => events.gerror((e as ReturnType<typeof Events.GERROR>).payload.gerror)),
+              Mailbox.actions.reply((_, e) => events.GERROR((e as ReturnType<typeof Events.GERROR>).payload.gerror)),
             ],
             target: states.idle,
           },
@@ -164,7 +164,7 @@ function machineFactory (
               [(e as ReturnType<typeof Events.FEEDBACK>).payload.contactId]: (e as ReturnType<typeof Events.FEEDBACK>).payload.feedback,
             }),
           }),
-          wechatyAddress.send((ctx, e) => actors.wechaty.Events.SAY(
+          wechatyAddress.send((ctx, e) => actors.wechaty.events.SAY(
             [
               '【反馈系统】',
               `收到${ctx.message!.talker().name()}的反馈：`,
@@ -176,7 +176,7 @@ function machineFactory (
             {
               cond: ctx => !!ctxNextContact(ctx),
               actions: [
-                wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+                wechatyAddress.send(ctx => actors.wechaty.events.SAY(
                   [
                     '【反馈系统】',
                     `下一位：@${ctxNextContact(ctx)?.name()}`,
@@ -192,7 +192,7 @@ function machineFactory (
             },
             {
               actions: [
-                wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+                wechatyAddress.send(ctx => actors.wechaty.events.SAY(
                   '【反馈系统】：已完成收集所有人反馈',
                   ctx.message!.room()!.id,
                 )),
@@ -262,7 +262,7 @@ function machineFactory (
             {
               actions: [
                 actions.log('states.reporting.entry feedbacks reported', MACHINE_NAME),
-                Mailbox.actions.reply(ctx => events.feedbacks(ctx.feedbacks)),
+                Mailbox.actions.reply(ctx => events.FEEDBACKS(ctx.feedbacks)),
               ],
             },
           ]),

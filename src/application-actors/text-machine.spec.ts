@@ -108,7 +108,7 @@ const parentMachineTest = createMachine({
   },
 }, {
   actions: {
-    saveText: actions.assign({ text: (_, event) => (event as ReturnType<typeof events.text>).payload.text }),
+    saveText: actions.assign({ text: (_, event) => (event as ReturnType<typeof events.TEXT>).payload.text }),
   },
 })
 
@@ -138,13 +138,13 @@ test('stt machine process audio message', async t => {
     tap(s => console.info('Transition to', s.value)),
     tap(s => console.info('Received event', s.event.type)),
     filter(state => state.event.type === types.TEXT),
-    map(state => (state.event as ReturnType<typeof events.text>).payload.text),
+    map(state => (state.event as ReturnType<typeof events.TEXT>).payload.text),
   ))
 
   // interpreter.subscribe(s => console.info('event:', s.event))
 
   interpreter.send(
-    events.message(fixtures.AUDIO_MESSAGE),
+    events.MESSAGE(fixtures.AUDIO_MESSAGE),
   )
 
   let snapshot = interpreter.getSnapshot()
@@ -156,7 +156,7 @@ test('stt machine process audio message', async t => {
   snapshot = interpreter.getSnapshot()
   t.equal(snapshot.value, 'working', 'should be working')
   t.equal(snapshot.event.type, types.TEXT, 'should be TEXT event')
-  t.equal((snapshot.event as ReturnType<typeof events.text>).payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
+  t.equal((snapshot.event as ReturnType<typeof events.TEXT>).payload.text, fixtures.EXPECTED_TEXT, 'should has stt-ed TEXT event data')
   t.equal(snapshot.context.text, fixtures.EXPECTED_TEXT, 'should set stt-ed text to context')
 
   interpreter.send(types.STOP)
@@ -177,7 +177,7 @@ test('stt machine process non-audio message (text)', async t => {
   // interpreter.subscribe(s => console.info('event:', s.event))
 
   interpreter.send(
-    events.message(fixtures.TEXT_MESSAGE),
+    events.MESSAGE(fixtures.TEXT_MESSAGE),
   )
 
   let snapshot = interpreter.getSnapshot()
@@ -185,7 +185,7 @@ test('stt machine process non-audio message (text)', async t => {
   t.equal(snapshot.event.type, types.NO_AUDIO, 'should be NO_AUDIO event')
 
   interpreter.send(
-    events.message(fixtures.IMAGE_MESSAGE),
+    events.MESSAGE(fixtures.IMAGE_MESSAGE),
   )
 
   snapshot = interpreter.getSnapshot()

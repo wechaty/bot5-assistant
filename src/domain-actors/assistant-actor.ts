@@ -25,9 +25,9 @@ function initialContext (): Context {
 }
 
 const Events = {
-  MESSAGE : events.message,
-  REPORT  : events.report,
-  MINUTE  : events.minute,
+  MESSAGE : events.MESSAGE,
+  REPORT  : events.REPORT,
+  MINUTE  : events.MINUTE,
 }
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -65,7 +65,7 @@ const machineFactory = (
     },
     [states.meeting]: {
       entry: [
-        meetingAddress.send(events.report()),
+        meetingAddress.send(events.REPORT()),
       ],
       on: {
         [types.MESSAGE]: {

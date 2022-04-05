@@ -29,17 +29,17 @@ interface Context {
 }
 
 const Events = {
-  CONTACTS  : events.contacts,
-  FEEDBACKS : events.feedbacks,
+  CONTACTS  : events.CONTACTS,
+  FEEDBACKS : events.FEEDBACKS,
   //
-  INTRODUCE : events.introduce,
-  ROOM      : events.room,
-  MESSAGE   : events.message,
-  RESET     : events.reset,
-  REPORT    : events.report,
-  NOTICE    : events.notice,
-  IDLE      : events.idle,
-  PROCESS   : events.process,
+  INTRODUCE : events.INTRODUCE,
+  ROOM      : events.ROOM,
+  MESSAGE   : events.MESSAGE,
+  RESET     : events.RESET,
+  REPORT    : events.REPORT,
+  NOTICE    : events.NOTICE,
+  IDLE      : events.IDLE,
+  PROCESS   : events.PROCESS,
 } as const
 
 type Event = ReturnType<typeof Events[keyof typeof Events]>
@@ -77,7 +77,7 @@ function machineFactory (
       [types.NOTICE]: {
         actions: [
           actions.log((_, e) => `on.NOTICE ${e.payload.notice}`, MACHINE_NAME),
-          wechatyAddress.send((ctx, e) => actors.wechaty.Events.SAY(
+          wechatyAddress.send((ctx, e) => actors.wechaty.events.SAY(
             [
               '【脑爆系统】叮！系统检测到通知，请注意查收！',
               '-------',
@@ -91,7 +91,7 @@ function machineFactory (
       [types.INTRODUCE]: {
         actions: [
           actions.log('on.INTRODUCE', MACHINE_NAME),
-          wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+          wechatyAddress.send(ctx => actors.wechaty.events.SAY(
             `
               头脑风暴环节：每位参会者按照报名确认顺序，在 BOT Friday Club 微信群中，通过“按住说话”功能，把自己在活动中得到的新点子与大家分享。
               当前主席：${ctx.chairs.map(c => c.name()).join('，')}
@@ -175,7 +175,7 @@ function machineFactory (
           },
           {
             actions: [
-              wechatyAddress.send(ctx => actors.wechaty.Events.SAY(
+              wechatyAddress.send(ctx => actors.wechaty.events.SAY(
                 '【脑爆系统】叮！系统检测到您已经成功完成头脑风暴，恭喜宿主！',
                 ctx.room!.id,
                 ctx.contacts.map(c => c.id),

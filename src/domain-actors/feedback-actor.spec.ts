@@ -108,7 +108,7 @@ test('feedbackMachine smoke testing', async t => {
     proxyEventList.length = 0
     feedbackEventList.length = 0
     feedbackRef.send(
-      events.contacts(FIXTURES.members),
+      events.CONTACTS(FIXTURES.members),
     )
     t.same(
       feedbackEventList.map(e => e.type),
@@ -130,7 +130,7 @@ test('feedbackMachine smoke testing', async t => {
      */
     feedbackEventList.length = 0
     feedbackRef.send([
-      events.room(wechatyFixtures.groupRoom),
+      events.ROOM(wechatyFixtures.groupRoom),
     ])
     t.same(feedbackEventList.map(e => e.type), [types.ROOM], 'should get ROOM event')
     t.same(feedbackState(), states.idle, 'should be state idle')
@@ -141,7 +141,7 @@ test('feedbackMachine smoke testing', async t => {
     const maryMsg = await listenMessage(() => mockerFixtures.mary.say(FIXTURES.feedbacks.mary).to(mockerFixtures.groupRoom))
     feedbackEventList.length = 0
     feedbackRef.send([
-      events.message(maryMsg),
+      events.MESSAGE(maryMsg),
     ])
     // console.info((snapshot.event.payload as any).message)
     t.same(feedbackEventList.map(e => e.type), [types.MESSAGE], 'should get MESSAGE event')
@@ -157,7 +157,7 @@ test('feedbackMachine smoke testing', async t => {
 
     // console.info(feedbackMsgs)
     feedbackRef.send(
-      events.message(mikeMsg),
+      events.MESSAGE(mikeMsg),
     )
     await sandbox.clock.runToLastAsync()
     // console.info((snapshot.event.payload as any).message)
@@ -174,7 +174,7 @@ test('feedbackMachine smoke testing', async t => {
 
     const botMsg = await listenMessage(() => mockerFixtures.bot.say(FIXTURES.feedbacks.bot).to(mockerFixtures.groupRoom))
     feedbackRef.send(
-      events.message(botMsg),
+      events.MESSAGE(botMsg),
     )
     await sandbox.clock.runToLastAsync()
     t.same(feedbackContext().feedbacks, {
@@ -188,7 +188,7 @@ test('feedbackMachine smoke testing', async t => {
     // console.info('msg', msg)
     feedbackEventList.length = 0
     feedbackRef.send(
-      events.message(playerMsg),
+      events.MESSAGE(playerMsg),
     )
     t.same(feedbackEventList.map(e => e.type), [
       types.MESSAGE,
@@ -223,7 +223,7 @@ test('feedbackMachine smoke testing', async t => {
         .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
       [
         Mailbox.Events.CHILD_REPLY(
-          events.feedbacks({
+          events.FEEDBACKS({
             [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary,
             [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot,
             [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike,
@@ -320,8 +320,8 @@ test('feedbackActor smoke testing', async t => {
      */
     eventList.length = 0
     ;[
-      events.contacts(MEMBER_LIST),
-      events.room(MEETING_ROOM),
+      events.CONTACTS(MEMBER_LIST),
+      events.ROOM(MEETING_ROOM),
     ].forEach(e => interpreter.send(e))
 
     t.same(
@@ -345,7 +345,7 @@ test('feedbackActor smoke testing', async t => {
       await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
       await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom)),
     ]
-      .map(events.message)
+      .map(events.MESSAGE)
       .forEach(e => interpreter.send(e))
     t.same(
       eventList.map(e => e.type),
@@ -370,13 +370,13 @@ test('feedbackActor smoke testing', async t => {
     t.same(
       eventList,
       [
-        events.feedbacks(EXPECTED_FEEDBACKS),
+        events.FEEDBACKS(EXPECTED_FEEDBACKS),
       ],
       'should get FEEDBACKS event',
     )
 
     const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
-    interpreter.send(events.message(msg))
+    interpreter.send(events.MESSAGE(msg))
     eventList.length = 0
     await firstValueFrom(
       from(interpreter).pipe(
@@ -387,7 +387,7 @@ test('feedbackActor smoke testing', async t => {
     t.same(
       eventList,
       [
-        events.feedbacks({
+        events.FEEDBACKS({
           ...EXPECTED_FEEDBACKS,
           [mary.id] : FIXTURES.feedbacks.mike,
         }),
