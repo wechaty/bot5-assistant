@@ -19,7 +19,6 @@
  */
 import { createAction }   from 'typesafe-actions'
 import type * as PUPPET   from 'wechaty-puppet'
-import type { Wechaty }   from 'wechaty'
 
 import * as types       from './types.js'
 import type { Intent }  from './intent-type.js'
@@ -28,7 +27,6 @@ const payloadRoom      = (room: PUPPET.payloads.Room)           => ({ room })
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
-const payloadWechaty   = (wechaty: Wechaty) => ({ wechaty })
 
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
@@ -63,6 +61,7 @@ export const ROOM = createAction(types.ROOM, payloadRoom)()
 export const START       = createAction(types.START)()
 export const STOP        = createAction(types.STOP)()
 
+export const NO_TEXT     = createAction(types.NO_TEXT)()
 export const TEXT        = createAction(types.TEXT, payloadText)()
 export const SAY         = createAction(types.SAY, payloadSay)()
 
@@ -106,3 +105,6 @@ const payloadConversation = (conversationId: string) => ({ conversationId })
 export const CONVERSATION = createAction(types.CONVERSATION, payloadConversation)()
 
 export const NOP = createAction(types.NOP)()
+
+const payloadFileBox = (fileBox: string) => ({ fileBox })
+export const FILE_BOX = createAction(types.FILE_BOX, payloadFileBox)()

@@ -17,62 +17,65 @@
  *   limitations under the License.
  *
  */
-export const MESSAGE = 'bot5/MESSAGE'
-export const ROOM = 'bot5/ROOM'
+export const MESSAGE = 'bot5-assistant/MESSAGE'
+export const ROOM = 'bot5-assistant/ROOM'
 
-export const CONTACTS = 'bot5/CONTACTS'
-export const ADMINS = 'bot5/ADMINS'
-export const ATTENDEES = 'bot5/ATTENDEES'
-export const CHAIRS = 'bot5/CHAIRS'
+export const CONTACTS = 'bot5-assistant/CONTACTS'
+export const ADMINS = 'bot5-assistant/ADMINS'
+export const ATTENDEES = 'bot5-assistant/ATTENDEES'
+export const CHAIRS = 'bot5-assistant/CHAIRS'
 
-export const NO_AUDIO = 'bot5/NO_AUDIO'
-export const TEXT = 'bot5-assisstant/TEXT'
+export const NO_AUDIO = 'bot5-assistant/NO_AUDIO'
+export const NO_TEXT  = 'bot5-assistant/NO_TEXT'
+export const TEXT     = 'bot5-assistant/TEXT'
 
-export const MENTION = 'bot5/MENTION'
-export const NO_MENTION = 'bot5/NO_MENTION'
+export const MENTION = 'bot5-assistant/MENTION'
+export const NO_MENTION = 'bot5-assistant/NO_MENTION'
 
-export const BACK = 'bot5/BACK'
-export const NEXT = 'bot5/NEXT'
+export const BACK = 'bot5-assistant/BACK'
+export const NEXT = 'bot5-assistant/NEXT'
 
-export const START = 'bot5/START'
-export const STOP = 'bot5/STOP'
+export const START = 'bot5-assistant/START'
+export const STOP = 'bot5-assistant/STOP'
 
-export const SAY = 'bot5/SAY'
-export const RESET = 'bot5/RESET'
+export const SAY = 'bot5-assistant/SAY'
+export const RESET = 'bot5-assistant/RESET'
 
-export const GERROR = 'bot5/GERROR'
+export const GERROR = 'bot5-assistant/GERROR'
 
-export const FEEDBACKS = 'bot5/FEEDBACKS'
-export const FEEDBACK = 'bot5/FEEDBACK'
+export const FEEDBACKS = 'bot5-assistant/FEEDBACKS'
+export const FEEDBACK = 'bot5-assistant/FEEDBACK'
 
 /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
  */
-export const FINISH = 'bot5/FINISH'
-export const COMPLETE = 'bot5/COMPLETE'
+export const FINISH = 'bot5-assistant/FINISH'
+export const COMPLETE = 'bot5-assistant/COMPLETE'
 
 /**
  * Abort v.s. Cancel
  *  @see https://stackoverflow.com/a/9838022/1123955
  */
-export const ABORT = 'bot5/ABORT'
-export const CANCEL = 'bot5/CANCEL'
+export const ABORT = 'bot5-assistant/ABORT'
+export const CANCEL = 'bot5-assistant/CANCEL'
 
-export const WECHATY = 'bot5/WECHATY'
+export const WECHATY = 'bot5-assistant/WECHATY'
 
-export const DELIVER = 'bot5/DELIVER'
-export const INTENTS = 'bot5/INTENTS'
+export const DELIVER = 'bot5-assistant/DELIVER'
+export const INTENTS = 'bot5-assistant/INTENTS'
 
-export const INTRODUCE = 'bot5/INTROCUDUCE'
-export const REPORT = 'bot5/REPORT'
+export const INTRODUCE = 'bot5-assistant/INTROCUDUCE'
+export const REPORT = 'bot5-assistant/REPORT'
 
-export const IDLE = 'bot5/IDLE'
-export const CHECK = 'bot5/CHECK'
+export const IDLE = 'bot5-assistant/IDLE'
+export const CHECK = 'bot5-assistant/CHECK'
 
-export const PROCESS = 'bot5/PROCESS'
-export const PARSE = 'bot5/PARSE'
-export const NOTICE = 'bot5/NOTICE'
-export const MINUTE = 'bot5/MINUTE'
-export const CONVERSATION = 'bot5/CONVERSATION'
-export const NOP = 'bot5/NOP'
+export const PROCESS = 'bot5-assistant/PROCESS'
+export const PARSE = 'bot5-assistant/PARSE'
+export const NOTICE = 'bot5-assistant/NOTICE'
+export const MINUTE = 'bot5-assistant/MINUTE'
+export const CONVERSATION = 'bot5-assistant/CONVERSATION'
+export const NOP = 'bot5-assistant/NOP'
+
+export const FILE_BOX = 'bot5-assistant/FILE_BOX'

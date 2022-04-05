@@ -8,7 +8,7 @@ import * as Mailbox                 from 'mailbox'
 
 import * as ACTOR           from '../wechaty-actor/mod.js'
 import * as schemas         from '../schemas/mod.js'
-import { textToIntents }    from '../application-actors/message-to-intents.js'
+import { textToIntents }    from '../services/message-to-intents.js'
 import { speechToText }     from '../to-text/mod.js'
 import { InjectionToken }   from '../ioc/tokens.js'
 
