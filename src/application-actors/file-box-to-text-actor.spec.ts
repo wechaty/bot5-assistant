@@ -11,7 +11,7 @@ import { isActionOf }                   from 'typesafe-actions'
 import * as actor   from './file-box-to-text-actor.js'
 
 test('machine initialState', async t => {
-  t.equal(actor.machine.initialState.value, actor.states.idle, 'should be initial state idle')
+  t.equal(actor.machine.initialState.value, actor.State.Idle, 'should be initial state idle')
   t.equal(actor.machine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
   t.same(actor.machine.initialState.context, undefined, 'should be initial context')
 })
@@ -25,7 +25,7 @@ test('process audio message', async t => {
   )) as FileBoxInterface
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
-  const FILE_BOX_FIXTURE_EVENT = actor.events.FILE_BOX(
+  const FILE_BOX_FIXTURE_EVENT = actor.Event.FILE_BOX(
     JSON.stringify(FILE_BOX_FIXTURE_BASE64),
   )
   const EXPECTED_TEXT = '大可乐两个统一，冰红茶三箱。'
@@ -64,8 +64,8 @@ test('process audio message', async t => {
     interpreter.onEvent(e =>
       isActionOf(
         [
-          actor.events.TEXT,
-          actor.events.GERROR,
+          actor.Event.TEXT,
+          actor.Event.GERROR,
         ],
         e,
       ) && resolve(e))
@@ -78,7 +78,7 @@ test('process audio message', async t => {
   // eventList.forEach(e => console.info(e))
   t.same(
     eventList.at(-1),
-    actor.events.TEXT(EXPECTED_TEXT),
+    actor.Event.TEXT(EXPECTED_TEXT),
     `should get expected TEXT: ${EXPECTED_TEXT}`,
   )
   interpreter.stop()
@@ -93,7 +93,7 @@ test.only('process non-audio(image) message ', async t => {
   )) as FileBoxInterface
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
-  const FILE_BOX_FIXTURE_EVENT = actor.events.FILE_BOX(
+  const FILE_BOX_FIXTURE_EVENT = actor.Event.FILE_BOX(
     JSON.stringify(FILE_BOX_FIXTURE_BASE64),
   )
 
@@ -131,8 +131,8 @@ test.only('process non-audio(image) message ', async t => {
     interpreter.onEvent(e =>
       isActionOf(
         [
-          actor.events.TEXT,
-          actor.events.GERROR,
+          actor.Event.TEXT,
+          actor.Event.GERROR,
         ],
         e,
       ) && resolve(e))
@@ -145,7 +145,7 @@ test.only('process non-audio(image) message ', async t => {
   // eventList.forEach(e => console.info(e))
   t.same(
     eventList.at(-1).type,
-    actor.types.GERROR,
+    actor.Type.GERROR,
     'should get GERROR for image',
   )
   interpreter.stop()

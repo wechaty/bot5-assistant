@@ -7,30 +7,32 @@ import { FileBox }                  from 'file-box'
 import { speechToText }   from '../to-text/mod.js'
 import * as schemas       from '../schemas/mod.js'
 
-const events = {
-  FILE_BOX : schemas.events.FILE_BOX,
-  GERROR   : schemas.events.GERROR,
-  TEXT     : schemas.events.TEXT,
+const Event = {
+  FILE_BOX : schemas.Event.FILE_BOX,
+  GERROR   : schemas.Event.GERROR,
+  TEXT     : schemas.Event.TEXT,
 } as const
 
-type Event =
-  | ReturnType<typeof events[keyof typeof events]>
-
-type Events = {
-  [key in keyof typeof events]: ReturnType<typeof events[key]>
+// eslint-disable-next-line no-redeclare
+type Event = {
+  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
 }
 
-const types = {
-  FILE_BOX : schemas.types.FILE_BOX,
-  GERROR   : schemas.types.GERROR,
-  TEXT     : schemas.types.TEXT,
+const Type = {
+  FILE_BOX : schemas.Type.FILE_BOX,
+  GERROR   : schemas.Type.GERROR,
+  TEXT     : schemas.Type.TEXT,
 } as const
+// eslint-disable-next-line no-redeclare
+type Type = typeof Type[keyof typeof Type]
 
-const states = {
-  idle        : schemas.states.idle,
-  recognizing : schemas.states.recognizing,
-  responding  : schemas.states.responding,
+const State = {
+  Idle        : schemas.State.Idle,
+  recognizing : schemas.State.recognizing,
+  responding  : schemas.State.responding,
 } as const
+// eslint-disable-next-line no-redeclare
+type State = typeof State[keyof typeof State]
 
 interface Context {}
 
@@ -39,7 +41,7 @@ const initialContext = (): Context => {
   return JSON.parse(JSON.stringify(context))
 }
 
-const ID = 'FileBoxToTextMachine'
+const NAME = 'FileBoxToTextMachine'
 
 /**
  * @request
@@ -49,62 +51,60 @@ const ID = 'FileBoxToTextMachine'
  *  success: events.TEXT
  *  failure: events.GERROR
  */
-const machine = createMachine<Context, Event>({
-  id: ID,
-  initial: states.idle,
+const machine = createMachine<Context, Event[keyof Event]>({
+  id: NAME,
+  initial: State.Idle,
   states: {
-    [states.idle]: {
+    [State.Idle]: {
       entry: [
-        Mailbox.actions.idle(ID)('idle'),
+        Mailbox.actions.idle(NAME)('idle'),
       ],
       on: {
-        [types.FILE_BOX]: states.recognizing,
+        [Type.FILE_BOX]: State.recognizing,
       },
     },
-    [states.recognizing]: {
+    [State.recognizing]: {
       entry: [
-        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as Events['FILE_BOX']).payload.fileBox).name}"`, ID),
+        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as Event['FILE_BOX']).payload.fileBox).name}"`, NAME),
       ],
       invoke: {
         src: (_, e) => speechToText(FileBox.fromJSON(
-          (e as Events['FILE_BOX']).payload.fileBox,
+          (e as Event['FILE_BOX']).payload.fileBox,
         )),
         onDone: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, ID),
-            actions.send((_, e) => events.TEXT(e.data)),
+            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, NAME),
+            actions.send((_, e) => Event.TEXT(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, ID),
-            actions.send((_, e) => events.GERROR(GError.stringify(e.data))),
+            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, NAME),
+            actions.send((_, e) => Event.GERROR(GError.stringify(e.data))),
           ],
         },
       },
       on: {
-        [types.TEXT]: states.responding,
-        [types.GERROR]: states.responding,
+        [Type.TEXT]: State.responding,
+        [Type.GERROR]: State.responding,
       },
     },
-    [states.responding]: {
+    [State.responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, ID),
+        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, NAME),
         Mailbox.actions.reply((_, e) => e),
       ],
-      always: states.idle,
+      always: State.Idle,
     },
   },
 })
 
 export {
-  ID,
-  types,
-  events,
-  states,
+  NAME,
+  Type,
+  Event,
+  State,
   machine,
-  type Event,
-  type Events,
   type Context,
   initialContext,
 }

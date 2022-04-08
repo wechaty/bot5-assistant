@@ -20,10 +20,8 @@
 import { createAction }   from 'typesafe-actions'
 import type * as PUPPET   from 'wechaty-puppet'
 
-import * as types       from './types.js'
-import type { Intent }  from './intent-type.js'
-
-const payloadRoom      = (room: PUPPET.payloads.Room)           => ({ room })
+import { Type }         from './type-enum.js'
+import type { Intent }  from './intent-enum.js'
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
@@ -33,78 +31,78 @@ const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadData      = (data: any) => ({ data })
 
-const payloadIntents  = (intents: readonly Intent[]) => ({ intents })
-
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
 
 const payloadMinute = (minutes: string) => ({ minutes })
 
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
-export const MENTION    = createAction(types.MENTION,   payloadContacts)()
-export const CONTACTS   = createAction(types.CONTACTS,  payloadContacts)()
-export const ATTENDEES  = createAction(types.ATTENDEES, payloadContacts)()
-export const ADMINS     = createAction(types.ADMINS,    payloadContacts)()
-export const CHAIRS     = createAction(types.CHAIRS,    payloadContacts)()
+export const MENTION    = createAction(Type.MENTION,   payloadContacts)()
+export const CONTACTS   = createAction(Type.CONTACTS,  payloadContacts)()
+export const ATTENDEES  = createAction(Type.ATTENDEES, payloadContacts)()
+export const ADMINS     = createAction(Type.ADMINS,    payloadContacts)()
+export const CHAIRS     = createAction(Type.CHAIRS,    payloadContacts)()
 
 const payloadMessage  = (message: PUPPET.payloads.Message) => ({ message })
-export const MESSAGE  = createAction(types.MESSAGE, payloadMessage)()
+export const MESSAGE  = createAction(Type.MESSAGE, payloadMessage)()
 
-export const BACK        = createAction(types.BACK)()
-export const NEXT        = createAction(types.NEXT)()
+export const BACK        = createAction(Type.BACK)()
+export const NEXT        = createAction(Type.NEXT)()
 
-export const NO_AUDIO    = createAction(types.NO_AUDIO)()
-export const NO_MENTION  = createAction(types.NO_MENTION)()
+export const NO_AUDIO    = createAction(Type.NO_AUDIO)()
+export const NO_MENTION  = createAction(Type.NO_MENTION)()
 
-export const ROOM = createAction(types.ROOM, payloadRoom)()
+const payloadRoom = (room: PUPPET.payloads.Room) => ({ room })
+export const ROOM = createAction(Type.ROOM, payloadRoom)()
 
-export const START       = createAction(types.START)()
-export const STOP        = createAction(types.STOP)()
+export const START       = createAction(Type.START)()
+export const STOP        = createAction(Type.STOP)()
 
-export const NO_TEXT     = createAction(types.NO_TEXT)()
-export const TEXT        = createAction(types.TEXT, payloadText)()
-export const SAY         = createAction(types.SAY, payloadSay)()
+export const NO_TEXT     = createAction(Type.NO_TEXT)()
+export const TEXT        = createAction(Type.TEXT, payloadText)()
+export const SAY         = createAction(Type.SAY, payloadSay)()
 
-export const FEEDBACKS    = createAction(types.FEEDBACKS, payloadFeedbacks)()
-export const FEEDBACK     = createAction(types.FEEDBACK, payloadFeedback)()
+export const FEEDBACKS    = createAction(Type.FEEDBACKS, payloadFeedbacks)()
+export const FEEDBACK     = createAction(Type.FEEDBACK, payloadFeedback)()
 
-export const CANCEL  = createAction(types.CANCEL, payloadCancel)()
-export const ABORT  = createAction(types.ABORT, payloadAbort)()
+export const CANCEL  = createAction(Type.CANCEL, payloadCancel)()
+export const ABORT  = createAction(Type.ABORT, payloadAbort)()
 
 const payloadGerror = (gerror: string) => ({ gerror })
-export const GERROR = createAction(types.GERROR, payloadGerror)()
+export const GERROR = createAction(Type.GERROR, payloadGerror)()
 
-export const RESET  = createAction(types.RESET, payloadReset)()
+export const RESET  = createAction(Type.RESET, payloadReset)()
 
-export const INTENTS = createAction(types.INTENTS, payloadIntents)()
+const payloadIntents = (intents: readonly Intent[]) => ({ intents })
+export const INTENTS = createAction(Type.INTENTS, payloadIntents)()
 
 /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
  */
-export const FINISH   = createAction(types.FINISH, payloadData)()
-export const COMPLETE = createAction(types.COMPLETE, payloadData)()
+export const FINISH   = createAction(Type.FINISH, payloadData)()
+export const COMPLETE = createAction(Type.COMPLETE, payloadData)()
 
-export const INTRODUCE  = createAction(types.INTRODUCE)()
-export const REPORT     = createAction(types.REPORT)()
+export const INTRODUCE  = createAction(Type.INTRODUCE)()
+export const REPORT     = createAction(Type.REPORT)()
 
 const payloadIdle = (data?: string) => ({ reason: data })
-export const IDLE = createAction(types.IDLE, payloadIdle)()
+export const IDLE = createAction(Type.IDLE, payloadIdle)()
 
-export const CHECK = createAction(types.CHECK)()
+export const CHECK = createAction(Type.CHECK)()
 
-export const PROCESS = createAction(types.PROCESS)()
-export const PARSE = createAction(types.PARSE)()
+export const PROCESS = createAction(Type.PROCESS)()
+export const PARSE = createAction(Type.PARSE)()
 
 const payloadNotice = (notice: string) => ({ notice })
-export const NOTICE = createAction(types.NOTICE, payloadNotice)()
+export const NOTICE = createAction(Type.NOTICE, payloadNotice)()
 
-export const MINUTE = createAction(types.MINUTE, payloadMinute)()
+export const MINUTE = createAction(Type.MINUTE, payloadMinute)()
 
 const payloadConversation = (conversationId: string) => ({ conversationId })
-export const CONVERSATION = createAction(types.CONVERSATION, payloadConversation)()
+export const CONVERSATION = createAction(Type.CONVERSATION, payloadConversation)()
 
-export const NOP = createAction(types.NOP)()
+export const NOP = createAction(Type.NOP)()
 
 const payloadFileBox = (fileBox: string) => ({ fileBox })
-export const FILE_BOX = createAction(types.FILE_BOX, payloadFileBox)()
+export const FILE_BOX = createAction(Type.FILE_BOX, payloadFileBox)()

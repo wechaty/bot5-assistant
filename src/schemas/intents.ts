@@ -18,18 +18,18 @@
  *
  */
 
-export const unknown = 'Unknown'
+export const Unknown = 'Unknown'
 
-export const start  = 'Start'
-export const stop   = 'Stop'
+export const Start  = 'Start'
+export const Stop   = 'Stop'
 /**
  * When to use previous/next vs. back/forward? (and what about back/next?)
  *  @link https://ux.stackexchange.com/questions/3364/when-to-use-previous-next-vs-back-forward-and-what-about-back-next
  */
-export const next = 'Next'
-export const back = 'Back'
+export const Next = 'Next'
+export const Back = 'Back'
 
-export const affirm = 'Affirm'
-export const deny   = 'Deny'
+export const Affirm = 'Affirm'
+export const Deny   = 'Deny'
 
-export const cancel = 'Cancel'
+export const Cancel = 'Cancel'

@@ -88,7 +88,7 @@ const machineFactory = (
 
   const nextIntentToNext = actions.choose<Context, Event['intents']>([
     {
-      cond: (_, e) => e.payload.intents.includes(intents.next),
+      cond: (_, e) => e.payload.intents.includes(intents.Next),
       actions: actions.send(events.NEXT()),
     },
   ])

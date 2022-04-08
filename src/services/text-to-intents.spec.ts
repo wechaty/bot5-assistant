@@ -3,18 +3,18 @@
 
 import { test }   from 'tstest'
 
-import { intents } from '../schemas/mod.js'
+import { Intent } from '../schemas/mod.js'
 
-import { textToIntents }  from './message-to-intents.js'
+import { textToIntents }  from './text-to-intents.js'
 
 test('textToIntents()', async t => {
   const FIXTURES = [
-    ['开始', [intents.start]],
-    ['停止', [intents.stop]],
-    ['三个Intents的测试', [intents.start, intents.stop, intents.unknown]],
+    [ '开始', [ Intent.Start ] ],
+    [ '停止', [ Intent.Stop ] ],
+    [ '三个Intents的测试', [ Intent.Start, Intent.Stop, Intent.Unknown ] ],
   ] as const
 
-  for (const [text, intents] of FIXTURES) {
+  for (const [ text, intents ] of FIXTURES) {
     const result = await textToIntents(text)
     t.same(result, intents, `should get Intent.[${intents}] for ${text}`)
   }

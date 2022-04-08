@@ -1,9 +1,7 @@
-export * as events    from './events.js'
-export * as intents   from './intents.js'
-export * as states    from './states.js'
-export * as types     from './types.js'
-
-export * from './event-type.js'
-export * from './intent-type.js'
-export * from './state-type.js'
-export * from './type-type.js'
+/**
+ * Fancy Enum: https://twitter.com/BenLesh/status/1510983348944056327
+ */
+export { Event }    from './event-enum.js'
+export { Intent }   from './intent-enum.js'
+export { State }    from './state-enum.js'
+export { Type }     from './type-enum.js'
