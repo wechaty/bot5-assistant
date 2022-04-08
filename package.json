@@ -31,9 +31,16 @@
     "wechaty"
   ],
   "author": {
-    "name": "Anqi CUI",
-    "url": "https://wechaty.js.org/contributors/caq"
+    "name": "Huan LI",
+    "url": "https://wechaty.js.org/contributors/huan",
+    "email": "zixia@zixia.net"
   },
+  "contributors": [
+    {
+      "name": "Anqi CUI",
+      "url": "https://wechaty.js.org/contributors/caq"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wechaty/bot5-assistant.git"
