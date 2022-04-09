@@ -56,7 +56,7 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const ID = 'NoticeMachine'
+const ID = 'NoticingMachine'
 
 const machine = createMachine<Context, Event[keyof Event]>({
   id: ID,
