@@ -6,76 +6,89 @@
 import { createMachine, actions }   from 'xstate'
 import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
-import * as Mailbox                 from 'mailbox'
 
-import * as schemas         from '../schemas/mod.js'
-import { InjectionToken }   from '../ioc/tokens.js'
+import * as duck    from '../duck/mod.js'
+
+const Type = {
+  CONVERSATION         : duck.Type.CONVERSATION,
+  IDLE                 : duck.Type.IDLE,
+  NOTICE               : duck.Type.NOTICE,
+  SEND_MESSAGE_COMMAND : CQRS.duck.types.SEND_MESSAGE_COMMAND,
+} as const
+
+// eslint-disable-next-line no-redeclare
+type Type = typeof Type[keyof typeof Type]
+
+const Event = {
+  CONVERSATION         : duck.Event.CONVERSATION,
+  IDLE                 : duck.Event.IDLE,
+  NOTICE               : duck.Event.NOTICE,
+  SEND_MESSAGE_COMMAND : CQRS.duck.actions.sendMessageCommand,
+} as const
+
+// eslint-disable-next-line no-redeclare
+type Event = {
+  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
+}
+
+const State = {
+  Idle         : duck.State.Idle,
+  initializing : duck.State.initializing,
+  noticing     : duck.State.noticing,
+  responding   : duck.State.responding,
+} as const
+
+// eslint-disable-next-line no-redeclare
+type State = typeof State[keyof typeof State]
 
 interface Context {
   conversationId?: string,
+  address?: {
+    wechaty: string,
+  },
 }
 
 function initialContext (): Context {
   const context: Context = {
     conversationId: undefined,
+    address: undefined,
   }
   return JSON.parse(JSON.stringify(context))
 }
 
-const types = {
-  NOTICE: schemas.types.NOTICE,
-  CONVERSATION: schemas.types.CONVERSATION,
-} as const
+const ID = 'NoticeMachine'
 
-const states = {
-  initializing: schemas.states.initializing,
-  idle: schemas.states.idle,
-  noticing: schemas.states.noticing,
-} as const
-
-const events = {
-  NOTICE       : schemas.events.NOTICE,
-  CONVERSATION : schemas.events.CONVERSATION,
-  NOP: schemas.events.NOP,
-} as const
-
-type Event = ReturnType<typeof events[keyof typeof events]>
-
-const MACHINE_NAME = 'NoticeMachine'
-
-const machineFactory = (
-  wechatyAddress: Mailbox.Address,
-) => createMachine<Context, Event>({
-  id: MACHINE_NAME,
+const machine = createMachine<Context, Event[keyof Event]>({
+  id: ID,
   context: () => initialContext(),
-  initial: states.initializing,
+  initial: State.initializing,
   states: {
-    [states.initializing]: {
-      always: states.idle,
+    [State.initializing]: {
+      always: State.Idle,
     },
-    [states.idle]: {
+    [State.Idle]: {
       on: {
         '*': {
           // actions: actions.forwardTo(String(wechatyAddress)),
-          target: states.idle,  // enforce external transition
+          target: State.Idle,  // enforce external transition
         },
-        [types.NOTICE]: states.noticing,
-        [types.CONVERSATION]: {
+        [Type.NOTICE]: State.noticing,
+        [Type.CONVERSATION]: {
           actions: [
-            actions.log((_, e) => `states.idle.on.CONVERSATION ${e.payload.conversationId}`, MACHINE_NAME),
+            actions.log((_, e) => `State.Idle.on.CONVERSATION ${e.payload.conversationId}`, ID),
             actions.assign({
               conversationId: (_, e) => e.payload.conversationId,
             }),
           ],
-          target: states.idle,  // enforce external transition
+          target: State.Idle,  // enforce external transition
         },
       },
     },
-    [states.noticing]: {
+    [State.noticing]: {
       entry: [
-        actions.log('states.noticing.entry', MACHINE_NAME),
-        wechatyAddress.send((ctx, e) =>
-          isActionOf(events.NOTICE, e) && ctx.conversationId
+        actions.log('State.noticing.entry', ID),
+        actions.send(
+          (ctx, e) => isActionOf(Event.NOTICE, e) && ctx.conversationId
             ? CQRS.commands.SendMessageCommand(
               CQRS.uuid.NIL,
               ctx.conversationId,
@@ -83,32 +96,32 @@ const machineFactory = (
                 `【信使系统】${e.payload.notice}`,
               ),
             )
-            : events.NOP(),
+            : Event.IDLE('State.noticing.entry not NOTICE'),
         ),
       ],
-      always: states.idle,
+      on: {
+        [Type.IDLE]: State.Idle,
+        [Type.SEND_MESSAGE_COMMAND]: State.responding,
+      },
+    },
+    [State.responding]: {
+      entry: [
+        actions.send(
+          (_, e) => e,
+          { to: ctx => ctx.address!.wechaty },
+        ),
+      ],
+      always: State.Idle,
     },
   },
 })
 
-mailboxFactory.inject = [
-  InjectionToken.Logger,
-  InjectionToken.WechatyMailbox,
-] as const
-
-function mailboxFactory (
-  logger: Mailbox.Options['logger'],
-  wechatyMailbox: Mailbox.Interface,
-) {
-  const machine = machineFactory(wechatyMailbox.address)
-
-  const mailbox = Mailbox.from(machine, { logger })
-  return mailbox
-}
-
 export {
+  ID,
+  Type,
+  Event,
+  State,
+  machine,
   type Context,
-  machineFactory,
-  mailboxFactory,
-  events as Events,
+  initialContext,
 }

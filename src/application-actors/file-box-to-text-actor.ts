@@ -5,12 +5,12 @@ import { GError }                   from 'gerror'
 import { FileBox }                  from 'file-box'
 
 import { speechToText }   from '../to-text/mod.js'
-import * as schemas       from '../schemas/mod.js'
+import * as duck          from '../duck/mod.js'
 
 const Event = {
-  FILE_BOX : schemas.Event.FILE_BOX,
-  GERROR   : schemas.Event.GERROR,
-  TEXT     : schemas.Event.TEXT,
+  FILE_BOX : duck.Event.FILE_BOX,
+  GERROR   : duck.Event.GERROR,
+  TEXT     : duck.Event.TEXT,
 } as const
 
 // eslint-disable-next-line no-redeclare
@@ -19,17 +19,17 @@ type Event = {
 }
 
 const Type = {
-  FILE_BOX : schemas.Type.FILE_BOX,
-  GERROR   : schemas.Type.GERROR,
-  TEXT     : schemas.Type.TEXT,
+  FILE_BOX : duck.Type.FILE_BOX,
+  GERROR   : duck.Type.GERROR,
+  TEXT     : duck.Type.TEXT,
 } as const
 // eslint-disable-next-line no-redeclare
 type Type = typeof Type[keyof typeof Type]
 
 const State = {
-  Idle        : schemas.State.Idle,
-  recognizing : schemas.State.recognizing,
-  responding  : schemas.State.responding,
+  Idle        : duck.State.Idle,
+  recognizing : duck.State.recognizing,
+  responding  : duck.State.responding,
 } as const
 // eslint-disable-next-line no-redeclare
 type State = typeof State[keyof typeof State]

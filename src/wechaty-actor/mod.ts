@@ -1,9 +1,6 @@
-export { from }       from './from.js'
-export * as events    from './events.js'
-export * as types     from './types.js'
-// export * as states from './states.js'
+export { from }   from './from.js'
 
-export type {
+export {
+  Type,
   Event,
-  Events,
-}                     from './event-type.js'
+}         from './duck/mod.js'

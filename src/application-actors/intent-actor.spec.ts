@@ -11,16 +11,16 @@ import * as Mailbox                     from 'mailbox'
 import { Observable, firstValueFrom }   from 'rxjs'
 import { filter }                       from 'rxjs/operators'
 
-import * as ACTOR   from '../schemas/mod.js'
+import * as duck   from '../duck/mod.js'
 
 import * as IntentActor   from './intent-actor.js'
 import { isActionOf } from 'typesafe-actions'
 
 test('IntentActor happy path smoke testing', async t => {
   const FIXTURES = [
-    [ '开始',             [ ACTOR.Intent.Start ] ],
-    [ '停止',             [ ACTOR.Intent.Stop ] ],
-    [ '三个Intents的测试', [ ACTOR.Intent.Start, ACTOR.Intent.Stop, ACTOR.Intent.Unknown ] ],
+    [ '开始',             [ duck.Intent.Start ] ],
+    [ '停止',             [ duck.Intent.Stop ] ],
+    [ '三个Intents的测试', [ duck.Intent.Start, duck.Intent.Stop, duck.Intent.Unknown ] ],
   ] as const
 
   const mailbox = Mailbox.from(IntentActor.machine)
@@ -49,11 +49,11 @@ test('IntentActor happy path smoke testing', async t => {
           interpreter.onEvent(e => subscribe.next(e))
         },
       ).pipe(
-        filter(isActionOf(ACTOR.Event.INTENTS)),
+        filter(isActionOf(duck.Event.INTENTS)),
       ),
     )
 
-    const TEXT = ACTOR.Event.TEXT(text)
+    const TEXT = duck.Event.TEXT(text)
 
     eventList.length = 0
     interpreter.send(TEXT)
@@ -65,7 +65,7 @@ test('IntentActor happy path smoke testing', async t => {
       eventList,
       [
         TEXT,
-        ACTOR.Event.INTENTS(expectedIntents),
+        duck.Event.INTENTS(expectedIntents),
       ],
       `should get expected intents [${expectedIntents}] for text "${text}"`,
     )

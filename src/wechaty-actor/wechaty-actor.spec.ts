@@ -34,9 +34,10 @@ import { createFixture }    from 'wechaty-mocker'
 import * as Mailbox         from 'mailbox'
 import { isActionOf }       from 'typesafe-actions'
 
+import * as duck    from './duck/mod.js'
+
 import { factory }  from './machine.js'
 import { from }     from './from.js'
-import * as events  from './events.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
   const wechatyMachine = factory({} as any, '')
@@ -225,7 +226,7 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
 })
 
-test('wechatyMachine BATCH events', async t => {
+test.only('wechatyMachine BATCH events', async t => {
   for await (const {
     wechaty: {
       wechaty,
@@ -240,9 +241,10 @@ test('wechatyMachine BATCH events', async t => {
     wechatyMailbox.open()
 
     const testMachine = createMachine({
+      id: 'testMachine',
       on: {
         '*': {
-          actions: Mailbox.actions.proxy('TestMachine')(wechatyMailbox),
+          actions: wechatyMailbox.address.send((_, e) => e),
         },
       },
     })
@@ -252,14 +254,19 @@ test('wechatyMachine BATCH events', async t => {
       .onEvent(e => eventList.push(e))
       .start()
 
-    const future = new Promise<ReturnType<typeof events.batchResponse>>(
+    const future = new Promise<duck.Event['BATCH_RESPONSE']>(
       resolve => interpreter.onEvent(
-        e => isActionOf(events.batchResponse, e) && resolve(e),
+        e => {
+          // console.info('onEvent', e)
+          if (isActionOf(duck.Event.BATCH_RESPONSE, e)) {
+            resolve(e)
+          }
+        },
       ),
     )
 
     interpreter.send(
-      events.batch([
+      duck.Event.BATCH([
         CQRS.queries.GetIsLoggedInQuery(puppetId),
         CQRS.queries.GetCurrentUserIdQuery(puppetId),
         CQRS.queries.GetAuthQrCodeQuery(puppetId),
@@ -271,7 +278,7 @@ test('wechatyMachine BATCH events', async t => {
       puppetId,
     }
 
-    const EXPECTED = events.batchResponse([
+    const EXPECTED = duck.Event.BATCH_RESPONSE([
       CQRS.responses.GetIsLoggedInQueryResponse({     ...res, isLoggedIn: true }),
       CQRS.responses.GetCurrentUserIdQueryResponse({  ...res, contactId: bot.id }),
       CQRS.responses.GetAuthQrCodeQueryResponse({     ...res, qrcode: undefined }),

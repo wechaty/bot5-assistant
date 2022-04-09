@@ -14,10 +14,9 @@ import type { mock }      from 'wechaty-puppet-mock'
 import * as Mailbox       from 'mailbox'
 import * as CQRS          from 'wechaty-cqrs'
 
-import * as ACTOR                   from '../wechaty-actor/mod.js'
-import { events, types, states }    from '../schemas/mod.js'
+import * as WechatyActor    from '../wechaty-actor/mod.js'
 
-import * as RegisterActor           from './register-actor.js'
+import * as RegisterActor   from './register-actor.js'
 
 test('registerMachine smoke testing', async t => {
   for await (const fixtures of createFixture()) {
@@ -31,7 +30,7 @@ test('registerMachine smoke testing', async t => {
     })
 
     const bus$ = CQRS.from(wechaty.wechaty)
-    const wechatyMailbox = ACTOR.from(bus$, wechaty.wechaty.puppet.id)
+    const wechatyMailbox = WechatyActor.from(bus$, wechaty.wechaty.puppet.id)
     wechatyMailbox.open()
 
     const [ mary, mike ] = mocker.mocker.createContacts(2) as [ mock.ContactMock, mock.ContactMock ]
@@ -49,17 +48,23 @@ test('registerMachine smoke testing', async t => {
     })
 
     const REGISTER_MACHINE_ID = 'register-machine-id'
-    const PROXY_MACHINE_ID    = 'proxy-machine-id'
+
+    const mailbox = Mailbox.from(RegisterActor.machine)
+    mailbox.open()
 
     const consumerMachine = createMachine({
-      id: PROXY_MACHINE_ID,
       invoke: {
         id: REGISTER_MACHINE_ID,
-        src: RegisterActor.machineFactory(wechatyMailbox.address),
+        src: RegisterActor.machine.withContext({
+          ...RegisterActor.initialContext(),
+          address: {
+            wechaty: String(wechatyMailbox.address),
+          },
+        }),
       },
       on: {
         '*': {
-          actions: Mailbox.actions.proxy(PROXY_MACHINE_ID)(REGISTER_MACHINE_ID),
+          actions: Mailbox.actions.proxy('consumerTest')(REGISTER_MACHINE_ID),
         },
       },
     })
@@ -78,7 +83,7 @@ test('registerMachine smoke testing', async t => {
     const registerEventList: AnyEventObject[] = []
     registerInterpreter().onEvent(e => registerEventList.push(e))
 
-    t.equal(registerState(), states.idle, 'should be idle state')
+    t.equal(registerState(), RegisterActor.State.Idle, 'should be idle state')
     t.same(registerContext().contacts, [], 'should be empty mention list')
 
     /**
@@ -91,13 +96,13 @@ test('registerMachine smoke testing', async t => {
     const noMentionMessage = await messageFutureNoMention
 
     registerInterpreter().send(
-      events.MESSAGE(noMentionMessage.payload!),
+      RegisterActor.Event.MESSAGE(noMentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), states.parsing, 'should be in parsing state')
+    t.equal(registerState(), RegisterActor.State.Parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      types.MESSAGE,
+      RegisterActor.Type.MESSAGE,
     ], 'should be MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -109,14 +114,14 @@ test('registerMachine smoke testing', async t => {
       Mailbox.events.CHILD_IDLE('idle'),
       Mailbox.events.CHILD_IDLE('idle'),
     ], 'should have 2 idle event after one message, with empty contacts list for non-mention message')
-    t.equal(registerState(), states.idle, 'should be back to idle state')
+    t.equal(registerState(), RegisterActor.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
-      ACTOR.types.BATCH_RESPONSE,
-      types.MENTION,
-      types.NEXT,
-      types.INTRODUCE,
-      types.IDLE,
-      ACTOR.types.RESPONSE,
+      WechatyActor.Type.BATCH_RESPONSE,
+      RegisterActor.Type.MENTION,
+      RegisterActor.Type.NEXT,
+      RegisterActor.Type.INTRODUCE,
+      RegisterActor.Type.IDLE,
+      WechatyActor.Type.RESPONSE,
     ], 'should be BATCH_RESPONSE, INTRODUCE, IDLE, RESPONSE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -134,13 +139,13 @@ test('registerMachine smoke testing', async t => {
     consumerEventList.length = 0
     registerEventList.length = 0
     registerInterpreter().send(
-      events.MESSAGE(mentionMessage.payload!),
+      RegisterActor.Event.MESSAGE(mentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), states.parsing, 'should be in parsing state')
+    t.equal(registerState(), RegisterActor.State.Parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      types.MESSAGE,
+      RegisterActor.Type.MESSAGE,
     ], 'should got MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -159,20 +164,20 @@ test('registerMachine smoke testing', async t => {
       consumerEventList,
       [
         Mailbox.events.CHILD_IDLE('idle'),
-        Mailbox.events.CHILD_REPLY(
-          events.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
-        ),
         Mailbox.events.CHILD_IDLE('idle'),
+        Mailbox.events.CHILD_REPLY(
+          RegisterActor.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
+        ),
       ],
       'should have 2 events after one message with contacts list for mention message',
     )
-    t.equal(registerState(), states.idle, 'should be in idle state')
+    t.equal(registerState(), RegisterActor.State.Idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
-      ACTOR.types.BATCH_RESPONSE,
-      types.MENTION,
-      types.NEXT,
-      types.REPORT,
-      ACTOR.types.RESPONSE,
+      WechatyActor.Type.BATCH_RESPONSE,
+      RegisterActor.Type.MENTION,
+      RegisterActor.Type.NEXT,
+      RegisterActor.Type.REPORT,
+      WechatyActor.Type.RESPONSE,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, RESPONSE event')
     t.same(
       Object.values(registerContext().contacts).map(c => c.id),
@@ -184,108 +189,107 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-test.only('registerActor smoke testing', async t => {
+test('registerActor smoke testing', async t => {
   let interpreter: AnyInterpreter
 
-  for await (const fixtures of createFixture()) {
-    const {
-      mocker,
-      wechaty,
-    }           = fixtures
+  for await (const fixture of createFixture()) {
 
-    const bus$ = CQRS.from(wechaty.wechaty)
-    const wechatyMailbox = ACTOR.from(bus$, wechaty.wechaty.puppet.id)
+    const bus$ = CQRS.from(fixture.wechaty.wechaty)
+    const wechatyMailbox = WechatyActor.from(bus$, fixture.wechaty.wechaty.puppet.id)
     wechatyMailbox.open()
 
-    const registerMachine = RegisterActor.machineFactory(wechatyMailbox.address)
-    const registerActor = Mailbox.helpers.wrap(registerMachine)
-
-    const CHILD_ID = 'testing-child-id'
-    const parentTester = createMachine({
-      invoke: {
-        id: CHILD_ID,
-        src: registerActor,
+    const registerMailbox = Mailbox.from(RegisterActor.machine.withContext({
+      ...RegisterActor.initialContext(),
+      address: {
+        wechaty: String(wechatyMailbox.address),
       },
+    }))
+    registerMailbox.open()
+
+    const testMachine = createMachine({
       on: {
         '*': {
-          actions: Mailbox.actions.proxy('TestMachine')(CHILD_ID),
+          actions: Mailbox.actions.proxy('TestMachine')(registerMailbox),
         },
       },
     })
 
-    interpreter = interpret(parentTester)
+    interpreter = interpret(testMachine)
     const eventList: AnyEventObject[] = []
 
     interpreter
       .onEvent(e => eventList.push(e))
       .start()
 
-    const [ mary, mike ] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
+    const [ mary, mike ] = fixture.mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
 
     const MEMBER_ID_LIST = [
       mary.id,
       mike.id,
-      mocker.bot.id,
-      mocker.player.id,
+      fixture.mocker.bot.id,
+      fixture.mocker.player.id,
     ]
 
-    const meetingRoom = mocker.mocker.createRoom({
+    const meetingRoom = fixture.mocker.mocker.createRoom({
       memberIdList: MEMBER_ID_LIST,
     })
 
-    const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
+    /**
+     * 1. test no-mention
+     */
+    eventList.length = 0
+    const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => fixture.wechaty.wechaty.once('message', resolve))
 
     mary.say('register').to(meetingRoom)
 
-    eventList.length = 0
-    interpreter.send(
-      events.MESSAGE(
-        (await messageFutureNoMention).payload!,
-      ),
+    const NO_MENTION_MESSAGE = RegisterActor.Event.MESSAGE(
+      (await messageFutureNoMention).payload!,
     )
-    t.same(
-      eventList.map(e => e.type),
-      [
-        types.MESSAGE,
-      ],
-      'should receive mailbox events for processing the new MESSAGE event',
-    )
+
+    interpreter.send(NO_MENTION_MESSAGE)
 
     await new Promise(setImmediate)
+    t.same(eventList, [ NO_MENTION_MESSAGE ], 'should no report contact when there is no mention')
 
-    const messageFutureMentions = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
+    /**
+     * 2. test mention
+     */
+    eventList.length = 0
+    const messageFutureMentions = new Promise<WECHATY.Message>(resolve => fixture.wechaty.wechaty.once('message', resolve))
 
-    const MENTION_LIST = [ mike, mary, mocker.player ]
+    const MENTION_LIST = [ mike, mary, fixture.mocker.player ]
     mary.say('register', MENTION_LIST).to(meetingRoom)
 
-    eventList.length = 0
-    interpreter.send(
-      events.MESSAGE(
-        (await messageFutureMentions).payload!,
-      ),
-    )
-    t.same(eventList.map(e => e.type), [
-      types.MESSAGE,
-    ], 'should receive mailbox events for processing the new mention MESSAGE event')
-
-    eventList.length = 0
-    const idleFuture = new Promise<void>(resolve =>
+    const contactsFuture = new Promise(resolve =>
       interpreter.onEvent(e => {
         // console.info('event:', e)
-        if (e.type === types.CONTACTS) {
-          resolve()
+        if (e.type === RegisterActor.Type.CONTACTS) {
+          resolve(e)
         }
       }),
     )
+
+    const MESSAGE = RegisterActor.Event.MESSAGE(
+      (await messageFutureMentions).payload!,
+    )
+
+    interpreter.send(MESSAGE)
+
     const CONTACT_MENTION_LIST = await Promise.all(
       MENTION_LIST
-        .map(c => wechaty.wechaty.Contact.find({ id: c.id })),
+        .map(c => fixture.wechaty.wechaty.Contact.find({ id: c.id })),
     ) as WECHATY.Contact[]
-    await idleFuture
+
+    const CONTACTS = await contactsFuture
+
     // console.info(eventList)
-    t.same(eventList, [
-      events.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
-    ], 'should get CONTACT events with mention list')
+    t.same(
+      CONTACTS,
+      RegisterActor.Event.CONTACTS(
+        CONTACT_MENTION_LIST.map(c => c.payload!),
+      ),
+      'should get CONTACT events with mention list',
+    )
 
   }
 

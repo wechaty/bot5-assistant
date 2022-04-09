@@ -3,7 +3,7 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
 
-import * as schemas         from '../schemas/mod.js'
+import * as duck            from '../duck/mod.js'
 import { textToIntents }    from '../services/text-to-intents.js'
 
 interface Context {}
@@ -14,35 +14,35 @@ function initialContext (): Context {
 }
 
 const State = {
-  Idle          : schemas.State.Idle,
-  Recognizing   : schemas.State.recognizing,
-  Understanding : schemas.State.understanding,
-  Responding: schemas.State.responding,
+  Idle          : duck.State.Idle,
+  Recognizing   : duck.State.recognizing,
+  Understanding : duck.State.understanding,
+  Responding: duck.State.responding,
 } as const
 
 const Type = {
-  INTENTS: schemas.Type.INTENTS,
-  IDLE   : schemas.Type.IDLE,
-  TEXT   : schemas.Type.TEXT,
+  INTENTS: duck.Type.INTENTS,
+  IDLE   : duck.Type.IDLE,
+  TEXT   : duck.Type.TEXT,
 } as const
 
 const EventRequest = {
-  TEXT: schemas.Event.TEXT,
+  TEXT: duck.Event.TEXT,
 } as const
 
 const EventResponse = {
   /**
    * @error
    */
-  GERROR: schemas.Event.GERROR,
+  GERROR: duck.Event.GERROR,
   /**
    * @success
    */
-  INTENTS: schemas.Event.INTENTS,
+  INTENTS: duck.Event.INTENTS,
 } as const
 
 const EventInternal = {
-  IDLE: schemas.Event.IDLE,
+  IDLE: duck.Event.IDLE,
 }
 
 const Event = {
@@ -81,12 +81,12 @@ const machine = createMachine<Context, Event[keyof Event]>({
           ? textToIntents(e.payload.text)
           : () => { throw new Error(`isActionOf(${e.type}) unexpected.`) },
         onDone: {
-          actions: actions.send((_, e) => Event.INTENTS(e.data || [ schemas.Intent.Unknown ])),
+          actions: actions.send((_, e) => Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
         },
         onError: {
           actions: [
             actions.log((_, e) => `states.understanding.invoke.onError: ${e.data}`, ID),
-            actions.send(Event.INTENTS([ schemas.Intent.Unknown ])),
+            actions.send(Event.INTENTS([ duck.Intent.Unknown ])),
           ],
         },
       },

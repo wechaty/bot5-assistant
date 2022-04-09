@@ -1,4 +1,4 @@
-import { Intent } from '../schemas/mod.js'
+import { Intent } from '../duck/mod.js'
 
 const INTENT_PATTERNS = [
   [

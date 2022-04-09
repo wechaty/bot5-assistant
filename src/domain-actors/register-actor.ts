@@ -4,62 +4,66 @@ import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
-import * as ACTOR           from '../wechaty-actor/mod.js'
-import * as schemas         from '../schemas/mod.js'
-import { InjectionToken }   from '../ioc/tokens.js'
+import * as WechatyActor    from '../wechaty-actor/mod.js'
+import * as duck            from '../duck/mod.js'
 
 // import * as actors  from './mod.js'
 
-const types = {
-  GERROR    : schemas.types.GERROR,
-  IDLE      : schemas.types.IDLE,
-  INTRODUCE : schemas.types.INTRODUCE,
-  MENTION   : schemas.types.MENTION,
-  MESSAGE   : schemas.types.MESSAGE,
-  REPORT    : schemas.types.REPORT,
-  RESET     : schemas.types.RESET,
-  NEXT      : schemas.types.NEXT,
+const Type = {
+  CONTACTS  : duck.Type.CONTACTS,
+  GERROR    : duck.Type.GERROR,
+  IDLE      : duck.Type.IDLE,
+  INTRODUCE : duck.Type.INTRODUCE,
+  MENTION   : duck.Type.MENTION,
+  MESSAGE   : duck.Type.MESSAGE,
+  NEXT      : duck.Type.NEXT,
+  REPORT    : duck.Type.REPORT,
+  RESET     : duck.Type.RESET,
 } as const
 
-const events = {
-  CONTACTS   : schemas.events.CONTACTS,
-  GERROR     : schemas.events.GERROR,
-  IDLE       : schemas.events.IDLE,
-  INTRODUCE  : schemas.events.INTRODUCE,
-  MENTION    : schemas.events.MENTION,
-  MESSAGE    : schemas.events.MESSAGE,
-  NEXT       : schemas.events.NEXT,
-  REPORT     : schemas.events.REPORT,
-  RESET      : schemas.events.RESET,
+// eslint-disable-next-line no-redeclare
+type Type = typeof Type[keyof typeof Type]
+
+const Event = {
+  CONTACTS   : duck.Event.CONTACTS,
+  GERROR     : duck.Event.GERROR,
+  IDLE       : duck.Event.IDLE,
+  INTRODUCE  : duck.Event.INTRODUCE,
+  MENTION    : duck.Event.MENTION,
+  MESSAGE    : duck.Event.MESSAGE,
+  NEXT       : duck.Event.NEXT,
+  REPORT     : duck.Event.REPORT,
+  RESET      : duck.Event.RESET,
+  BATCH_RESPONSE: WechatyActor.Event.BATCH_RESPONSE,
 } as const
 
-type Event =
-  | ReturnType<typeof events[keyof typeof events]>
-  | CQRS.duck.Event
-  | ACTOR.Event
-
-type Events = {
-  [key in keyof typeof events]: ReturnType<typeof events[key]>
+// eslint-disable-next-line no-redeclare
+type Event = {
+  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
 }
 
-const states = {
-  confirming   : schemas.states.confirming,
-  erroring     : schemas.states.erroring,
-  idle         : schemas.states.idle,
-  initializing : schemas.states.initializing,
-  mentioning   : schemas.states.mentioning,
-  parsing      : schemas.states.parsing,
-  reporting    : schemas.states.reporting,
-  resetting    : schemas.states.resetting,
+const State = {
+  Confirming   : duck.State.confirming,
+  Erroring     : duck.State.erroring,
+  Idle         : duck.State.Idle,
+  Initializing : duck.State.initializing,
+  Mentioning   : duck.State.mentioning,
+  Parsing      : duck.State.parsing,
+  Reporting    : duck.State.reporting,
+  Resetting    : duck.State.resetting,
 } as const
 
-type State = typeof states[keyof typeof states]
+// eslint-disable-next-line no-redeclare
+type State = typeof State[keyof typeof State]
 
 interface Context {
   message?: PUPPET.payloads.MessageRoom
   contacts: { [id: string]: PUPPET.payloads.Contact },
   chairs:   { [id: string]: PUPPET.payloads.Contact },
   gerror?:  string
+  address?: {
+    wechaty: string,
+  },
 }
 
 function initialContext (): Context {
@@ -68,6 +72,7 @@ function initialContext (): Context {
     contacts : {},
     chairs   : {},
     gerror   : undefined,
+    address : undefined,
   }
   return JSON.parse(JSON.stringify(context))
 }
@@ -75,26 +80,22 @@ function initialContext (): Context {
 const ctxRoomId     = (ctx: Context) => ctx.message!.roomId!
 const ctxContactNum = (ctx: Context) => Object.keys(ctx.contacts).length
 
-const MACHINE_NAME = 'RegisterMachine'
+const ID = 'RegisterMachine'
 
-const machineFactory = (
-  wechatyAddress: Mailbox.Address,
-  // logger: Mailbox.Options['logger'],
-) => createMachine<Context, Event>({
-  id: MACHINE_NAME,
-  initial: states.initializing,
+const machine = createMachine<Context, Event[keyof Event]>({
+  id: ID,
+  initial: State.Initializing,
   preserveActionOrder: true,
-  context: () => initialContext(),
   on: {
     /**
      * Huan(202203): FIXME
      *  process events outside of the `state.idle` state might block the MailBox
      *  because it does not call `Mailbox.actions.idle(...)`?
      */
-    [types.RESET]: schemas.states.resetting,
-    [types.INTRODUCE]: {
+    [Type.RESET]: State.Resetting,
+    [Type.INTRODUCE]: {
       actions: [
-        wechatyAddress.send(
+        actions.send(
           ctx => CQRS.commands.SendMessageCommand(
             CQRS.uuid.NIL,
             ctxRoomId(ctx),
@@ -107,174 +108,173 @@ const machineFactory = (
               Object.keys(ctx.chairs),
             ),
           ),
+          {
+            to: ctx => ctx.address!.wechaty,
+          },
         ),
       ],
     },
   },
   // preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
   states: {
-    [states.initializing]: {
-      always: states.idle,
+    [State.Initializing]: {
+      always: State.Idle,
     },
-    [states.idle]: {
+    [State.Idle]: {
       entry: [
-        Mailbox.actions.idle(MACHINE_NAME)('idle'),
+        Mailbox.actions.idle(ID)('idle'),
       ],
       on: {
-        '*': states.idle,
-        [types.MESSAGE]: {
+        '*': State.Idle,
+        [Type.MESSAGE]: {
           actions: [
-            actions.log('states.idle.on.MESSAGE', MACHINE_NAME),
+            actions.log('states.idle.on.MESSAGE', ID),
             actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom }),
           ],
-          target: states.parsing,
+          target: State.Parsing,
         },
-        [types.REPORT]: {
+        [Type.REPORT]: {
           actions: [
-            actions.log('states.idle.on.REPORT', MACHINE_NAME),
+            actions.log('states.idle.on.REPORT', ID),
           ],
-          target: states.reporting,
+          target: State.Reporting,
         },
       },
     },
-    [states.reporting]: {
+    [State.Reporting]: {
       entry: [
-        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, MACHINE_NAME),
+        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, ID),
         actions.choose<Context, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
-              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', MACHINE_NAME),
-              Mailbox.actions.reply(ctx => events.CONTACTS(Object.values(ctx.contacts))),
+              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', ID),
+              Mailbox.actions.reply(ctx => Event.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
             actions: [
-              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', MACHINE_NAME),
-              actions.send(events.INTRODUCE()),
+              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', ID),
+              actions.send(Event.INTRODUCE()),
             ],
           },
         ]),
       ],
-      always: states.idle,
+      always: State.Idle,
     },
-    [states.resetting]: {
+    [State.Resetting]: {
       entry: [
-        actions.log('states.resetting.entry', MACHINE_NAME),
+        actions.log('states.resetting.entry', ID),
         actions.assign(_ => initialContext()),
       ],
-      always: states.initializing,
+      always: State.Initializing,
     },
-    [states.parsing]: {
+    [State.Parsing]: {
       entry: [
-        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as Events['MESSAGE']).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, MACHINE_NAME),
-        wechatyAddress.send((_, e) => {
-          const messagePayload = (e as Events['MESSAGE']).payload.message
-          const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
+        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as Event['MESSAGE']).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, ID),
+        actions.send(
+          (_, e) => {
+            const messagePayload = (e as Event['MESSAGE']).payload.message
+            const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
 
-          return ACTOR.events.batch(
-            mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
-              CQRS.uuid.NIL,
-              id,
-            )),
-          )
-        }),
+            return WechatyActor.Event.BATCH(
+              mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
+                CQRS.uuid.NIL,
+                id,
+              )),
+            )
+          },
+          {
+            to: ctx => ctx.address!.wechaty,
+          },
+        ),
       ],
       on: {
-        [ACTOR.types.BATCH_RESPONSE]: {
+        [WechatyActor.Type.BATCH_RESPONSE]: {
           actions: [
-            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, MACHINE_NAME),
-            actions.send((_, e) => events.MENTION(e.payload.responseList
+            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, ID),
+            actions.send((_, e) => Event.MENTION(e.payload.responseList
               .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
               .map(response => response.payload.contact)
               .filter(Boolean) as PUPPET.payloads.Contact[],
             )),
           ],
         },
-        [types.GERROR]: states.erroring,
-        [types.MENTION]: states.mentioning,
+        [Type.GERROR]: State.Erroring,
+        [Type.MENTION]: State.Mentioning,
       },
     },
-    [states.mentioning]: {
+    [State.Mentioning]: {
       entry: [
-        actions.log((_, e) => `states.mentioning.entry ${(e as Events['MENTION']).payload.contacts.map(c => c.name).join(',')}`, MACHINE_NAME),
-        actions.assign<Context, Events['MENTION']>({
+        actions.log((_, e) => `states.mentioning.entry ${(e as Event['MENTION']).payload.contacts.map(c => c.name).join(',')}`, ID),
+        actions.assign<Context, Event['MENTION']>({
           contacts: (ctx, e) => ({
             ...ctx.contacts,
             ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
           }),
         }),
-        actions.send(events.NEXT()),
+        actions.send(Event.NEXT()),
       ],
       on: {
-        [types.NEXT]: states.confirming,
+        [Type.NEXT]: State.Confirming,
       },
     },
-    [states.confirming]: {
+    [State.Confirming]: {
       entry: [
-        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, MACHINE_NAME),
+        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, ID),
         actions.choose<Context, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
-              wechatyAddress.send(ctx => CQRS.commands.SendMessageCommand(
-                CQRS.uuid.NIL,
-                ctxRoomId(ctx),
-                CQRS.sayables.text(
-                  [
-                    '【注册系统】',
-                    `恭喜：${Object.values(ctx.contacts).map(c => c.name).join('、')}，共${Object.keys(ctx.contacts).length}名组织成员注册成功！`,
-                  ].join(''),
-                  Object.values(ctx.contacts).map(c => c.id),
+              actions.send(
+                ctx => CQRS.commands.SendMessageCommand(
+                  CQRS.uuid.NIL,
+                  ctxRoomId(ctx),
+                  CQRS.sayables.text(
+                    [
+                      '【注册系统】',
+                      `恭喜：${Object.values(ctx.contacts).map(c => c.name).join('、')}，共${Object.keys(ctx.contacts).length}名组织成员注册成功！`,
+                    ].join(''),
+                    Object.values(ctx.contacts).map(c => c.id),
+                  ),
                 ),
-              )),
-              actions.send(events.REPORT()),
+                {
+                  to: ctx => ctx.address!.wechaty,
+                },
+              ),
+              actions.send(Event.REPORT()),
             ],
           },
           {
             actions: [
-              actions.send(events.INTRODUCE()),
-              actions.send(events.IDLE()),
+              actions.send(Event.INTRODUCE()),
+              actions.send(Event.IDLE()),
             ],
           },
         ]),
       ],
       on: {
-        [types.REPORT]: states.reporting,
-        [types.IDLE]:   states.idle,
+        [Type.REPORT]: State.Reporting,
+        [Type.IDLE]:   State.Idle,
       },
       // TODO: ask 'do you need to edit the list?' with 60 seconds timeout with default N
     },
-    [states.erroring]: {
+    [State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as schemas.Events['GERROR']).payload.gerror})]`, MACHINE_NAME),
+        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as Event['GERROR']).payload.gerror})]`, ID),
         Mailbox.actions.reply((_, e) => e),
       ],
-      always: states.idle,
+      always: State.Idle,
     },
   },
 })
 
-mailboxFactory.inject = [
-  InjectionToken.WechatyMailbox,
-  InjectionToken.Logger,
-] as const
-function mailboxFactory (
-  wechatyMailbox: Mailbox.Interface,
-  logger: Mailbox.Options['logger'],
-) {
-  const machine = machineFactory(wechatyMailbox.address)
-  const mailbox = Mailbox.from(machine, { logger })
-  return mailbox
-}
-
 export {
+  ID,
+  Type,
+  State,
+  Event,
+  machine,
   type Context,
-  type State,
-  type Event,
-  type Events,
-  events,
-  machineFactory,
-  mailboxFactory,
   initialContext,
 }

@@ -11,7 +11,7 @@ import { test, sinon }  from 'tstest'
 import * as CQRS        from 'wechaty-cqrs'
 import * as Mailbox     from 'mailbox'
 
-import * as ACTOR       from '../wechaty-actor/mod.js'
+import * as WechatyActor    from '../wechaty-actor/mod.js'
 
 import * as NoticeActor   from './notice-actor.js'
 import { bot5Fixtures }   from './bot5-fixture.js'
@@ -28,16 +28,19 @@ test('noticeActor smoke testing', async t => {
 
     const bus$ = CQRS.from(wechatyFixtures.wechaty)
 
-    const wechatyMailbox = ACTOR.from(
+    const wechatyMailbox = WechatyActor.from(
       bus$,
       wechatyFixtures.wechaty.puppet.id,
       Mailbox.nil.logger,
     )
     wechatyMailbox.open()
 
-    const noticeMachine = NoticeActor.machineFactory(
-      wechatyMailbox.address,
-    )
+    const noticeMachine = NoticeActor.machine.withContext({
+      ...NoticeActor.initialContext(),
+      address: {
+        wechaty: String(wechatyMailbox.address),
+      },
+    })
 
     const CHILD_ID = 'testing-child-id'
     const proxyMachine = createMachine({
@@ -65,17 +68,21 @@ test('noticeActor smoke testing', async t => {
     const noticeEventList: AnyEventObject[] = []
     noticeRef.subscribe(s => noticeEventList.push(s.event))
 
-    proxyInterpreter.send(NoticeActor.Events.NOTICE('test'))
+    proxyInterpreter.send(NoticeActor.Event.NOTICE('test'))
     await sandbox.clock.runAllAsync()
     t.equal(moList.length, 0, 'should no message send out before set conversationId')
 
-    proxyInterpreter.send(NoticeActor.Events.CONVERSATION(mockerFixtures.groupRoom.id))
+    proxyInterpreter.send(NoticeActor.Event.CONVERSATION(mockerFixtures.groupRoom.id))
+    await sandbox.clock.runAllAsync()
     t.same(noticeContext(), {
       conversationId: mockerFixtures.groupRoom.id,
+      address: {
+        wechaty: String(wechatyMailbox.address),
+      },
     }, 'should set conversation id after send event')
 
     const EXPECTED_TEXT = 'test'
-    proxyInterpreter.send(NoticeActor.Events.NOTICE(EXPECTED_TEXT))
+    proxyInterpreter.send(NoticeActor.Event.NOTICE(EXPECTED_TEXT))
     await sandbox.clock.runAllAsync()
     t.equal(moList.length, 1, 'should sent message after set conversationId')
     t.equal(moList[0]!.room()!.id, mockerFixtures.groupRoom.id, 'should get room')

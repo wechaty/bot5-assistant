@@ -19,23 +19,24 @@
  */
 import { createAction }   from 'typesafe-actions'
 
-import type { CommandQuery, ResponseEvent }   from './dto.js'
-import * as types                             from './types.js'
+import type { CommandQuery, ResponseEvent }   from '../dto.js'
 
-export const nop  = createAction(types.NOP)()
-export const idle = createAction(types.IDLE)()
+import * as types   from './types.js'
+
+export const NOP  = createAction(types.NOP)()
+export const IDLE = createAction(types.IDLE)()
 
 const payloadExecute = (commandQuery: CommandQuery) => ({ commandQuery })
-export const execute = createAction(types.EXECUTE, payloadExecute)()
+export const EXECUTE = createAction(types.EXECUTE, payloadExecute)()
 
 const payloadResponse = (response: ResponseEvent) => ({ response })
-export const response = createAction(types.RESPONSE, payloadResponse)()
+export const RESPONSE = createAction(types.RESPONSE, payloadResponse)()
 
 /**
  * Batched
  */
 const payloadBatch = (commandQueryList: CommandQuery[]) => ({ commandQueryList })
-export const batch = createAction(types.BATCH, payloadBatch)()
+export const BATCH = createAction(types.BATCH, payloadBatch)()
 
 const payloadBatchResponse = (responseList: ResponseEvent[]) => ({ responseList })
-export const batchResponse = createAction(types.BATCH_RESPONSE, payloadBatchResponse)()
+export const BATCH_RESPONSE = createAction(types.BATCH_RESPONSE, payloadBatchResponse)()

@@ -1,29 +1,27 @@
-import { isActionOf }       from 'typesafe-actions'
-import * as CQRS            from 'wechaty-cqrs'
-import { firstValueFrom }   from 'rxjs'
+import { isActionOf }           from 'typesafe-actions'
+import * as CQRS                from 'wechaty-cqrs'
+import { firstValueFrom }       from 'rxjs'
+import type { AnyEventObject }  from 'xstate'
 
-import { MACHINE_NAME }   from '../constants.js'
-import type { Context }   from '../context.js'
-import type { Event }     from '../event-type.js'
-import * as events        from '../events.js'
+import * as duck  from '../duck/mod.js'
 
-export const execute = (bus$: CQRS.Bus) => async (ctx: Context, e: Event) => {
-  if (!isActionOf(events.execute, e)) {
-    throw new Error(`${MACHINE_NAME} service.execut: unknown event [${e.type}]`)
+export const execute = (bus$: CQRS.Bus) => async (ctx: duck.Context, e: AnyEventObject) => {
+  if (!isActionOf(duck.Event.EXECUTE, e)) {
+    throw new Error(`${duck.ID} service.execut: unknown event [${e.type}]`)
   }
 
   const cq = e.payload.commandQuery
 
   if (ctx.puppetId) {
     if (cq.meta.puppetId !== ctx.puppetId && cq.meta.puppetId !== CQRS.uuid.NIL) {
-      throw new Error(`${MACHINE_NAME} services.execute() puppetId mismatch. (given: "${cq.meta.puppetId}", expected: "${ctx.puppetId}")`)
+      throw new Error(`${duck.ID} services.execute() puppetId mismatch. (given: "${cq.meta.puppetId}", expected: "${ctx.puppetId}")`)
     }
 
     cq.meta.puppetId = ctx.puppetId
 
   } else {  // no puppetId in context
     if (!cq.meta.puppetId || cq.meta.puppetId === CQRS.uuid.NIL) {
-      throw new Error(`${MACHINE_NAME} services.execute() puppetId missing. (no puppetId in context, and given: "${cq.meta.puppetId}")`)
+      throw new Error(`${duck.ID} services.execute() puppetId missing. (no puppetId in context, and given: "${cq.meta.puppetId}")`)
     }
   }
 
