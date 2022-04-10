@@ -7,16 +7,85 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
 import { InjectionToken }   from '../ioc/tokens.js'
-
-import {
-  events,
-  // Event,
-  states,
-  types,
-  intents,
-}             from '../schemas/mod.js'
+import * as duck            from '../duck/mod.js'
 
 import * as actors from './mod.js'
+
+const Type = {
+  IDLE   : duck.Type.IDLE,
+  RESET: duck.Type.RESET,
+  REPORT: duck.Type.REPORT,
+  ROOM: duck.Type.ROOM,
+  ATTENDEES: duck.Type.ATTENDEES,
+  CHAIRS: duck.Type.CHAIRS,
+  PROCESS: duck.Type.PROCESS,
+  MESSAGE: duck.Type.MESSAGE,
+  FEEDBACKS: duck.Type.FEEDBACKS,
+  BACK: duck.Type.BACK,
+  NEXT: duck.Type.NEXT,
+  INTENTS: duck.Type.INTENTS,
+  CONTACTS: duck.Type.CONTACTS,
+} as const
+
+// eslint-disable-next-line no-redeclare
+type Type = typeof Type[keyof typeof Type]
+
+const Event = {
+  START: duck.Event.START,
+  CANCEL: duck.Event.CANCEL,
+  FINISH: duck.Event.FINISH,
+  REPORT: duck.Event.REPORT,
+  IDLE: duck.Event.IDLE,
+  PROCESS: duck.Event.PROCESS,
+  ROOM: duck.Event.ROOM,
+  MESSAGE: duck.Event.MESSAGE,
+  CONTACTS: duck.Event.CONTACTS,
+  BACK: duck.Event.BACK,
+  NEXT: duck.Event.NEXT,
+  NOTICE: duck.Event.NOTICE,
+  ATTENDEES: duck.Event.ATTENDEES,
+  CHAIRS: duck.Event.CHAIRS,
+  RESET: duck.Event.RESET,
+  INTENTS: duck.Event.INTENTS,
+  MINUTE: duck.Event.MINUTE,
+  FEEDBACKS: duck.Event.FEEDBACKS,
+}
+
+// eslint-disable-next-line no-redeclare
+type Event = {
+  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
+}
+
+const State = {
+  initializing: duck.State.initializing,
+  Idle: duck.State.Idle,
+  mentioning: duck.State.mentioning,
+  upgrading: duck.State.upgrading,
+  brainstorming: duck.State.brainstorming,
+  resetting: duck.State.resetting,
+  registering: duck.State.registering,
+  electing: duck.State.electing,
+  elected: duck.State.elected,
+  reporting: duck.State.reporting,
+  processing: duck.State.processing,
+  announcing: duck.State.announcing,
+  presenting: duck.State.presenting,
+  introducing: duck.State.introducing,
+  summarizing:  duck.State.summarizing,
+  pledging:  duck.State.pledging,
+  photoing:  duck.State.photoing,
+  housekeeping:  duck.State.housekeeping,
+  chatting:  duck.State.chatting,
+  retrospecting: duck.State.retrospecting,
+  joining: duck.State.joining,
+  roasting: duck.State.roasting,
+  summarized: duck.State.summarized,
+  finishing: duck.State.finishing,
+  drinking:  duck.State.drinking,
+} as const
+
+// eslint-disable-next-line no-redeclare
+type State = typeof State[keyof typeof State]
 
 interface Context {
   minutes?: string
@@ -42,27 +111,6 @@ function initialContext (): Context {
 const ctxChair      = (ctx: Context) => ctx.chairs[0]
 const ctxViceChairs = (ctx: Context) => ctx.chairs.slice(1)
 
-const Events = {
-  START: events.START,
-  CANCEL: events.CANCEL,
-  FINISH: events.FINISH,
-  REPORT: events.REPORT,
-  IDLE: events.IDLE,
-  PROCESS: events.PROCESS,
-  ROOM: events.ROOM,
-  MESSAGE: events.MESSAGE,
-  CONTACTS: events.CONTACTS,
-  BACK: events.BACK,
-  NEXT: events.NEXT,
-  ATTENDEES: events.ATTENDEES,
-  CHAIRS: events.CHAIRS,
-  RESET: events.RESET,
-  INTENTS: events.INTENTS,
-  FEEDBACKS: events.FEEDBACKS,
-}
-
-type Event = ReturnType<typeof Events[keyof typeof Events]>
-
 const MACHINE_NAME = 'MeetingMachine'
 
 const machineFactory = (
@@ -74,61 +122,61 @@ const machineFactory = (
 ) => {
   const say = (...texts: string[]) =>
     noticeAddress.send(
-      events.NOTICE(
+      Event.NOTICE(
         texts.join('\n'),
       ),
     )
 
-  const chairMessageToIntent = actions.choose<Context, Event['message']>([
+  const chairMessageToIntent = actions.choose<Context, Event['MESSAGE']>([
     {
       cond: (ctx, e) => e.payload.message.talker().id === ctxChair(ctx),
       actions: intentAddress.send((_, e) => e),
     },
   ])
 
-  const nextIntentToNext = actions.choose<Context, Event['intents']>([
+  const nextIntentToNext = actions.choose<Context, Event['INTENTS']>([
     {
-      cond: (_, e) => e.payload.intents.includes(intents.Next),
-      actions: actions.send(events.NEXT()),
+      cond: (_, e) => e.payload.intents.includes(duck.Intent.Next),
+      actions: actions.send(Event.NEXT()),
     },
   ])
 
   const machine = createMachine<
     Context,
-    Event
+    Event[keyof Event]
   >({
     id: MACHINE_NAME,
     context: () => initialContext(),
-    initial: states.initializing,
+    initial: State.initializing,
     on: {
-      [types.RESET]: {
-        target: states.resetting,
+      [Type.RESET]: {
+        target: State.resetting,
       },
     },
     states: {
-      [states.resetting]: {
+      [State.resetting]: {
         entry: [
-          actions.log('states.resetting.entry', MACHINE_NAME),
+          actions.log('State.resetting.entry', MACHINE_NAME),
           actions.assign(_ => initialContext()),
-          actions.send(Events.RESET(MACHINE_NAME), { to: String(registerAddress) }),
-          actions.send(Events.RESET(MACHINE_NAME), { to: String(feedbackAddress) }),
-          actions.send(Events.RESET(MACHINE_NAME), { to: String(brainstormingAddress) }),
+          actions.send(Event.RESET(MACHINE_NAME), { to: String(registerAddress) }),
+          actions.send(Event.RESET(MACHINE_NAME), { to: String(feedbackAddress) }),
+          actions.send(Event.RESET(MACHINE_NAME), { to: String(brainstormingAddress) }),
           noticeAddress.send(actors.notice.Events.NOTICE('【会议系统】重置中...')),
         ],
-        always: states.initializing,
+        always: State.initializing,
       },
-      [states.initializing]: {
-        always: states.idle,
+      [State.initializing]: {
+        always: State.Idle,
       },
-      [states.idle]: {
+      [State.Idle]: {
         entry: [
-          actions.log('states.idle.entry', MACHINE_NAME),
+          actions.log('State.Idle.entry', MACHINE_NAME),
           Mailbox.actions.idle(MACHINE_NAME)('idle'),
         ],
         on: {
-          '*': states.idle, // enforce external transision
-          [types.REPORT]: states.reporting,
-          [types.ROOM]: {
+          '*': State.Idle, // enforce external transision
+          [Type.REPORT]: State.reporting,
+          [Type.ROOM]: {
             actions: [
               noticeAddress.send((_, e) => actors.notice.Events.CONVERSATION(e.payload.room)),
               actions.assign({
@@ -136,7 +184,7 @@ const machineFactory = (
               }),
             ],
           },
-          [types.ATTENDEES]: {
+          [Type.ATTENDEES]: {
             actions: [
               registerAddress.send((_, e) => e),
               actions.assign({
@@ -144,7 +192,7 @@ const machineFactory = (
               }),
             ],
           },
-          [types.CHAIRS]: {
+          [Type.CHAIRS]: {
             actions: [
               actions.assign({
                 chairs: (_, e) => e.payload.contacts,
@@ -153,31 +201,31 @@ const machineFactory = (
           },
         },
       },
-      [states.reporting]: {
+      [State.reporting]: {
         entry: [
           actions.choose<Context, Event>([
             {
               cond: ctx => !!ctx.minutes,
               actions: [
                 Mailbox.actions.reply(ctx =>
-                  events.MINUTE(ctx.minutes!),
+                  Event.MINUTE(ctx.minutes!),
                 ),
-                actions.send(events.IDLE()),
+                actions.send(Event.IDLE()),
               ],
             },
             {
               actions: [
-                actions.send(events.PROCESS()),
+                actions.send(Event.PROCESS()),
               ],
             },
           ]),
         ],
         on: {
-          [types.IDLE]:     states.idle,
-          [types.PROCESS]:  states.processing,
+          [Type.IDLE]:     State.Idle,
+          [Type.PROCESS]:  State.processing,
         },
       },
-      [states.processing]: {
+      [State.processing]: {
       },
       /**
        *
@@ -185,7 +233,7 @@ const machineFactory = (
        *  @link http://bot5.ml/manuals/chair/
        *
       */
-      [states.announcing]: {
+      [State.announcing]: {
         entry: [
           say(
             `
@@ -213,9 +261,9 @@ const machineFactory = (
             'tbw',
           ),
         ],
-        always: states.retrospecting,
+        always: State.retrospecting,
       },
-      [states.retrospecting]: {
+      [State.retrospecting]: {
         entry: [
           say(
             '【会议系统】',
@@ -224,18 +272,18 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: messageToIntents,
           },
-          [types.INTENTS]: {
+          [Type.INTENTS]: {
             actions: [
               nextIntentToNext,
             ],
           },
-          [types.NEXT]: states.joining,
+          [Type.NEXT]: State.joining,
         },
       },
-      [states.joining]: {
+      [State.joining]: {
         entry: [
           say(
             '【会议系统】',
@@ -255,20 +303,20 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: [
               chairMessageToIntent,
             ],
           },
-          [types.INTENTS]: {
+          [Type.INTENTS]: {
             actions: [
               nextIntentToNext,
             ],
           },
-          [types.NEXT]: states.introducing,
+          [Type.NEXT]: State.introducing,
         },
       },
-      [states.introducing]: {
+      [State.introducing]: {
         entry: [
           say(
             '【会议系统】',
@@ -288,22 +336,22 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: [
               chairMessageToIntent,
             ],
           },
-          [types.INTENTS]: {
+          [Type.INTENTS]: {
             actions: [
               nextIntentToNext,
             ],
           },
-          [types.NEXT]: states.registering,
+          [Type.NEXT]: State.registering,
         },
       },
-      [states.registering]: {
+      [State.registering]: {
         entry: [
-          registerAddress.send(events.REPORT()),
+          registerAddress.send(Event.REPORT()),
           say(
             '【会议系统】',
             '当前模块：活动成员注册',
@@ -320,23 +368,23 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: registerAddress.send((_, e) => e),
           },
-          [types.CONTACTS]: {
+          [Type.CONTACTS]: {
             actions: [
-              actions.log((_, e) => `states.registering.on.CONTACTS ${e.payload.contacts.join(',')}`, MACHINE_NAME),
+              actions.log((_, e) => `State.registering.on.CONTACTS ${e.payload.contacts.join(',')}`, MACHINE_NAME),
               actions.assign({
                 attendees: (_, e) => e.payload.contacts,
               }),
-              actions.send(events.NEXT()),
+              actions.send(Event.NEXT()),
             ],
           },
-          [types.BACK]: states.introducing,
-          [types.NEXT]: states.presenting,
+          [Type.BACK]: State.introducing,
+          [Type.NEXT]: State.presenting,
         },
       },
-      [states.presenting]: {
+      [State.presenting]: {
         entry: [
           say(
             '【会议系统】',
@@ -348,21 +396,21 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: [
               chairMessageToIntent,
             ],
           },
-          [types.INTENTS]: {
+          [Type.INTENTS]: {
             actions: [
               nextIntentToNext,
             ],
           },
-          [types.BACK]: states.registering,
-          [types.NEXT]: states.registering,
+          [Type.BACK]: State.registering,
+          [Type.NEXT]: State.registering,
         },
       },
-      [states.upgrading]: {
+      [State.upgrading]: {
         entry: [
           say(
             '【会议系统】',
@@ -372,9 +420,9 @@ const machineFactory = (
             '实习主席 -> 主席：将完成了第一次轮值主席工作的实习主席，加入 Github Team: chairs，并在 team 中授予 maintainer 权限，便于未来升级其他主席。',
           ),
         ],
-        always: states.brainstorming,
+        always: State.brainstorming,
       },
-      [states.brainstorming]: {
+      [State.brainstorming]: {
         entry: [
           say(
             '【会议系统】脑洞拓展：',
@@ -383,7 +431,7 @@ const machineFactory = (
             '分享自己在本次活动上想到的新的好点子(1 MIN per person)',
             '不讨论（讨论留到After Party）',
           ),
-          brainstormingAddress.send(events.REPORT()),
+          brainstormingAddress.send(Event.REPORT()),
         ],
         exit: [
           say(
@@ -393,23 +441,23 @@ const machineFactory = (
           ),
         ],
         on: {
-          [types.MESSAGE]: {
+          [Type.MESSAGE]: {
             actions: brainstormingAddress.send((_, e) => e),
           },
-          [types.FEEDBACKS]: {
+          [Type.FEEDBACKS]: {
             actions: [
-              actions.log((_, e) => `states.brainstorming.on.FEEDBACKS total/${Object.values(e.payload.feedbacks).length}`, MACHINE_NAME),
+              actions.log((_, e) => `State.brainstorming.on.FEEDBACKS total/${Object.values(e.payload.feedbacks).length}`, MACHINE_NAME),
               actions.assign({
                 brainstorms: (_, e) => e.payload.feedbacks,
               }),
-              actions.send(events.NEXT()),
+              actions.send(Event.NEXT()),
             ],
           },
-          [types.BACK]: states.upgrading,
-          [types.NEXT]: states.electing,
+          [Type.BACK]: State.upgrading,
+          [Type.NEXT]: State.electing,
         },
       },
-      [states.electing]: {
+      [State.electing]: {
         entry: [
           say(
             '【会议系统】选举主席：',
@@ -418,17 +466,17 @@ const machineFactory = (
             '将银色计时器移交给下任副主席，并由下任副主席负责妥善保管',
           ),
         ],
-        always: states.upgrading,
+        always: State.upgrading,
       },
-      [states.elected]: {
+      [State.elected]: {
         entry: [
           say(
             '【会议系统】本次活动轮值主席、下次轮值主席、下次轮值副主席合影',
           ),
         ],
-        always: states.roasting,
+        always: State.roasting,
       },
-      [states.roasting]: {
+      [State.roasting]: {
         entry: [
           say(
             '【会议系统】吐槽环节尚未支持，请下次活动再试。（自动跳转到下一步）',
@@ -437,43 +485,43 @@ const machineFactory = (
             '主席负责记录',
           ),
         ],
-        always: states.summarizing,
+        always: State.summarizing,
       },
-      [states.summarizing]: {
+      [State.summarizing]: {
         entry: [
           say(
             '【会议系统】summarizing 轮值主席发言，做活动总结',
           ),
         ],
-        always: states.summarized,
+        always: State.summarized,
       },
-      [states.pledging]: {
+      [State.pledging]: {
         entry: [
           say(
             '【会议系统】轮值副主席述职报告：陈述自己下周作为主席的主要工作内容',
           ),
         ],
-        always: states.photoing,
+        always: State.photoing,
       },
-      [states.photoing]: {
+      [State.photoing]: {
         entry: [
           say(
             '【会议系统】合影',
             'photoing 所有参会人员合影（原图经过脸盲助手发到会员群，并将带名字的照片，发布在活动纪要中）',
           ),
         ],
-        always: states.housekeeping,
+        always: State.housekeeping,
       },
-      [states.housekeeping]: {
+      [State.housekeeping]: {
         entry: [
           say(
             '【会议系统】场地复原',
             '轮值主席组织大家将场地复原（桌椅、白板、设备等）',
           ),
         ],
-        always: states.chatting,
+        always: State.chatting,
       },
-      [states.chatting]: {
+      [State.chatting]: {
         entry: [
           say(
             '【会议系统】活动结束，自由交流',
@@ -481,24 +529,24 @@ const machineFactory = (
             '(Drinking, AA)',
           ),
         ],
-        always: states.drinking,
+        always: State.drinking,
       },
-      [states.drinking]: {
+      [State.drinking]: {
         entry: [
           say(
             '【会议系统】活动结束，自由交流',
           ),
         ],
-        always: states.finishing,
+        always: State.finishing,
       },
-      [states.finishing]: {
+      [State.finishing]: {
         entry: [
           say(
             '【会议系统】After Party结束，请美食主席把账单发到群里大家AA',
             '感谢各位参与BOT Friday Club沙龙活动，大家下次再见！',
           ),
         ],
-        always: states.finishing,
+        always: State.finishing,
       },
     },
   })
@@ -527,5 +575,5 @@ export {
   type Context,
   machineFactory,
   mailboxFactory,
-  Events,
+  Event as Events,
 }

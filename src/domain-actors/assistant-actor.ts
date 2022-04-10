@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 /* eslint-disable sort-keys */
 /**
  * Finite State Machine for BOT Friday Club Meeting
@@ -5,11 +6,7 @@
  */
 import { createMachine, actions }   from 'xstate'
 
-import {
-  events,
-  states,
-  types,
-}                         from '../schemas/mod.js'
+import * as duck          from '../duck/mod.js'
 import * as Mailbox       from 'mailbox'
 import { InjectionToken } from '../ioc/tokens.js'
 
@@ -24,13 +21,34 @@ function initialContext (): Context {
   return JSON.parse(JSON.stringify(context))
 }
 
-const Events = {
-  MESSAGE : events.MESSAGE,
-  REPORT  : events.REPORT,
-  MINUTE  : events.MINUTE,
+const Type = {
+  MESSAGE: duck.Type.MESSAGE,
+  REPORT: duck.Type.REPORT,
+  MINUTE: duck.Type.MINUTE,
+} as const
+
+type Type = typeof Type[keyof typeof Type]
+
+const Event = {
+  MESSAGE : duck.Event.MESSAGE,
+  REPORT  : duck.Event.REPORT,
+  MINUTE  : duck.Event.MINUTE,
 }
 
-type Event = ReturnType<typeof Events[keyof typeof Events]>
+type Event = {
+  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
+}
+
+const State = {
+  initializing: duck.State.initializing,
+  idle: duck.State.Idle,
+  reporting: duck.State.reporting,
+  processing: duck.State.processing,
+  meeting: duck.State.mentioning,
+  finished: duck.State.finished,
+} as const
+
+type State = typeof State[keyof typeof State]
 
 const MACHINE_NAME = 'AssistantMachine'
 
@@ -39,53 +57,53 @@ const machineFactory = (
   noticeAddress  : Mailbox.Address,
 ) => createMachine<
   Context,
-  Event
+  Event[keyof Event]
 >({
   id: MACHINE_NAME,
   context: () => initialContext(),
-  initial: states.initializing,
+  initial: State.initializing,
   states: {
-    [states.initializing]: {
-      always: states.idle,
+    [State.initializing]: {
+      always: State.idle,
     },
-    [states.idle]: {
+    [State.idle]: {
       on: {
-        [types.MESSAGE]: states.processing,
-        [types.REPORT]: states.reporting,
+        [Type.MESSAGE]: State.processing,
+        [Type.REPORT]: State.reporting,
       },
     },
-    [states.reporting]: {
+    [State.reporting]: {
       entry: [
 
       ],
     },
-    [states.processing]: {
+    [State.processing]: {
       on: {
       },
     },
-    [states.meeting]: {
+    [State.meeting]: {
       entry: [
-        meetingAddress.send(events.REPORT()),
+        meetingAddress.send(Event.REPORT()),
       ],
       on: {
-        [types.MESSAGE]: {
+        [Type.MESSAGE]: {
           actions: [
             actions.forwardTo(String(meetingAddress)),
           ],
         },
-        [types.MINUTE]: states.finished,
+        [Type.MINUTE]: State.finished,
       },
     },
-    [states.finished]: {
+    [State.finished]: {
       entry: [
-        actions.log('states.finished.entry', MACHINE_NAME),
+        actions.log('State.finished.entry', MACHINE_NAME),
         noticeAddress.send(ctx =>
           Actors.notice.Events.NOTICE(
             `【Friday系统】会议简报已生成：\nTODO: ${ctx}`,
           ),
         ),
       ],
-      always: states.idle,
+      always: State.idle,
     },
   },
 })
@@ -113,5 +131,5 @@ export {
   type Context,
   machineFactory,
   mailboxFactory,
-  Events,
+  Event as Events,
 }

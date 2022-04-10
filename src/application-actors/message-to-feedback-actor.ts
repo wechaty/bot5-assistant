@@ -7,11 +7,19 @@ import { FileBox }                  from 'file-box'
 import { speechToText }   from '../to-text/mod.js'
 import * as duck          from '../duck/mod.js'
 
+const Type = {
+  FILE_BOX : duck.Type.FILE_BOX,
+  GERROR   : duck.Type.GERROR,
+  TEXT     : duck.Type.TEXT,
+} as const
+// eslint-disable-next-line no-redeclare
+type Type = typeof Type[keyof typeof Type]
+
 const Event = {
   /**
    * @request
    */
-  FILE_BOX: duck.Event.FILE_BOX,
+  MESSAGE: duck.Event.MESSAGE,
   /**
    * @response
    */
@@ -26,15 +34,6 @@ const Event = {
 type Event = {
   [key in keyof typeof Event]: ReturnType<typeof Event[key]>
 }
-
-const Type = {
-  FILE_BOX : duck.Type.FILE_BOX,
-  GERROR   : duck.Type.GERROR,
-  TEXT     : duck.Type.TEXT,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Type = typeof Type[keyof typeof Type]
 
 const State = {
   Idle        : duck.State.Idle,

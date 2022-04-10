@@ -20,11 +20,7 @@ import { inspect }          from '@xstate/inspect/lib/server.js'
 import { WebSocketServer }  from 'ws'
 import type * as Mailbox    from 'mailbox'
 
-import {
-  events,
-  states,
-  types,
-}                             from '../schemas/mod.js'
+import * as duck              from '../duck/mod.js'
 import { audioFixtures }      from '../to-text/mod.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 
@@ -62,7 +58,7 @@ test('Brainstorming actor smoke testing', async t => {
       devTools: true,
     })
 
-    const mailbox = injector.injectFunction(Brainstorming.mailboxFactory) as Mailbox.MailboxImpl
+    const mailbox = injector.injectFunction(Brainstorming.mailboxFactory) as Mailbox.impls.Mailbox
 
     const targetEventList: EventObject[] = []
     const targetStateList: StateValue[] = []
@@ -107,7 +103,7 @@ test('Brainstorming actor smoke testing', async t => {
         return
       }
       proxyInterpreter.send(
-        events.MESSAGE(msg),
+        duck.Event.MESSAGE(msg),
       )
     })
 
@@ -116,8 +112,8 @@ test('Brainstorming actor smoke testing', async t => {
      */
     targetEventList.length = 0
     targetStateList.length = 0
-    proxyInterpreter.send(events.ROOM(wechatyFixture.groupRoom))
-    proxyInterpreter.send(events.REPORT())
+    proxyInterpreter.send(duck.Event.ROOM(wechatyFixture.groupRoom))
+    proxyInterpreter.send(duck.Event.REPORT())
     await sandbox.clock.runToLastAsync()
     t.equal(
       targetContext().room?.id,
@@ -125,9 +121,9 @@ test('Brainstorming actor smoke testing', async t => {
       'should set room to context',
     )
     t.same(targetStateList, [
-      states.idle,
-      states.reporting,
-      states.registering,
+      duck.State.Idle,
+      duck.State.reporting,
+      duck.State.registering,
     ], 'should in state.{idle,reporting,registering}')
 
     /**
@@ -142,7 +138,7 @@ test('Brainstorming actor smoke testing', async t => {
     targetStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
-    t.same(targetStateList, [states.registering], 'should in state.registering if no mention')
+    t.same(targetStateList, [duck.State.registering], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
 
@@ -174,14 +170,14 @@ test('Brainstorming actor smoke testing', async t => {
       'should set contacts to mary, mike, player',
     )
     t.same(targetStateList, [
-      states.registering,
-      states.feedbacking,
-      states.feedbacking,
+      duck.State.registering,
+      duck.State.feedbacking,
+      duck.State.feedbacking,
     ], 'should transition to registering & feedbacking states')
     t.same(targetEventList.map(e => e.type), [
-      types.MESSAGE,
-      types.CONTACTS,
-      types.NOTICE,
+      duck.Type.MESSAGE,
+      duck.Type.CONTACTS,
+      duck.Type.NOTICE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
 
     await sandbox.clock.runAllAsync()
@@ -200,7 +196,7 @@ test('Brainstorming actor smoke testing', async t => {
       'should no feedbacks because it will updated only all members have replied',
     )
     t.same(targetStateList, [
-      states.feedbacking,
+      duck.State.feedbacking,
     ], 'should in state.feedbacking')
 
     targetEventList.length = 0
@@ -222,23 +218,23 @@ test('Brainstorming actor smoke testing', async t => {
       'should set feedbacks because all members have replied',
     )
     t.same(targetStateList, [
-      states.feedbacking,
-      states.feedbacking,
-      states.reporting,
-      states.reporting,
-      states.idle,
+      duck.State.feedbacking,
+      duck.State.feedbacking,
+      duck.State.reporting,
+      duck.State.reporting,
+      duck.State.Idle,
     ], 'should in state.feedbacking,reporting,idle')
     t.same(targetEventList.map(e => e.type), [
-      types.MESSAGE,
-      types.MESSAGE,
-      types.FEEDBACKS,
-      types.NOTICE,
-      types.IDLE,
+      duck.Type.MESSAGE,
+      duck.Type.MESSAGE,
+      duck.Type.FEEDBACKS,
+      duck.Type.NOTICE,
+      duck.Type.IDLE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
     t.same(
-      targetEventList.filter(e => e.type === types.FEEDBACKS),
+      targetEventList.filter(e => e.type === duck.Type.FEEDBACKS),
       [
-        events.FEEDBACKS({
+        duck.Event.FEEDBACKS({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
           [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
           [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,

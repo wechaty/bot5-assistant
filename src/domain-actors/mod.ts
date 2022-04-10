@@ -3,13 +3,14 @@ import type * as Mailbox        from 'mailbox'
 
 import * as wechaty       from '../wechaty-actor/mod.js'
 
+import * as intent        from '../application-actors/intent-actor.js'
+
 import * as assistant     from './assistant-actor.js'
 import * as feedback      from './feedback-actor.js'
-import * as intent        from '../application-actors/intent-actor.js'
 import * as meeting       from './meeting-actor.js'
 import * as register      from './register-actor.js'
 import * as brainstorming from './brainstorming-actor.js'
-import * as notice        from './notice-actor.js'
+import * as notice        from './noticer-actor.js'
 
 interface ActorModel {
   mailboxFactory: (...args: any[]) => Mailbox.Interface

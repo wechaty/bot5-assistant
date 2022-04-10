@@ -25,13 +25,9 @@ import { createFixture }  from 'wechaty-mocker'
 import type { mock }      from 'wechaty-puppet-mock'
 import * as Mailbox       from 'mailbox'
 
-import {
-  events,
-  states,
-  types,
-}                         from '../schemas/mod.js'
+import * as duck          from '../duck/mod.js'
 import { audioFixtures }  from '../to-text/mod.js'
-import { isMailboxType }  from '../mailbox/types.js'
+import { isMailboxType }  from '../mailbox/duck.Type.js'
 
 import * as Feedback      from './feedback-actor.js'
 import { bot5Fixtures }   from './bot5-fixture.js'
@@ -71,7 +67,7 @@ test('feedbackMachine smoke testing', async t => {
     console.info('  - [new transition] ', s.value, s.event.type)
   })
 
-  t.equal(feedbackState(), states.idle, 'should be idle state after initial')
+  t.equal(feedbackState(), duck.State.Idle, 'should be idle state after initial')
   t.same(feedbackContext().contacts, [], 'should be empty attendee list')
 
   for await (const {
@@ -108,21 +104,21 @@ test('feedbackMachine smoke testing', async t => {
     proxyEventList.length = 0
     feedbackEventList.length = 0
     feedbackRef.send(
-      events.CONTACTS(FIXTURES.members),
+      duck.Event.CONTACTS(FIXTURES.members),
     )
     t.same(
       feedbackEventList.map(e => e.type),
       [
-        types.CONTACTS,
+        duck.Type.CONTACTS,
       ],
       'should get CONTACT event',
     )
 
     // console.info(snapshot.history)
     t.same(feedbackEventList.map(e => e.type), [
-      types.CONTACTS,
+      duck.Type.CONTACTS,
     ], 'should get CONTACTS event')
-    t.equal(feedbackState(), states.idle, 'should be state idle')
+    t.equal(feedbackState(), duck.State.Idle, 'should be state idle')
     t.same(feedbackContext().contacts.map(c => c.id), FIXTURES.members.map(c => c.id), 'should get context contacts list')
 
     /**
@@ -130,10 +126,10 @@ test('feedbackMachine smoke testing', async t => {
      */
     feedbackEventList.length = 0
     feedbackRef.send([
-      events.ROOM(wechatyFixtures.groupRoom),
+      duck.Event.ROOM(wechatyFixtures.groupRoom),
     ])
-    t.same(feedbackEventList.map(e => e.type), [types.ROOM], 'should get ROOM event')
-    t.same(feedbackState(), states.idle, 'should be state idle')
+    t.same(feedbackEventList.map(e => e.type), [ duck.Type.ROOM ], 'should get ROOM event')
+    t.same(feedbackState(), duck.State.Idle, 'should be state idle')
 
     /**
      * Send MESSAGE event
@@ -141,11 +137,11 @@ test('feedbackMachine smoke testing', async t => {
     const maryMsg = await listenMessage(() => mockerFixtures.mary.say(FIXTURES.feedbacks.mary).to(mockerFixtures.groupRoom))
     feedbackEventList.length = 0
     feedbackRef.send([
-      events.MESSAGE(maryMsg),
+      duck.Event.MESSAGE(maryMsg),
     ])
     // console.info((snapshot.event.payload as any).message)
-    t.same(feedbackEventList.map(e => e.type), [types.MESSAGE], 'should get MESSAGE event')
-    t.same(feedbackState(), states.parsing, 'should be back to state parsing after received a text message')
+    t.same(feedbackEventList.map(e => e.type), [ duck.Type.MESSAGE ], 'should get MESSAGE event')
+    t.same(feedbackState(), duck.State.parsing, 'should be back to state parsing after received a text message')
 
     await sandbox.clock.runToLastAsync()
     t.same(feedbackContext().feedbacks, {
@@ -157,13 +153,13 @@ test('feedbackMachine smoke testing', async t => {
 
     // console.info(feedbackMsgs)
     feedbackRef.send(
-      events.MESSAGE(mikeMsg),
+      duck.Event.MESSAGE(mikeMsg),
     )
     await sandbox.clock.runToLastAsync()
     // console.info((snapshot.event.payload as any).message)
     t.same(
       feedbackState(),
-      states.idle,
+      duck.State.Idle,
       'should be back to state active.idle after received a text message',
     )
     t.same(feedbackContext().feedbacks, {
@@ -174,7 +170,7 @@ test('feedbackMachine smoke testing', async t => {
 
     const botMsg = await listenMessage(() => mockerFixtures.bot.say(FIXTURES.feedbacks.bot).to(mockerFixtures.groupRoom))
     feedbackRef.send(
-      events.MESSAGE(botMsg),
+      duck.Event.MESSAGE(botMsg),
     )
     await sandbox.clock.runToLastAsync()
     t.same(feedbackContext().feedbacks, {
@@ -188,21 +184,21 @@ test('feedbackMachine smoke testing', async t => {
     // console.info('msg', msg)
     feedbackEventList.length = 0
     feedbackRef.send(
-      events.MESSAGE(playerMsg),
+      duck.Event.MESSAGE(playerMsg),
     )
     t.same(feedbackEventList.map(e => e.type), [
-      types.MESSAGE,
+      duck.Type.MESSAGE,
     ], 'should get MESSAGE event')
-    t.equal(feedbackState(), states.parsing, 'should in state parsing after received audio message')
+    t.equal(feedbackState(), duck.State.parsing, 'should in state parsing after received audio message')
 
     await firstValueFrom(
       from(feedbackRef as any).pipe(
         // tap((x: any) => console.info('tap state:', x.value)),
         // tap((x: any) => console.info('tap event:', x.event.type)),
-        filter((s: any) => s.value === states.idle),
+        filter((s: any) => s.value === duck.State.Idle),
       ),
     )
-    t.equal(feedbackState(), states.idle, 'should in state idle after resolve stt message')
+    t.equal(feedbackState(), duck.State.Idle, 'should in state idle after resolve stt message')
     t.same(feedbackContext().feedbacks, {
       [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary,
       [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot,
@@ -223,7 +219,7 @@ test('feedbackMachine smoke testing', async t => {
         .filter(e => e.type === Mailbox.Types.CHILD_REPLY),
       [
         Mailbox.Events.CHILD_REPLY(
-          events.FEEDBACKS({
+          duck.Event.FEEDBACKS({
             [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary,
             [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot,
             [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike,
@@ -281,7 +277,7 @@ test('feedbackActor smoke testing', async t => {
 
     const listenMessage = awaitMessageWechaty(wechaty.wechaty)
 
-    const [mary, mike] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
+    const [ mary, mike ] = mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
 
     const MEMBER_ID_LIST = [
       mary.id,
@@ -320,8 +316,8 @@ test('feedbackActor smoke testing', async t => {
      */
     eventList.length = 0
     ;[
-      events.CONTACTS(MEMBER_LIST),
-      events.ROOM(MEETING_ROOM),
+      duck.Event.CONTACTS(MEMBER_LIST),
+      duck.Event.ROOM(MEETING_ROOM),
     ].forEach(e => interpreter.send(e))
 
     t.same(
@@ -329,8 +325,8 @@ test('feedbackActor smoke testing', async t => {
         .filter(e => !Mailbox.helpers.isMailboxType(e.type))
         .map(e => e.type),
       [
-        types.CONTACTS,
-        types.ROOM,
+        duck.Type.CONTACTS,
+        duck.Type.ROOM,
       ],
       'should get CONTACTS and ROOM event',
     )
@@ -345,11 +341,11 @@ test('feedbackActor smoke testing', async t => {
       await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot).to(mockMeetingRoom)),
       await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player).to(mockMeetingRoom)),
     ]
-      .map(events.MESSAGE)
+      .map(duck.Event.MESSAGE)
       .forEach(e => interpreter.send(e))
     t.same(
       eventList.map(e => e.type),
-      Array(4).fill(types.MESSAGE),
+      Array(4).fill(duck.Type.MESSAGE),
       'should get 4 message events',
     )
 
@@ -358,7 +354,7 @@ test('feedbackActor smoke testing', async t => {
     await firstValueFrom(
       from(interpreter).pipe(
         // tap(x => console.info('tap event:', x.event.type)),
-        filter(s => s.event.type === types.FEEDBACKS),
+        filter(s => s.event.type === duck.Type.FEEDBACKS),
       ),
     )
     const EXPECTED_FEEDBACKS = {
@@ -370,24 +366,24 @@ test('feedbackActor smoke testing', async t => {
     t.same(
       eventList,
       [
-        events.FEEDBACKS(EXPECTED_FEEDBACKS),
+        duck.Event.FEEDBACKS(EXPECTED_FEEDBACKS),
       ],
       'should get FEEDBACKS event',
     )
 
     const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.mike).to(mockMeetingRoom))
-    interpreter.send(events.MESSAGE(msg))
+    interpreter.send(duck.Event.MESSAGE(msg))
     eventList.length = 0
     await firstValueFrom(
       from(interpreter).pipe(
         tap(x => console.info('tap event:', x.event.type)),
-        filter(s => s.event.type === types.FEEDBACKS),
+        filter(s => s.event.type === duck.Type.FEEDBACKS),
       ),
     )
     t.same(
       eventList,
       [
-        events.FEEDBACKS({
+        duck.Event.FEEDBACKS({
           ...EXPECTED_FEEDBACKS,
           [mary.id] : FIXTURES.feedbacks.mike,
         }),

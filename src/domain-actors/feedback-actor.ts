@@ -23,17 +23,34 @@ const Type = {
 
 type Type = typeof Type[keyof typeof Type]
 
-const Event = {
+const EventConfig = {
   ADMINS   : duck.Event.ADMINS,
   CONTACTS : duck.Event.CONTACTS,
-  FEEDBACK : duck.Event.FEEDBACK,
+  RESET    : duck.Event.RESET,
+} as const
+
+const EventRequest = {
+  MESSAGE  : duck.Event.MESSAGE,
+  REPORT   : duck.Event.REPORT,
+} as const
+
+const EventResponse = {
   FEEDBACKS: duck.Event.FEEDBACKS,
+}
+
+const EventInternal = {
+  FEEDBACK : duck.Event.FEEDBACK,
   GERROR   : duck.Event.GERROR,
   IDLE     : duck.Event.IDLE,
-  MESSAGE  : duck.Event.MESSAGE,
+  NEXT     : duck.Event.NEXT,
   PROCESS  : duck.Event.PROCESS,
-  REPORT   : duck.Event.REPORT,
-  RESET    : duck.Event.RESET,
+} as const
+
+const Event = {
+  ...EventConfig,
+  ...EventRequest,
+  ...EventResponse,
+  ...EventInternal,
 } as const
 
 type Event = {
@@ -41,13 +58,13 @@ type Event = {
 }
 
 const State = {
-  feedbacking  : duck.State.feedbacking,
+  Feedbacking  : duck.State.feedbacking,
   Idle         : duck.State.Idle,
-  initializing : duck.State.initializing,
-  parsing      : duck.State.parsing,
-  processing   : duck.State.processing,
-  registering  : duck.State.registering,
-  reporting    : duck.State.reporting,
+  Initializing : duck.State.initializing,
+  Parsing      : duck.State.parsing,
+  Processing   : duck.State.processing,
+  Registering  : duck.State.registering,
+  Reporting    : duck.State.reporting,
 } as const
 
 type State = typeof State[keyof typeof State]
@@ -55,9 +72,8 @@ type State = typeof State[keyof typeof State]
 type Context = {
   admins    : { [id: string]: PUPPET.payloads.Contact }
   contacts  : { [id: string]: PUPPET.payloads.Contact }
-  message?  : PUPPET.payloads.Message,
   feedbacks : { [id: string]: string }
-  address?: {
+  address: {
     noticing: string,
     registing: string,
   },
@@ -72,22 +88,18 @@ const ctxContactAfterNext   = (ctx: Context) => Object.values(ctx.contacts).filt
   !Object.keys(ctx.feedbacks).includes(c.id),
 )[1]
 
-function initialContext (): Context {
-  const context: Context = {
-    address   : undefined,
-    admins    : {},
+function initialContext (): Pick<Context, 'contacts' | 'feedbacks'> {
+  const context = {
     contacts  : {},
-    message   : undefined,
     feedbacks : {},
   }
-  return JSON.parse(JSON.stringify(context))
+  return JSON.parse(JSON.stringify(context)) as typeof context
 }
 
 const ID = 'FeedbackMachine'
 
 const machine = createMachine<Context, Event[keyof Event]>({
   id: ID,
-  context: initialContext(),
   /**
    * Issue statelyai/xstate#2891:
    *  The context provided to the expr inside a State
@@ -95,9 +107,9 @@ const machine = createMachine<Context, Event[keyof Event]>({
    * @see https://github.com/statelyai/xstate/issues/2891
    */
   preserveActionOrder: true,
-  initial: State.initializing,
+  initial: State.Initializing,
   states: {
-    [State.initializing]: {
+    [State.Initializing]: {
       always: State.Idle,
     },
     [State.Idle]: {
@@ -111,6 +123,17 @@ const machine = createMachine<Context, Event[keyof Event]>({
          *  so that the Mailbox.actions.idle() will be triggered and let the Mailbox knowns it's ready to process next message.
          */
         '*': State.Idle,
+        [Type.RESET]: {
+          actions: [
+            actions.log('State.Idle.on.RESET', ID),
+            actions.assign(ctx => ({
+              ...ctx,
+              ...initialContext(),
+            })),
+          ],
+          target: State.Initializing,
+        },
+
         [Type.CONTACTS]: {
           actions: [
             actions.assign({
@@ -120,37 +143,26 @@ const machine = createMachine<Context, Event[keyof Event]>({
               }), {}),
             }),
           ],
+          target: State.Idle,
         },
+
         [Type.REPORT]: {
           actions: [
-            actions.log('State.idle.on.REPORT', ID),
+            actions.log('State.Idle.on.REPORT', ID),
           ],
-          target: State.processing,
-        },
-        [Type.RESET]: {
-          actions: [
-            actions.log('State.idle.on.RESET', ID),
-            actions.assign(ctx => ({
-              ...ctx,
-              ...initialContext(),
-            })),
-          ],
-          target: State.initializing,
+          target: State.Processing,
         },
         [Type.MESSAGE]: {
           actions: [
-            actions.log('State.idle.on.MESSAGE', ID),
-            actions.assign({
-              message: (_, e) => e.payload.message,
-            }),
+            actions.log('State.Idle.on.MESSAGE', ID),
           ],
-          target: State.parsing,
+          target: State.Parsing,
         },
       },
     },
-    [State.parsing]: {
+    [State.Parsing]: {
       entry: [
-        actions.log('State.parsing.entry', ID),
+        actions.log('State.Parsing.entry', ID),
       ],
       invoke: {
         src: (ctx) => messageToText(ctx.message),
@@ -169,7 +181,7 @@ const machine = createMachine<Context, Event[keyof Event]>({
       on: {
         [Type.FEEDBACK]: {
           actions: actions.log('State.parsing.on.FEEDBACK', ID),
-          target: State.feedbacking,
+          target: State.Feedbacking,
         },
         [Type.GERROR]: {
           actions: [
@@ -180,7 +192,7 @@ const machine = createMachine<Context, Event[keyof Event]>({
         },
       },
     },
-    [State.feedbacking]: {
+    [State.Feedbacking]: {
       entry: [
         actions.log((_, e) => `State.feedbacking.entry <- [FEEDBACK(${(e as ReturnType<typeof Event.FEEDBACK>).payload.contactId}, "${(e as ReturnType<typeof Event.FEEDBACK>).payload.feedback}")`, ID),
         actions.assign({
@@ -227,11 +239,11 @@ const machine = createMachine<Context, Event[keyof Event]>({
         ]),
       ],
       on: {
-        [Type.PROCESS]:  State.processing,
+        [Type.PROCESS]:  State.Processing,
         [Type.IDLE]:     State.Idle,
       },
     },
-    [State.registering]: {
+    [State.Registering]: {
       entry: [
         actions.log('State.registering.entry', ID),
         registerAddress.send(Event.REPORT),
@@ -248,11 +260,11 @@ const machine = createMachine<Context, Event[keyof Event]>({
               contacts: (_, e) => e.payload.contacts,
             }),
           ],
-          target: State.processing,
+          target: State.Processing,
         },
       },
     },
-    [State.processing]: {
+    [State.Processing]: {
       entry: actions.log('State.processing.entry', ID),
       always: [
         {
@@ -260,15 +272,15 @@ const machine = createMachine<Context, Event[keyof Event]>({
           actions:[
             actions.log('State.processing.always -> registering because no contacts', ID),
           ],
-          target: State.registering,
+          target: State.Registering,
         },
         {
-          target: State.reporting,
+          target: State.Reporting,
           actions: actions.log('State.processing.always -> reporting', ID),
         },
       ],
     },
-    [State.reporting]: {
+    [State.Reporting]: {
       entry: [
         actions.log(ctx => `State.reporting.entry feedbacks/contacts(${ctxFeedbackNum(ctx)}/${ctxContactNum(ctx)})`, ID),
         actions.choose<Context, any>([
