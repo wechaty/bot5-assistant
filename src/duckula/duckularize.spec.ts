@@ -43,7 +43,7 @@ test('duckula() smoke testing', async t => {
         'Idle',
         'Busy',
       ] ],
-    initialContext: EXPECTED_DUCKULA.initialContext,
+    initialContext: EXPECTED_DUCKULA.initialContext(),
   })
 
   t.same(duckula, EXPECTED_DUCKULA, 'should get the expected dockula')
@@ -62,7 +62,7 @@ test('duckula() typing smoke testing', async t => {
         'Idle',
         'Busy',
       ] ],
-    initialContext: EXPECTED_DUCKULA.initialContext,
+    initialContext: EXPECTED_DUCKULA.initialContext(),
   })
 
   type Duckula = typeof duckula

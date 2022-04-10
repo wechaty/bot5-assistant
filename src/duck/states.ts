@@ -23,7 +23,7 @@
  *  @see https://limblecmms.com/blog/idle-time/
  */
 export const Idle = 'bot5-assistant/Idle'
-export const busy = 'bot5-assistant/busy'
+export const Busy = 'bot5-assistant/Busy'
 
 export const meeting = 'bot5-assistant/meeting'
 /**

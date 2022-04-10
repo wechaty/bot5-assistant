@@ -51,7 +51,7 @@ const initialContext = (): Context => {
   return JSON.parse(JSON.stringify(context))
 }
 
-const NAME = 'FileBoxToTextMachine'
+const ID = 'FileBoxToTextMachine'
 
 /**
  * @request
@@ -62,12 +62,12 @@ const NAME = 'FileBoxToTextMachine'
  *  failure: events.GERROR
  */
 const machine = createMachine<Context, Event[keyof Event]>({
-  id: NAME,
+  id: ID,
   initial: State.Idle,
   states: {
     [State.Idle]: {
       entry: [
-        Mailbox.actions.idle(NAME)('idle'),
+        Mailbox.actions.idle(ID)('idle'),
       ],
       on: {
         [Type.FILE_BOX]: State.recognizing,
@@ -75,7 +75,7 @@ const machine = createMachine<Context, Event[keyof Event]>({
     },
     [State.recognizing]: {
       entry: [
-        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as Event['FILE_BOX']).payload.fileBox).name}"`, NAME),
+        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as Event['FILE_BOX']).payload.fileBox).name}"`, ID),
       ],
       invoke: {
         src: (_, e) => speechToText(FileBox.fromJSON(
@@ -83,13 +83,13 @@ const machine = createMachine<Context, Event[keyof Event]>({
         )),
         onDone: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, NAME),
+            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, ID),
             actions.send((_, e) => Event.TEXT(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, NAME),
+            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, ID),
             actions.send((_, e) => Event.GERROR(GError.stringify(e.data))),
           ],
         },
@@ -101,7 +101,7 @@ const machine = createMachine<Context, Event[keyof Event]>({
     },
     [State.responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, NAME),
+        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, ID),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: State.Idle,
@@ -110,7 +110,7 @@ const machine = createMachine<Context, Event[keyof Event]>({
 })
 
 export {
-  NAME,
+  ID,
   Type,
   Event,
   State,

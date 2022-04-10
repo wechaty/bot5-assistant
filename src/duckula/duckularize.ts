@@ -5,19 +5,20 @@ import {
   ActionCreatorTypeMetadata,
   getType,
 }                               from 'typesafe-actions'
+import type { Optional }        from 'utility-types'
 
-import type * as duckula    from './duckula.js'
+import type * as duck    from './duckula.js'
 
 interface DuckularizeOptions <
   TID extends string,
 
   TType extends string,
   TEventKey extends string,
-  TEvent extends duckula.DuckulaEvent<TEventKey, TType>,
+  TEvent extends duck.Event<TEventKey, TType>,
 
   TStateKey extends string,
   TStateVal extends string,
-  TState extends duckula.DuckulaState<TStateKey, TStateVal>,
+  TState extends duck.State<TStateKey, TStateVal>,
 
   TContext extends {},
 > {
@@ -30,7 +31,7 @@ interface DuckularizeOptions <
     TState,
     readonly TStateKey[],
   ],
-  readonly initialContext: () => TContext
+  readonly initialContext: TContext
 }
 
 export const duckularize = <
@@ -38,11 +39,11 @@ export const duckularize = <
 
   TType extends string,
   TEventKey extends string,
-  TEvent extends duckula.DuckulaEvent<TEventKey, TType>,
+  TEvent extends duck.Event<TEventKey, TType>,
 
   TStateKey extends string,
   TStateVal extends string,
-  TState extends duckula.DuckulaState<TStateKey, TStateVal>,
+  TState extends duck.State<TStateKey, TStateVal>,
 
   TContext extends {},
 >(
@@ -91,11 +92,26 @@ export const duckularize = <
     {},
   ) as Type
 
-  return ({
+  /**
+   * Huan(202204): do we need JSON parse/stringify
+   *  to make sure the initial context is always unmutable?
+   */
+  const initialContext: () => typeof options.initialContext = () =>
+    JSON.parse(
+      JSON.stringify(
+        options.initialContext,
+      ),
+    )
+
+  type Duckula = duck.Duckula<TID, Event, State, Type, TContext>
+
+  const duckula: Optional<Duckula, 'machine'> = ({
     ID: options.id,
     Event,
     State,
     Type,
-    initialContext: options.initialContext,
+    initialContext,
   })
+
+  return duckula
 }

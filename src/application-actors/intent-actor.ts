@@ -6,26 +6,6 @@ import { isActionOf }               from 'typesafe-actions'
 import * as duck            from '../duck/mod.js'
 import { textToIntents }    from '../services/text-to-intents.js'
 
-interface Context {}
-
-function initialContext (): Context {
-  const context: Context = {}
-  return JSON.parse(JSON.stringify(context))
-}
-
-const State = {
-  Idle          : duck.State.Idle,
-  Recognizing   : duck.State.recognizing,
-  Understanding : duck.State.understanding,
-  Responding: duck.State.responding,
-} as const
-
-const Type = {
-  INTENTS: duck.Type.INTENTS,
-  IDLE   : duck.Type.IDLE,
-  TEXT   : duck.Type.TEXT,
-} as const
-
 const EventRequest = {
   TEXT: duck.Event.TEXT,
 } as const
@@ -55,6 +35,26 @@ const Event = {
 type Event = {
   [key in keyof typeof Event]: ReturnType<typeof Event[key]>
 }
+
+const State = {
+  Idle          : duck.State.Idle,
+  Recognizing   : duck.State.recognizing,
+  Understanding : duck.State.understanding,
+  Responding: duck.State.responding,
+} as const
+
+interface Context {}
+
+function initialContext (): Context {
+  const context: Context = {}
+  return JSON.parse(JSON.stringify(context))
+}
+
+const Type = {
+  INTENTS: duck.Type.INTENTS,
+  IDLE   : duck.Type.IDLE,
+  TEXT   : duck.Type.TEXT,
+} as const
 
 const ID = 'IntentMachine'
 
