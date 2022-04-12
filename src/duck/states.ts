@@ -33,7 +33,7 @@ export const meeting = 'bot5-assistant/meeting'
  *    - RESET: resetting -> initializing
  *    - *: idle (make sure it's an external transition)
  */
-export const initializing  = 'bot5-assistant/initializing'
+export const Initializing  = 'bot5-assistant/initializing'
 
 export const unknown = 'bot5-assistant/unknown'
 
@@ -65,13 +65,13 @@ export const canceled = 'bot5-assistant/canceled'
  *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
  */
 export const errored  = 'bot5-assistant/errored'
-export const erroring = 'bot5-assistant/erroring'
+export const Erroring = 'bot5-assistant/Erroring'
 export const failed   = 'bot5-assistant/failed'
 
 export const starting  = 'bot5-assistant/starting'
 export const stopping  = 'bot5-assistant/stopping'
 
-export const resetting = 'bot5-assistant/resetting'
+export const Resetting = 'bot5-assistant/Resetting'
 
 export const active = 'bot5-assistant/active'
 export const inactive = 'bot5-assistant/inactive'
@@ -82,21 +82,21 @@ export const recognized = 'bot5-assistant/recognized'
 export const processing = 'bot5-assistant/processing'
 export const delivering = 'bot5-assistant/delivering'
 
-export const mentioning = 'bot5-assistant/mentioning'
+export const Mentioning = 'bot5-assistant/Mentioning'
 export const registering = 'bot5-assistant/registering'
 export const registered = 'bot5-assistant/registered'
 
 export const saying = 'bot5-assistant/saying'
 export const updating = 'bot5-assistant/updating'
-export const confirming = 'bot5-assistant/confirming'
+export const Confirming = 'bot5-assistant/Confirming'
 export const understanding = 'bot5-assistant/understanding'
 
 export const introducing = 'bot5-assistant/introducing'
 export const selecting = 'bot5-assistant/selecting'
 export const scheduling = 'bot5-assistant/scheduling'
 export const noticing = 'bot5-assistant/noticing'
-export const reporting = 'bot5-assistant/reporting'
-export const parsing = 'bot5-assistant/parsing'
+export const Reporting = 'bot5-assistant/Reporting'
+export const Parsing = 'bot5-assistant/Parsing'
 export const loading = 'bot5-assistant/loading'
 
 /**
@@ -128,3 +128,4 @@ export const drinking     = 'bot5-assistant/drinking'
 export const pledging     = 'bot5-assistant/pledging'
 export const announcing   = 'bot5-assistant/announcing'
 export const responding   = 'bot5-assistant/responding'
+export const Introducing = 'bot5-assistant/Introducing'

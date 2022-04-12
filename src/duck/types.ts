@@ -65,7 +65,7 @@ export const WECHATY = 'bot5-assistant/WECHATY'
 export const DELIVER = 'bot5-assistant/DELIVER'
 export const INTENTS = 'bot5-assistant/INTENTS'
 
-export const INTRODUCE = 'bot5-assistant/INTROCUDUCE'
+export const INTRODUCE = 'bot5-assistant/INTRODUCE'
 export const REPORT = 'bot5-assistant/REPORT'
 
 export const IDLE = 'bot5-assistant/IDLE'

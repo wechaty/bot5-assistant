@@ -1,1 +1,1 @@
-export const ID = 'wechaty-actor'
+export const ID = 'WechatyActor'
