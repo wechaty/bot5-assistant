@@ -8,38 +8,7 @@ import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import * as duck    from '../duck/mod.js'
-
-const Type = {
-  CONVERSATION         : duck.Type.CONVERSATION,
-  IDLE                 : duck.Type.IDLE,
-  NOTICE               : duck.Type.NOTICE,
-  SEND_MESSAGE_COMMAND : CQRS.duck.types.SEND_MESSAGE_COMMAND,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Type = typeof Type[keyof typeof Type]
-
-const Event = {
-  CONVERSATION         : duck.Event.CONVERSATION,
-  IDLE                 : duck.Event.IDLE,
-  NOTICE               : duck.Event.NOTICE,
-  SEND_MESSAGE_COMMAND : CQRS.duck.actions.sendMessageCommand,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Event = {
-  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
-}
-
-const State = {
-  Idle         : duck.State.Idle,
-  initializing : duck.State.initializing,
-  noticing     : duck.State.noticing,
-  responding   : duck.State.responding,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type State = typeof State[keyof typeof State]
+import { duckularize } from '../duckula/duckularize.js'
 
 interface Context {
   conversationId?: string,
@@ -48,47 +17,56 @@ interface Context {
   },
 }
 
-function initialContext (): Context {
-  const context: Context = {
-    conversationId: undefined,
-    address: undefined,
-  }
-  return JSON.parse(JSON.stringify(context))
-}
+const duckula = duckularize({
+  id: 'NoticingMachine',
+  events: [ { ...duck.Event, ...CQRS.commands }, [
+    'CONVERSATION',
+    'IDLE',
+    'NOTICE',
+    'SendMessageCommand',
+  ] ],
+  states: [ duck.State, [
+    'Idle',
+    'initializing',
+    'noticing',
+    'responding',
+  ] ],
+  initialContext: ({}) as Context,
+})
 
-const ID = 'NoticingMachine'
-
-const machine = createMachine<Context, Event[keyof Event]>({
-  id: ID,
-  context: () => initialContext(),
-  initial: State.initializing,
+const machine = createMachine<
+  Context,
+  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+>({
+  id: duckula.ID,
+  initial: duckula.State.initializing,
   states: {
-    [State.initializing]: {
-      always: State.Idle,
+    [duckula.State.initializing]: {
+      always: duckula.State.Idle,
     },
-    [State.Idle]: {
+    [duckula.State.Idle]: {
       on: {
         '*': {
           // actions: actions.forwardTo(String(wechatyAddress)),
-          target: State.Idle,  // enforce external transition
+          target: duckula.State.Idle,  // enforce external transition
         },
-        [Type.NOTICE]: State.noticing,
-        [Type.CONVERSATION]: {
+        [duckula.Type.NOTICE]: duckula.State.noticing,
+        [duckula.Type.CONVERSATION]: {
           actions: [
-            actions.log((_, e) => `State.Idle.on.CONVERSATION ${e.payload.conversationId}`, ID),
+            actions.log((_, e) => `duckula.State.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.ID),
             actions.assign({
               conversationId: (_, e) => e.payload.conversationId,
             }),
           ],
-          target: State.Idle,  // enforce external transition
+          target: duckula.State.Idle,  // enforce external transition
         },
       },
     },
-    [State.noticing]: {
+    [duckula.State.noticing]: {
       entry: [
-        actions.log('State.noticing.entry', ID),
+        actions.log('duckula.State.noticing.entry', duckula.ID),
         actions.send(
-          (ctx, e) => isActionOf(Event.NOTICE, e) && ctx.conversationId
+          (ctx, e) => isActionOf(duckula.Event.NOTICE, e) && ctx.conversationId
             ? CQRS.commands.SendMessageCommand(
               CQRS.uuid.NIL,
               ctx.conversationId,
@@ -96,32 +74,25 @@ const machine = createMachine<Context, Event[keyof Event]>({
                 `【信使系统】${e.payload.notice}`,
               ),
             )
-            : Event.IDLE('State.noticing.entry not NOTICE'),
+            : duckula.Event.IDLE('duckula.State.noticing.entry not NOTICE'),
         ),
       ],
       on: {
-        [Type.IDLE]: State.Idle,
-        [Type.SEND_MESSAGE_COMMAND]: State.responding,
+        [duckula.Type.IDLE]: duckula.State.Idle,
+        [duckula.Type.SendMessageCommand]: duckula.State.responding,
       },
     },
-    [State.responding]: {
+    [duckula.State.responding]: {
       entry: [
         actions.send(
           (_, e) => e,
           { to: ctx => ctx.address!.wechaty },
         ),
       ],
-      always: State.Idle,
+      always: duckula.State.Idle,
     },
   },
 })
 
-export {
-  ID,
-  Type,
-  Event,
-  State,
-  machine,
-  type Context,
-  initialContext,
-}
+duckula.machine = machine
+export default duckula as Required<typeof duckula>
