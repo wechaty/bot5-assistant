@@ -13,7 +13,7 @@ import * as Mailbox     from 'mailbox'
 
 import * as WechatyActor    from '../wechaty-actor/mod.js'
 
-import * as NoticingActor   from './noticing-actor.js'
+import NoticingActor   from './noticing-actor.js'
 import { bot5Fixtures }     from './bot5-fixture.js'
 
 test('noticeActor smoke testing', async t => {
@@ -63,7 +63,7 @@ test('noticeActor smoke testing', async t => {
       .start()
 
     const noticeRef = proxyInterpreter.children.get(CHILD_ID) as Interpreter<any>
-    const noticeContext = () => noticeRef.getSnapshot().context as NoticingActor.Context
+    const noticeContext = () => noticeRef.getSnapshot().context as ReturnType<typeof NoticingActor.initialContext>
 
     const noticeEventList: AnyEventObject[] = []
     noticeRef.subscribe(s => noticeEventList.push(s.event))

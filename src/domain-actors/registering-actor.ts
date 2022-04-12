@@ -4,96 +4,26 @@ import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
-import * as WechatyActor    from '../wechaty-actor/mod.js'
-import * as duck            from '../duck/mod.js'
+import duckula from './registering-duckula.js'
 
-// import * as actors  from './mod.js'
+const ctxRoomId     = (ctx: ReturnType<typeof duckula.initialContext>) => ctx.message!.roomId!
+const ctxContactNum = (ctx: ReturnType<typeof duckula.initialContext>) => Object.keys(ctx.contacts).length
 
-const Type = {
-  CONTACTS  : duck.Type.CONTACTS,
-  GERROR    : duck.Type.GERROR,
-  IDLE      : duck.Type.IDLE,
-  INTRODUCE : duck.Type.INTRODUCE,
-  MENTION   : duck.Type.MENTION,
-  MESSAGE   : duck.Type.MESSAGE,
-  NEXT      : duck.Type.NEXT,
-  REPORT    : duck.Type.REPORT,
-  RESET     : duck.Type.RESET,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Type = typeof Type[keyof typeof Type]
-
-const Event = {
-  CONTACTS   : duck.Event.CONTACTS,
-  GERROR     : duck.Event.GERROR,
-  IDLE       : duck.Event.IDLE,
-  INTRODUCE  : duck.Event.INTRODUCE,
-  MENTION    : duck.Event.MENTION,
-  MESSAGE    : duck.Event.MESSAGE,
-  NEXT       : duck.Event.NEXT,
-  REPORT     : duck.Event.REPORT,
-  RESET      : duck.Event.RESET,
-  BATCH_RESPONSE: WechatyActor.Event.BATCH_RESPONSE,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Event = {
-  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
-}
-
-const State = {
-  Confirming   : duck.State.confirming,
-  Erroring     : duck.State.erroring,
-  Idle         : duck.State.Idle,
-  Initializing : duck.State.initializing,
-  Mentioning   : duck.State.mentioning,
-  Parsing      : duck.State.parsing,
-  Reporting    : duck.State.reporting,
-  Resetting    : duck.State.resetting,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type State = typeof State[keyof typeof State]
-
-interface Context {
-  message?: PUPPET.payloads.MessageRoom
-  contacts: { [id: string]: PUPPET.payloads.Contact },
-  chairs:   { [id: string]: PUPPET.payloads.Contact },
-  gerror?:  string
-  address?: {
-    wechaty: string,
-  },
-}
-
-function initialContext (): Context {
-  const context: Context = {
-    message  : undefined,
-    contacts : {},
-    chairs   : {},
-    gerror   : undefined,
-    address : undefined,
-  }
-  return JSON.parse(JSON.stringify(context))
-}
-
-const ctxRoomId     = (ctx: Context) => ctx.message!.roomId!
-const ctxContactNum = (ctx: Context) => Object.keys(ctx.contacts).length
-
-const ID = 'RegisterMachine'
-
-const machine = createMachine<Context, Event[keyof Event]>({
-  id: ID,
-  initial: State.Initializing,
+const machine = createMachine<
+  ReturnType<typeof duckula.initialContext>,
+  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+>({
+  id: duckula.ID,
+  initial: duckula.State.Initializing,
   preserveActionOrder: true,
   on: {
     /**
      * Huan(202203): FIXME
-     *  process events outside of the `state.idle` state might block the MailBox
+     *  process events outside of the `duckula.state.idle` state might block the MailBox
      *  because it does not call `Mailbox.actions.idle(...)`?
      */
-    [Type.RESET]: State.Resetting,
-    [Type.INTRODUCE]: {
+    [duckula.Type.RESET]: duckula.State.Resetting,
+    [duckula.Type.INTRODUCE]:{
       actions: [
         actions.send(
           ctx => CQRS.commands.SendMessageCommand(
@@ -108,76 +38,74 @@ const machine = createMachine<Context, Event[keyof Event]>({
               Object.keys(ctx.chairs),
             ),
           ),
-          {
-            to: ctx => ctx.address!.wechaty,
-          },
+          { to: ctx => ctx.address!.wechaty },
         ),
       ],
     },
   },
   // preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
   states: {
-    [State.Initializing]: {
-      always: State.Idle,
+    [duckula.State.Initializing]: {
+      always: duckula.State.Idle,
     },
-    [State.Idle]: {
+    [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(ID)('idle'),
+        Mailbox.actions.idle(duckula.ID)('idle'),
       ],
       on: {
-        '*': State.Idle,
-        [Type.MESSAGE]: {
+        '*': duckula.State.Idle,
+        [duckula.Type.MESSAGE]: {
           actions: [
-            actions.log('states.idle.on.MESSAGE', ID),
+            actions.log('states.idle.on.MESSAGE', duckula.ID),
             actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom }),
           ],
-          target: State.Parsing,
+          target: duckula.State.Parsing,
         },
-        [Type.REPORT]: {
+        [duckula.Type.REPORT]: {
           actions: [
-            actions.log('states.idle.on.REPORT', ID),
+            actions.log('states.idle.on.REPORT', duckula.ID),
           ],
-          target: State.Reporting,
+          target: duckula.State.Reporting,
         },
       },
     },
-    [State.Reporting]: {
+    [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, ID),
-        actions.choose<Context, any>([
+        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.ID),
+        actions.choose<ReturnType<typeof duckula.initialContext>, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
-              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', ID),
-              Mailbox.actions.reply(ctx => Event.CONTACTS(Object.values(ctx.contacts))),
+              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', duckula.ID),
+              Mailbox.actions.reply(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
             actions: [
-              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', ID),
-              actions.send(Event.INTRODUCE()),
+              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', duckula.ID),
+              actions.send(duckula.Event.INTRODUCE()),
             ],
           },
         ]),
       ],
-      always: State.Idle,
+      always: duckula.State.Idle,
     },
-    [State.Resetting]: {
+    [duckula.State.Resetting]: {
       entry: [
-        actions.log('states.resetting.entry', ID),
-        actions.assign(_ => initialContext()),
+        actions.log('states.resetting.entry', duckula.ID),
+        actions.assign(_ => duckula.initialContext()),
       ],
-      always: State.Initializing,
+      always: duckula.State.Initializing,
     },
-    [State.Parsing]: {
+    [duckula.State.Parsing]: {
       entry: [
-        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as Event['MESSAGE']).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, ID),
+        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, duckula.ID),
         actions.send(
           (_, e) => {
-            const messagePayload = (e as Event['MESSAGE']).payload.message
+            const messagePayload = (e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message
             const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
 
-            return WechatyActor.Event.BATCH(
+            return duckula.Event.BATCH(
               mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
                 CQRS.uuid.NIL,
                 id,
@@ -190,39 +118,39 @@ const machine = createMachine<Context, Event[keyof Event]>({
         ),
       ],
       on: {
-        [WechatyActor.Type.BATCH_RESPONSE]: {
+        [duckula.Type.BATCH_RESPONSE]: {
           actions: [
-            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, ID),
-            actions.send((_, e) => Event.MENTION(e.payload.responseList
+            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, duckula.ID),
+            actions.send((_, e) => duckula.Event.MENTION(e.payload.responseList
               .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
               .map(response => response.payload.contact)
               .filter(Boolean) as PUPPET.payloads.Contact[],
             )),
           ],
         },
-        [Type.GERROR]: State.Erroring,
-        [Type.MENTION]: State.Mentioning,
+        [duckula.Type.GERROR]: duckula.State.Erroring,
+        [duckula.Type.MENTION]: duckula.State.Mentioning,
       },
     },
-    [State.Mentioning]: {
+    [duckula.State.Mentioning]: {
       entry: [
-        actions.log((_, e) => `states.mentioning.entry ${(e as Event['MENTION']).payload.contacts.map(c => c.name).join(',')}`, ID),
-        actions.assign<Context, Event['MENTION']>({
+        actions.log((_, e) => `states.mentioning.entry ${(e as ReturnType<typeof duckula.Event['MENTION']>).payload.contacts.map(c => c.name).join(',')}`, duckula.ID),
+        actions.assign<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MENTION']>>({
           contacts: (ctx, e) => ({
             ...ctx.contacts,
             ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
           }),
         }),
-        actions.send(Event.NEXT()),
+        actions.send(duckula.Event.NEXT()),
       ],
       on: {
-        [Type.NEXT]: State.Confirming,
+        [duckula.Type.NEXT]: duckula.State.Confirming,
       },
     },
-    [State.Confirming]: {
+    [duckula.State.Confirming]: {
       entry: [
-        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, ID),
-        actions.choose<Context, any>([
+        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, duckula.ID),
+        actions.choose<ReturnType<typeof duckula.initialContext>, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
@@ -238,43 +166,34 @@ const machine = createMachine<Context, Event[keyof Event]>({
                     Object.values(ctx.contacts).map(c => c.id),
                   ),
                 ),
-                {
-                  to: ctx => ctx.address!.wechaty,
-                },
+                { to: ctx => ctx.address!.wechaty },
               ),
-              actions.send(Event.REPORT()),
+              actions.send(duckula.Event.REPORT()),
             ],
           },
           {
             actions: [
-              actions.send(Event.INTRODUCE()),
-              actions.send(Event.IDLE()),
+              actions.send(duckula.Event.INTRODUCE()),
+              actions.send(duckula.Event.IDLE()),
             ],
           },
         ]),
       ],
       on: {
-        [Type.REPORT]: State.Reporting,
-        [Type.IDLE]:   State.Idle,
+        [duckula.Type.REPORT]: duckula.State.Reporting,
+        [duckula.Type.IDLE]:   duckula.State.Idle,
       },
       // TODO: ask 'do you need to edit the list?' with 60 seconds timeout with default N
     },
-    [State.Erroring]: {
+    [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as Event['GERROR']).payload.gerror})]`, ID),
+        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as ReturnType<typeof duckula.Event['GERROR']>).payload.gerror})]`, duckula.ID),
         Mailbox.actions.reply((_, e) => e),
       ],
-      always: State.Idle,
+      always: duckula.State.Idle,
     },
   },
 })
 
-export {
-  ID,
-  Type,
-  State,
-  Event,
-  machine,
-  type Context,
-  initialContext,
-}
+duckula.machine = machine
+export default duckula as Required<typeof duckula>
