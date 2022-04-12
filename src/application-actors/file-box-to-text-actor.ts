@@ -6,115 +6,79 @@ import { FileBox }                  from 'file-box'
 
 import { speechToText }   from '../to-text/mod.js'
 import * as duck          from '../duck/mod.js'
+import { duckularize }    from '../duckula/duckularize.js'
 
-const Event = {
-  /**
-   * @request
-   */
-  FILE_BOX: duck.Event.FILE_BOX,
-  /**
-   * @response
-   */
-  TEXT: duck.Event.TEXT,
-  /**
-   * @internal
-   */
-  GERROR: duck.Event.GERROR,
-} as const
+const duckula = duckularize({
+  id:  'FileBoxToTextMachine',
+  events: [ duck.Event, [
+    /**
+     * @request
+     */
+    'FILE_BOX',
+    /**
+     * @response
+     */
+    'TEXT',
+    'GERROR',
+  ] ],
+  states: [ duck.State, [
+    'Idle',
+    'recognizing',
+    'responding',
+  ] ],
+  initialContext: ({}),
+})
 
-// eslint-disable-next-line no-redeclare
-type Event = {
-  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
-}
-
-const Type = {
-  FILE_BOX : duck.Type.FILE_BOX,
-  GERROR   : duck.Type.GERROR,
-  TEXT     : duck.Type.TEXT,
-} as const
-
-// eslint-disable-next-line no-redeclare
-type Type = typeof Type[keyof typeof Type]
-
-const State = {
-  Idle        : duck.State.Idle,
-  recognizing : duck.State.recognizing,
-  responding  : duck.State.responding,
-} as const
-// eslint-disable-next-line no-redeclare
-type State = typeof State[keyof typeof State]
-
-interface Context {}
-
-const initialContext = (): Context => {
-  const context: Context = {}
-  return JSON.parse(JSON.stringify(context))
-}
-
-const ID = 'FileBoxToTextMachine'
-
-/**
- * @request
- *  - events.FILE_BOX
- *
- * @response
- *  success: events.TEXT
- *  failure: events.GERROR
- */
-const machine = createMachine<Context, Event[keyof Event]>({
-  id: ID,
-  initial: State.Idle,
+const machine = createMachine<
+  ReturnType<typeof duckula.initialContext>,
+  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+>({
+  id: duckula.ID,
+  initial: duckula.State.Idle,
   states: {
-    [State.Idle]: {
+    [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(ID)('idle'),
+        Mailbox.actions.idle(duckula.ID)('idle'),
       ],
       on: {
-        [Type.FILE_BOX]: State.recognizing,
+        [duckula.Type.FILE_BOX]: duckula.State.recognizing,
       },
     },
-    [State.recognizing]: {
+    [duckula.State.recognizing]: {
       entry: [
-        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as Event['FILE_BOX']).payload.fileBox).name}"`, ID),
+        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.ID),
       ],
       invoke: {
         src: (_, e) => speechToText(FileBox.fromJSON(
-          (e as Event['FILE_BOX']).payload.fileBox,
+          (e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox,
         )),
         onDone: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, ID),
-            actions.send((_, e) => Event.TEXT(e.data)),
+            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, duckula.ID),
+            actions.send((_, e) => duckula.Event.TEXT(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, ID),
-            actions.send((_, e) => Event.GERROR(GError.stringify(e.data))),
+            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, duckula.ID),
+            actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
           ],
         },
       },
       on: {
-        [Type.TEXT]: State.responding,
-        [Type.GERROR]: State.responding,
+        [duckula.Type.TEXT]: duckula.State.responding,
+        [duckula.Type.GERROR]: duckula.State.responding,
       },
     },
-    [State.responding]: {
+    [duckula.State.responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, ID),
+        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, duckula.ID),
         Mailbox.actions.reply((_, e) => e),
       ],
-      always: State.Idle,
+      always: duckula.State.Idle,
     },
   },
 })
 
-export {
-  ID,
-  Type,
-  Event,
-  State,
-  machine,
-  type Context,
-  initialContext,
-}
+duckula.machine = machine
+export default duckula as Required<typeof duckula>

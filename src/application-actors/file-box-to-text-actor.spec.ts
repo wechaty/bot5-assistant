@@ -8,7 +8,7 @@ import { fileURLToPath }                from 'url'
 import * as Mailbox                     from 'mailbox'
 import { isActionOf }                   from 'typesafe-actions'
 
-import * as actor   from './file-box-to-text-actor.js'
+import actor    from './file-box-to-text-actor.js'
 
 test('machine initialState', async t => {
   t.equal(actor.machine.initialState.value, actor.State.Idle, 'should be initial state idle')
