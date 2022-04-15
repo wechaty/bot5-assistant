@@ -8,7 +8,7 @@ import * as duck from '../duck/mod.js'
 
 import { duckularize } from './duckularize.js'
 
-const EXPECTED_DUCKULA = {
+const FIXTURE = {
 
   ID: 'duckula-id',
 
@@ -30,10 +30,10 @@ const EXPECTED_DUCKULA = {
   initialContext: () => ({ n: 42 }),
 } as const
 
-test('duckula() smoke testing', async t => {
+test('duckularize() smoke testing', async t => {
 
   const duckula = duckularize({
-    id: EXPECTED_DUCKULA.ID,
+    id: FIXTURE.ID,
     events: [ duck.Event, [
       'IDLE',
       'NEXT',
@@ -43,16 +43,20 @@ test('duckula() smoke testing', async t => {
         'Idle',
         'Busy',
       ] ],
-    initialContext: EXPECTED_DUCKULA.initialContext(),
+    initialContext: FIXTURE.initialContext(),
   })
 
-  t.same(duckula, EXPECTED_DUCKULA, 'should get the expected dockula')
+  t.same(
+    JSON.parse(JSON.stringify(duckula)),
+    JSON.parse(JSON.stringify(FIXTURE)),
+    'should get the expected dockula',
+  )
 })
 
-test('duckula() typing smoke testing', async t => {
+test('duckularize() typing smoke testing', async t => {
 
   const duckula = duckularize({
-    id: EXPECTED_DUCKULA.ID,
+    id: FIXTURE.ID,
     events: [ duck.Event, [
       'NEXT',
       'IDLE',
@@ -62,12 +66,59 @@ test('duckula() typing smoke testing', async t => {
         'Idle',
         'Busy',
       ] ],
-    initialContext: EXPECTED_DUCKULA.initialContext(),
+    initialContext: FIXTURE.initialContext(),
   })
 
   type Duckula = typeof duckula
-  type Expected = typeof EXPECTED_DUCKULA
+  type Expected = typeof FIXTURE
 
   const typingTest: AssertEqual<Duckula, Expected> = true
   t.ok(typingTest, 'should match typing')
+})
+
+test('duckularize() value for events & states with object param (without array selector)', async t => {
+
+  const duckula = duckularize({
+    id: FIXTURE.ID,
+    events: FIXTURE.Event,
+    states: FIXTURE.State,
+    initialContext: FIXTURE.initialContext(),
+  })
+
+  const EXPECTED_DUCKULA = {
+    ...FIXTURE,
+    Event: FIXTURE.Event,
+    State: FIXTURE.State,
+    Type: FIXTURE.Type,
+  }
+
+  t.same(
+    JSON.parse(JSON.stringify(duckula)),
+    JSON.parse(JSON.stringify(EXPECTED_DUCKULA)),
+    'should get the expected dockula',
+  )
+})
+
+test('duckularize() typing for events & states with object param (without array selector)', async t => {
+
+  const duckula = duckularize({
+    id: FIXTURE.ID,
+    events: FIXTURE.Event,
+    states: FIXTURE.State,
+    initialContext: FIXTURE.initialContext(),
+  })
+
+  const EXPECTED_DUCKULA = {
+    ...FIXTURE,
+    Event: FIXTURE.Event,
+    State: FIXTURE.State,
+    Type: FIXTURE.Type,
+  }
+
+  type Duckula  = typeof duckula.Event
+  type Expected = typeof EXPECTED_DUCKULA.Event
+
+  const typingTest: AssertEqual<Duckula, Expected> = true
+  t.ok(typingTest, 'should match typing')
+
 })

@@ -7,87 +7,41 @@ import {
 }                               from 'typesafe-actions'
 import type { Optional }        from 'utility-types'
 
-import type * as duck    from './duckula.js'
+import { selector }                   from './selector.js'
+import type { DuckularizeOptions }    from './duckularize-options.js'
+import type * as D                    from './duckula.js'
 
-interface DuckularizeOptions <
+export function duckularize <
   TID extends string,
 
   TType extends string,
   TEventKey extends string,
-  TEvent extends duck.Event<TEventKey, TType>,
+  TEvent extends D.Event<TEventKey, TType>,
 
   TStateKey extends string,
   TStateVal extends string,
-  TState extends duck.State<TStateKey, TStateVal>,
+  TState extends D.State<TStateKey, TStateVal>,
 
   TContext extends {},
-> {
-  readonly id: TID
-  readonly events: [
-    TEvent,
-    readonly TEventKey[],
-  ]
-  readonly states: [
-    TState,
-    readonly TStateKey[],
-  ],
-  readonly initialContext: TContext
-}
-
-export const duckularize = <
-  TID extends string,
-
-  TType extends string,
-  TEventKey extends string,
-  TEvent extends duck.Event<TEventKey, TType>,
-
-  TStateKey extends string,
-  TStateVal extends string,
-  TState extends duck.State<TStateKey, TStateVal>,
-
-  TContext extends {},
->(
-    options: DuckularizeOptions<TID, TType, TEventKey, TEvent, TStateKey, TStateVal, TState, TContext>,
-  ) => {
+> (
+  options: DuckularizeOptions<TID, TType, TEventKey, TEvent, TStateKey, TStateVal, TState, TContext>,
+) {
 
   /**
-   * State
+   * Huan(202204) make TypeScript overload happy for `selector()`
+   * TODO: how to fix it? (make it clean by removing the "isArray ? : " condition)
    */
-  const states = options.states[0]
-  const stateKeys = options.states[1]
-
-  type State = { [K in TStateKey]: TState[K] }
-  const State = stateKeys.reduce(
-    (acc, cur) => ({
-      ...acc,
-      [cur]: states[cur],
-    }),
-    {},
-  ) as State
-
-  /**
-   * Event
-   */
-  const events = options.events[0]
-  const eventKeys = options.events[1]
-
-  type Event = { [K in TEventKey]: TEvent[K] }
-  const Event = eventKeys.reduce(
-    (acc, cur) => ({
-      ...acc,
-      [cur]: events[cur],
-    }),
-    {},
-  ) as Event
+  const State = Array.isArray(options.states) ? selector(options.states) : selector(options.states)
+  const Event = Array.isArray(options.events) ? selector(options.events) : selector(options.events)
 
   /**
    * Type
    */
-  type Type = { [K in TEventKey]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never }
-  const Type = eventKeys.reduce(
+  type Type = { [K in keyof typeof Event]: typeof Event[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never }
+  const Type = Object.keys(Event).reduce(
     (acc, cur) => ({
       ...acc,
-      [cur]: getType(events[cur]!), // FIXME: remove `!`
+      [cur]: getType(Event[cur as keyof typeof Event]),
     }),
     {},
   ) as Type
@@ -96,14 +50,14 @@ export const duckularize = <
    * Huan(202204): do we need JSON parse/stringify
    *  to make sure the initial context is always unmutable?
    */
-  const initialContext: () => typeof options.initialContext = () =>
-    JSON.parse(
+  const initialContext: () => typeof options.initialContext
+    = () => JSON.parse(
       JSON.stringify(
         options.initialContext,
       ),
     )
 
-  type Duckula = duck.Duckula<TID, Event, State, Type, TContext>
+  type Duckula = D.Duckula<TID, typeof Event, typeof State, Type, TContext>
 
   const duckula: Optional<Duckula, 'machine'> = ({
     ID: options.id,
