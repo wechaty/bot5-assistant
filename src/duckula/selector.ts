@@ -10,7 +10,11 @@ export function selector <
   TVal extends any,
   TMap extends { [key in TKey]: TVal },
   TSelectedKey extends TKey,
-> (source: readonly [ TMap, readonly TSelectedKey[] ]): { [K in TSelectedKey]: TMap[K] }
+> (
+  source: readonly [ TMap, readonly TSelectedKey[] ]
+): {
+  [K in TSelectedKey]: TMap[K]
+}
 
 /**
  * Pick the selected key from the source
