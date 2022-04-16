@@ -30,7 +30,7 @@ const FIXTURE = {
   initialContext: () => ({ n: 42 }),
 } as const
 
-test('duckularize() smoke testing', async t => {
+test('duckularize() value for array param', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -53,7 +53,7 @@ test('duckularize() smoke testing', async t => {
   )
 })
 
-test('duckularize() typing smoke testing', async t => {
+test('duckularize() typing for array param', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -76,7 +76,7 @@ test('duckularize() typing smoke testing', async t => {
   t.ok(typingTest, 'should match typing')
 })
 
-test('duckularize() value for events & states with object param (without array selector)', async t => {
+test('duckularize() value for object param (without array selector)', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -99,7 +99,7 @@ test('duckularize() value for events & states with object param (without array s
   )
 })
 
-test('duckularize() typing for events & states with object param (without array selector)', async t => {
+test('duckularize() typing for object param (without array selector)', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,

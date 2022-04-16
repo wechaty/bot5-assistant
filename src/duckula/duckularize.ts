@@ -7,8 +7,12 @@ import {
 }                               from 'typesafe-actions'
 import type { Optional }        from 'utility-types'
 
+import type {
+  DuckularizeOptions,
+  DuckularizeOptionsArray,
+  DuckularizeOptionsObject,
+}                                     from './duckularize-options.js'
 import { selector }                   from './selector.js'
-import type { DuckularizeOptions }    from './duckularize-options.js'
 import type * as D                    from './duckula.js'
 
 export function duckularize <
@@ -24,8 +28,67 @@ export function duckularize <
 
   TContext extends {},
 > (
+  options: DuckularizeOptionsArray<TID, TType, TEventKey, TEvent, TStateKey, TStateVal, TState, TContext>,
+): Optional<
+  D.Duckula<
+    TID,
+    { [K in TEventKey]: TEvent[K] },
+    { [K in TStateKey]: TState[K] },
+    { [K in TEventKey]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never },
+    TContext
+  >,
+  'machine'
+>
+
+export function duckularize <
+  TID extends string,
+
+  TType extends string,
+  TEventKey extends string,
+  TEvent extends D.Event<TEventKey, TType>,
+
+  TStateKey extends string,
+  TStateVal extends string,
+  TState extends D.State<TStateKey, TStateVal>,
+
+  TContext extends {},
+> (
+  options: DuckularizeOptionsObject<TID, TType, TEventKey, TEvent, TStateKey, TStateVal, TState, TContext>,
+): Optional<
+  D.Duckula<
+    TID,
+    TEvent,
+    TState,
+    { [K in TEventKey]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never },
+    TContext
+  >,
+  'machine'
+>
+
+export function duckularize <
+  TID extends string,
+
+  TType extends string,
+  TEventKey extends string,
+  TEvent extends D.Event<TEventKey, TType>,
+
+  TStateKey extends string,
+  TStateVal extends string,
+  TState extends D.State<TStateKey, TStateVal>,
+
+  TContext extends {},
+> (
   options: DuckularizeOptions<TID, TType, TEventKey, TEvent, TStateKey, TStateVal, TState, TContext>,
-) {
+): Optional<
+  D.Duckula<
+    TID,
+    { [K in TEventKey]: TEvent[K] },
+    { [K in TStateKey]: TState[K] },
+    { [K in TEventKey]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never },
+    TContext
+  >,
+  'machine'
+> {
 
   /**
    * Huan(202204) make TypeScript overload happy for `selector()`
@@ -57,15 +120,13 @@ export function duckularize <
       ),
     )
 
-  type Duckula = D.Duckula<TID, typeof Event, typeof State, Type, TContext>
-
-  const duckula: Optional<Duckula, 'machine'> = ({
+  const duckula = {
     ID: options.id,
     Event,
     State,
     Type,
     initialContext,
-  })
+  }
 
   return duckula
 }
