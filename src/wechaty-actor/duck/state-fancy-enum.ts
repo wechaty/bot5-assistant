@@ -1,6 +1,4 @@
-export { ID } from './constants.js'
-
-export * from './context.js'
+import * as states from './states.js'
 
 /**
  * Huan(202204): We are using a "Fancy Enum" instead of a TypeScript native `enum` at here,
@@ -8,6 +6,7 @@ export * from './context.js'
  *
  *  @link https://twitter.com/huan_us/status/1511260462544998404
  */
-export * from './type-fancy-enum.js'
-export * from './event-fancy-enum.js'
-export * from './state-fancy-enum.js'
+
+export const State = states
+// eslint-disable-next-line no-redeclare
+export type State = typeof State[keyof typeof State]

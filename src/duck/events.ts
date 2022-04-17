@@ -20,8 +20,8 @@
 import { createAction }   from 'typesafe-actions'
 import type * as PUPPET   from 'wechaty-puppet'
 
-import { Type }         from './type-enum.js'
-import type { Intent }  from './intent-enum.js'
+import { Type }         from './type-fancy-enum.js'
+import type { Intent }  from './intent-fancy-enum.js'
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
