@@ -30,7 +30,7 @@ const FIXTURE = {
   initialContext: () => ({ n: 42 }),
 } as const
 
-test('duckularize() value for array param', async t => {
+test('duckularize() array param values', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -53,7 +53,7 @@ test('duckularize() value for array param', async t => {
   )
 })
 
-test('duckularize() typing for array param', async t => {
+test('duckularize() array param typings', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -76,7 +76,7 @@ test('duckularize() typing for array param', async t => {
   t.ok(typingTest, 'should match typing')
 })
 
-test('duckularize() value for object param (without array selector)', async t => {
+test('duckularize() object param values', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -99,7 +99,7 @@ test('duckularize() value for object param (without array selector)', async t =>
   )
 })
 
-test('duckularize() typing for object param (without array selector)', async t => {
+test('duckularize() object param typings', async t => {
 
   const duckula = duckularize({
     id: FIXTURE.ID,
@@ -115,10 +115,23 @@ test('duckularize() typing for object param (without array selector)', async t =
     Type: FIXTURE.Type,
   }
 
-  type Duckula  = typeof duckula.Event
-  type Expected = typeof EXPECTED_DUCKULA.Event
+  type DuckulaEvent   = typeof duckula.Event
+  type DuckulaState   = typeof duckula.State
+  type DuckulaType    = typeof duckula.Type
+  type DuckulaContext = ReturnType<typeof duckula.initialContext>
 
-  const typingTest: AssertEqual<Duckula, Expected> = true
-  t.ok(typingTest, 'should match typing')
+  type ExpectedEvent   = typeof EXPECTED_DUCKULA.Event
+  type ExpectedState   = typeof EXPECTED_DUCKULA.State
+  type ExpectedType    = typeof EXPECTED_DUCKULA.Type
+  type ExpectedContext = ReturnType<typeof EXPECTED_DUCKULA.initialContext>
 
+  const typingTestEvent:    AssertEqual<DuckulaEvent,   ExpectedEvent>   = true
+  const typingTestState:    AssertEqual<DuckulaState,   ExpectedState>   = true
+  const typingTestType:     AssertEqual<DuckulaType,    ExpectedType>    = true
+  const typingTestContext:  AssertEqual<DuckulaContext, ExpectedContext> = true
+
+  t.ok(typingTestEvent,   'should match typing for Event')
+  t.ok(typingTestState,   'should match typing for State')
+  t.ok(typingTestType,    'should match typing for Type')
+  t.ok(typingTestContext, 'should match typing for Context')
 })

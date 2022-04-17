@@ -24,33 +24,32 @@ import { GError }                   from 'gerror'
 import { isActionOf }               from 'typesafe-actions'
 import * as Mailbox                 from 'mailbox'
 
-import * as duck        from './duck/mod.js'
 import * as services    from './services/mod.js'
 
 import type { CommandQuery }    from './dto.js'
+import duckula                  from './duckula.js'
 
-export const factory = (
-  bus$     : CQRS.Bus,
-  puppetId : string,
-) => createMachine<duck.Context, duck.Event[keyof duck.Event]>({
-  id: duck.ID,
-  context: duck.initialContext(puppetId),
-  initial: duck.State.Idle,
+const machine = createMachine<
+  ReturnType<typeof duckula.initialContext>,
+  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+>({
+  id: duckula.ID,
+  initial: duckula.State.Idle,
   states: {
-    [duck.State.Idle]: {
+    [duckula.State.Idle]: {
       entry: [
-        actions.log('state.idle.entry', duck.ID),
-        Mailbox.actions.idle(duck.ID)('idle'),
+        actions.log('state.idle.entry', duckula.ID),
+        Mailbox.actions.idle(duckula.ID)('idle'),
       ],
       on: {
-        // '*': duck.State.idle, // must have a external transition for all events to trigger the Mailbox state transition
-        '*': duck.State.Preparing,
+        // '*': duckula.State.idle, // must have a external transition for all events to trigger the Mailbox state transition
+        '*': duckula.State.Preparing,
       },
     },
 
-    [duck.State.Preparing]: {
+    [duckula.State.Preparing]: {
       entry: [
-        actions.log('state.preparing.entry', duck.ID),
+        actions.log('state.preparing.entry', duckula.ID),
         actions.choose([
           {
             cond: (_, e) => CQRS.is(
@@ -60,74 +59,74 @@ export const factory = (
               }),
             )(e),
             actions: [
-              actions.log((_, e) => `State.preparing.entry execute Command/Query [${e.type}]`, duck.ID),
-              actions.send((_, e) => duck.Event.EXECUTE(e as CommandQuery)),
+              actions.log((_, e) => `State.preparing.entry execute Command/Query [${e.type}]`, duckula.ID),
+              actions.send((_, e) => duckula.Event.EXECUTE(e as CommandQuery)),
             ],
           },
           {
-            cond: (_, e) => isActionOf(duck.Event.BATCH, e),
+            cond: (_, e) => isActionOf(duckula.Event.BATCH, e),
             actions: [
-              actions.log('State.preparing.entry execute batch', duck.ID),
-              actions.send((_, e) => e), // <- duck.Event.batch / types.BATCH
+              actions.log('State.preparing.entry execute batch', duckula.ID),
+              actions.send((_, e) => e), // <- duckula.Event.batch / types.BATCH
             ],
           },
           {
             actions: [
-              actions.log((_, e) => `State.preparing.entry skip non-Command/Query [${e.type}]`, duck.ID),
-              actions.send(duck.Event.IDLE()),
+              actions.log((_, e) => `State.preparing.entry skip non-Command/Query [${e.type}]`, duckula.ID),
+              actions.send(duckula.Event.IDLE()),
             ],
           },
         ]),
       ],
       on: {
-        [duck.Type.IDLE]    : duck.State.Idle,
-        [duck.Type.EXECUTE] : duck.State.Executing,
-        [duck.Type.BATCH]   : duck.State.Batching,
+        [duckula.Type.IDLE]    : duckula.State.Idle,
+        [duckula.Type.EXECUTE] : duckula.State.Executing,
+        [duckula.Type.BATCH]   : duckula.State.Batching,
       },
     },
 
-    [duck.State.Executing]: {
+    [duckula.State.Executing]: {
       entry: [
-        actions.log((_, e) => `state.executing.entry -> [${e.type}]`, duck.ID),
+        actions.log((_, e) => `state.executing.entry -> [${e.type}]`, duckula.ID),
       ],
       invoke: {
         src: 'execute',
         onDone: {
           actions: [
-            actions.send((_, e) => duck.Event.RESPONSE(e.data)),
+            actions.send((_, e) => duckula.Event.RESPONSE(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.send((ctx: any, e) => duck.Event.RESPONSE(
+            actions.send((ctx: any, e) => duckula.Event.RESPONSE(
               CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
             )),
           ],
         },
       },
       on: {
-        [duck.Type.RESPONSE]: duck.State.Responding,
+        [duckula.Type.RESPONSE]: duckula.State.Responding,
       },
     },
 
-    [duck.State.Batching]: {
+    [duckula.State.Batching]: {
       entry: [
         actions.log((_, e) => [
           'State.batching.entry -> ',
-          `[${[ ...new Set((e as duck.Event['BATCH']).payload.commandQueryList.map(cq => cq.type)) ].join(',')}] `,
-          `#${(e as duck.Event['BATCH']).payload.commandQueryList.length}`,
-        ].join(''), duck.ID),
+          `[${[ ...new Set((e as ReturnType<typeof duckula.Event['BATCH']>).payload.commandQueryList.map(cq => cq.type)) ].join(',')}] `,
+          `#${(e as ReturnType<typeof duckula.Event['BATCH']>).payload.commandQueryList.length}`,
+        ].join(''), duckula.ID),
       ],
       invoke: {
         src: 'batch',
         onDone: {
           actions: [
-            actions.send((_, e) => duck.Event.BATCH_RESPONSE(e.data)),
+            actions.send((_, e) => duckula.Event.BATCH_RESPONSE(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.send((ctx: any, e) => duck.Event.BATCH_RESPONSE([
+            actions.send((ctx: any, e) => duckula.Event.BATCH_RESPONSE([
               // TODO: how to make the length the same as the batached request?
               CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
             ])),
@@ -135,16 +134,16 @@ export const factory = (
         },
       },
       on: {
-        [duck.Type.BATCH_RESPONSE]: duck.State.Responding,
+        [duckula.Type.BATCH_RESPONSE]: duckula.State.Responding,
       },
     },
 
-    [duck.State.Responding]: {
+    [duckula.State.Responding]: {
       entry: [
-        actions.log((_, e) => `State.responding.entry <- [${e.type}]`, duck.ID),
+        actions.log((_, e) => `State.responding.entry <- [${e.type}]`, duckula.ID),
         Mailbox.actions.reply((_, e) => e),
       ],
-      always: duck.State.Idle,
+      always: duckula.State.Idle,
     },
 
   },
@@ -153,7 +152,9 @@ export const factory = (
    * FIXME: batch is never used in the machine definition
    */
   services: {
-    batch   : (ctx, e) => services.batch(bus$)(ctx, e),
-    execute : services.execute(bus$),
+    batch   : (ctx, e) => services.batch(ctx, e),
+    execute : services.execute,
   },
 })
+
+export default machine

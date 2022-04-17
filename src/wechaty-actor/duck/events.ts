@@ -26,6 +26,9 @@ import * as types   from './types.js'
 export const NOP  = createAction(types.NOP)()
 export const IDLE = createAction(types.IDLE)()
 
+/**
+ * Execute
+ */
 const payloadExecute = (commandQuery: CommandQuery) => ({ commandQuery })
 export const EXECUTE = createAction(types.EXECUTE, payloadExecute)()
 

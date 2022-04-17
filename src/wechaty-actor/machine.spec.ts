@@ -36,14 +36,18 @@ import { isActionOf }       from 'typesafe-actions'
 
 import * as duck    from './duck/mod.js'
 
-import { factory }  from './machine.js'
+import machine    from './machine.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
-  const wechatyMachine = factory({} as any, '')
+  const wechatyMachine = machine.withContext({} as any)
   t.doesNotThrow(() => Mailbox.helpers.validate(wechatyMachine), 'should pass validate')
 })
 
 test('wechatyActor SAY with concurrency', async t => {
+  const sandbox = sinon.createSandbox({
+    useFakeTimers: true,
+  })
+
   for await (const {
     wechaty: {
       wechaty,
@@ -52,7 +56,10 @@ test('wechatyActor SAY with concurrency', async t => {
   } of createFixture()) {
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = factory(bus$, wechaty.puppet.id)
+    const wechatyMachine = machine.withContext({
+      bus$,
+      puppetId: wechaty.puppet.id,
+    })
 
     const WECHATY_MACHINE_ID = 'wechaty-machine-id'
 
@@ -80,20 +87,27 @@ test('wechatyActor SAY with concurrency', async t => {
     const spy = sinon.spy()
     wechaty.on('message', spy)
 
-    interpreter.send(CQRS.commands.SendMessageCommand(wechaty.puppet.id, room.id, PUPPET.payloads.sayable.text(EXPECTED_TEXT + 0)))
-    interpreter.send(CQRS.commands.SendMessageCommand(wechaty.puppet.id, room.id, PUPPET.payloads.sayable.text(EXPECTED_TEXT + 1)))
-    interpreter.send(CQRS.commands.SendMessageCommand(wechaty.puppet.id, room.id, PUPPET.payloads.sayable.text(EXPECTED_TEXT + 2)))
+    for (const i of [ ...Array(3).keys() ]) {
+      interpreter.send(
+        CQRS.commands.SendMessageCommand(
+          wechaty.puppet.id,
+          room.id,
+          PUPPET.payloads.sayable.text(EXPECTED_TEXT + i),
+        ),
+      )
+    }
     // eventList.forEach(e => console.info(e.type))
 
     /**
      * Wait async: `wechaty.puppet.messageSendText()`
      */
-    await new Promise(setImmediate)
+    await sandbox.clock.runToLastAsync()
     t.equal(spy.callCount, 3, 'should emit 3 messages')
     t.equal(spy.args[1]![0].type(), wechaty.Message.Type.Text, 'should emit text message')
     t.equal(spy.args[1]![0].text(), EXPECTED_TEXT + 1, `should emit "${EXPECTED_TEXT}1"`)
 
     interpreter.stop()
+    sandbox.restore()
   }
 })
 
@@ -110,7 +124,10 @@ test('wechatyMachine interpreter smoke testing', async t => {
 
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = factory(bus$, wechaty.puppet.id)
+    const wechatyMachine = machine.withContext({
+      bus$,
+      puppetId: wechaty.puppet.id,
+    })
 
     const testMachine = createMachine({
       invoke: {
@@ -156,7 +173,10 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
     const bus$ = CQRS.from(wechaty)
 
-    const wechatyMachine = factory(bus$, wechaty.puppet.id)
+    const wechatyMachine = machine.withContext({
+      bus$,
+      puppetId: wechaty.puppet.id,
+    })
 
     const testMachine = createMachine({
       invoke: {
@@ -225,7 +245,7 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
 })
 
-test.only('wechatyMachine BATCH events', async t => {
+test('wechatyMachine BATCH events', async t => {
   for await (const {
     wechaty: {
       wechaty,
@@ -236,7 +256,13 @@ test.only('wechatyMachine BATCH events', async t => {
     const bus$ = CQRS.from(wechaty)
     const puppetId = wechaty.puppet.id
 
-    const wechatyMailbox = from(bus$, wechaty.puppet.id)
+    const wechatyMailbox = Mailbox.from(
+      machine.withContext({
+        bus$,
+        puppetId: wechaty.puppet.id,
+      }),
+    )
+
     wechatyMailbox.open()
 
     const testMachine = createMachine({

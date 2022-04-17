@@ -8,6 +8,6 @@ export * from './context.js'
  *
  *  @link https://twitter.com/huan_us/status/1511260462544998404
  */
-export * from './type-fancy-enum.js'
 export * from './event-fancy-enum.js'
 export * from './state-fancy-enum.js'
+export * from './type-fancy-enum.js'

@@ -67,7 +67,7 @@ export function duckularize <
     TID,
     TEvent,
     TState,
-    { [K in TEventKey]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never },
+    { [K in keyof TEvent]: TEvent[K] extends ActionCreator<infer TType> & ActionCreatorTypeMetadata<infer TType> ? TType : never },
     TContext
   >,
   'machine'

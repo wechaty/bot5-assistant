@@ -63,7 +63,7 @@
     "typescript": "^4.6.2",
     "utility-types": "^3.10.0",
     "wechaty": "^1.18.1",
-    "wechaty-mocker": "^1.11.2",
+    "wechaty-mocker": "^1.11.3",
     "wechaty-puppet-mock": "^1.18.2",
     "ws": "^8.5.0"
   },
@@ -74,6 +74,7 @@
   "dependencies": {
     "file-box": "^1.4.15",
     "lru-cache": "^7.5.0",
+    "mailbox": "^0.6.13",
     "request": "^2.88.2",
     "tencentcloud-sdk-nodejs": "^4.0.306",
     "typed-inject": "^3.0.1",
