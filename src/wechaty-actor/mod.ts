@@ -1,5 +1,3 @@
-export { from }   from './from.js'
-
 export {
   Type,
   Event,

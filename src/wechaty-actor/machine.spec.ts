@@ -37,7 +37,6 @@ import { isActionOf }       from 'typesafe-actions'
 import * as duck    from './duck/mod.js'
 
 import { factory }  from './machine.js'
-import { from }     from './from.js'
 
 test('wechatyMachine Mailbox actor validation', async t => {
   const wechatyMachine = factory({} as any, '')
