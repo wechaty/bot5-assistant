@@ -82,7 +82,7 @@
     "uuid": "^8.3.2",
     "wechaty-cqrs": "^0.13.17",
     "wechaty-redux": "^1.19.7",
-    "xstate": "^4.30.6"
+    "xstate": "^4.31.0"
   },
   "git": {
     "scripts": {

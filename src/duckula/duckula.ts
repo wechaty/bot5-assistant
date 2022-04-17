@@ -1,8 +1,8 @@
 import type {
   ActionCreator,
   ActionCreatorTypeMetadata,
-}                                               from 'typesafe-actions'
-import type { AnyStateMachine, StateMachine }   from 'xstate'
+}                                 from 'typesafe-actions'
+import type { AnyStateMachine }   from 'xstate'
 
 export type Type <K extends string, V extends string> = {
   [key in K]: V
@@ -24,7 +24,7 @@ export interface Duckula <
   TType  extends Type<string, string> = Type<string, string>,
 
   TContext extends {} = {},
-  TMachine extends AnyStateMachine = StateMachine<TContext, any, ReturnType<TEvent[keyof TEvent]>, any, any, any>,
+  TMachine extends AnyStateMachine = AnyStateMachine,
 > {
   ID: TID
   Type: TType
