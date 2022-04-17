@@ -1,4 +1,13 @@
 /* eslint-disable no-redeclare */
+
+/**
+ * Huan(202204): we have to use override function definition for different `source`
+ *
+ * The `source` must be seperate for the `Array` and `Object` type
+ *  or the typing inference will be incorrect.
+ *
+ * TODO: merge the source as an union type to reduce the complexity
+ */
 export function selector <
  TKey extends string,
  TVal extends any,

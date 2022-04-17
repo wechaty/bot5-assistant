@@ -39,7 +39,7 @@ test('DuckularizeOptions typing inference smoke testing', async t => {
     initialContext: FIXTURE.initialContext(),
   } as const
 
-  type Actual = typeof options extends DuckularizeOptions<any, any, infer TEventKey, infer TEvent, any, any, any, any>
+  type Actual = typeof options extends DuckularizeOptions<any, any, any, infer TEvent, any, any, any, any>
     ? TEvent
     : never
 

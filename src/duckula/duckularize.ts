@@ -15,6 +15,14 @@ import type {
 import { selector }                   from './selector.js'
 import type * as D                    from './duckula.js'
 
+/**
+ * Huan(202204): we have to use override function definition for different `options`
+ *
+ * The `options` must be seperate for the `Array` and `Object` type
+ *  or the typing inference will be incorrect.
+ *
+ * TODO: merge the options as an union type to reduce the complexity
+ */
 export function duckularize <
   TID extends string,
 
@@ -89,7 +97,6 @@ export function duckularize <
   >,
   'machine'
 > {
-
   /**
    * Huan(202204) make TypeScript overload happy for `selector()`
    * TODO: how to fix it? (make it clean by removing the "isArray ? : " condition)
