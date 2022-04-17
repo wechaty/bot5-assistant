@@ -16,7 +16,7 @@ import * as CQRS          from 'wechaty-cqrs'
 
 import * as WechatyActor    from '../wechaty-actor/mod.js'
 
-import * as RegisteringActor    from './registering-actor.js'
+import RegisteringActor    from './registering-actor.js'
 
 test('registerMachine smoke testing', async t => {
   for await (const fixtures of createFixture()) {
@@ -77,8 +77,8 @@ test('registerMachine smoke testing', async t => {
 
     const registerInterpreter = () => consumerInterpreter.children.get(REGISTER_MACHINE_ID) as Interpreter<any>
     const registerSnapshot    = () => registerInterpreter().getSnapshot()
-    const registerContext     = () => registerSnapshot().context as RegisteringActor.Context
-    const registerState       = () => registerSnapshot().value   as RegisteringActor.State
+    const registerContext     = () => registerSnapshot().context as ReturnType<typeof RegisteringActor.initialContext>
+    const registerState       = () => registerSnapshot().value   as typeof RegisteringActor.State
 
     const registerEventList: AnyEventObject[] = []
     registerInterpreter().onEvent(e => registerEventList.push(e))
@@ -189,7 +189,9 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-test('registerActor smoke testing', async t => {
+TODO: continue Huan(20220417
+// Huan(202204) FIXME: this test is not working sometimes with race condition
+test.only('registerActor smoke testing', async t => {
   let interpreter: AnyInterpreter
 
   for await (const fixture of createFixture()) {
@@ -251,6 +253,25 @@ test('registerActor smoke testing', async t => {
     await new Promise(setImmediate)
     t.same(eventList, [ NO_MENTION_MESSAGE ], 'should no report contact when there is no mention')
 
+    ;(registerMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+      console.info('______________________________')
+      console.info(`Actor: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
+      console.info('-------------------------')
+    })
+    ;(registerMailbox as Mailbox.impls.Mailbox).internal.interpreter!.onTransition(s => {
+      console.info('______________________________')
+      console.info(`Mailbox: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child})`)
+      console.info('-------------------------')
+    })
+    ;(wechatyMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+      console.info('______________________________')
+      // console.info(`Wechaty: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child}})`)
+      console.info(`Wechaty: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
+      console.info('-------------------------')
+    })
+    console.info('######################################')
+    // await new Promise(resolve => setTimeout(resolve, 100))
+
     /**
      * 2. test mention
      */
@@ -262,7 +283,7 @@ test('registerActor smoke testing', async t => {
 
     const contactsFuture = new Promise(resolve =>
       interpreter.onEvent(e => {
-        // console.info('event:', e)
+        console.info('event:', e)
         if (e.type === RegisteringActor.Type.CONTACTS) {
           resolve(e)
         }
