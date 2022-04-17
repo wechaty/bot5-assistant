@@ -24,7 +24,7 @@ import { GError }                   from 'gerror'
 import { isActionOf }               from 'typesafe-actions'
 import * as Mailbox                 from 'mailbox'
 
-import * as services    from './services/mod.js'
+import * as services      from './services/mod.js'
 
 import type { CommandQuery }    from './dto.js'
 import duckula                  from './duckula.js'
