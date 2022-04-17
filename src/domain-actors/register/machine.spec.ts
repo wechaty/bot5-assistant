@@ -14,9 +14,10 @@ import type { mock }      from 'wechaty-puppet-mock'
 import * as Mailbox       from 'mailbox'
 import * as CQRS          from 'wechaty-cqrs'
 
-import * as WechatyActor    from '../wechaty-actor/mod.js'
+import * as WechatyActor    from '../../wechaty-actor/mod.js'
 
-import RegisteringActor    from './registering-actor.js'
+import duckula    from './duckula.js'
+import machine    from './machine.js'
 
 test('registerMachine smoke testing', async t => {
   for await (const fixtures of createFixture()) {
@@ -49,14 +50,14 @@ test('registerMachine smoke testing', async t => {
 
     const REGISTER_MACHINE_ID = 'register-machine-id'
 
-    const mailbox = Mailbox.from(RegisteringActor.machine)
+    const mailbox = Mailbox.from(machine)
     mailbox.open()
 
     const consumerMachine = createMachine({
       invoke: {
         id: REGISTER_MACHINE_ID,
-        src: RegisteringActor.machine.withContext({
-          ...RegisteringActor.initialContext(),
+        src: machine.withContext({
+          ...duckula.initialContext(),
           address: {
             wechaty: String(wechatyMailbox.address),
           },
@@ -77,13 +78,13 @@ test('registerMachine smoke testing', async t => {
 
     const registerInterpreter = () => consumerInterpreter.children.get(REGISTER_MACHINE_ID) as Interpreter<any>
     const registerSnapshot    = () => registerInterpreter().getSnapshot()
-    const registerContext     = () => registerSnapshot().context as ReturnType<typeof RegisteringActor.initialContext>
-    const registerState       = () => registerSnapshot().value   as typeof RegisteringActor.State
+    const registerContext     = () => registerSnapshot().context as ReturnType<typeof duckula.initialContext>
+    const registerState       = () => registerSnapshot().value   as typeof duckula.State
 
     const registerEventList: AnyEventObject[] = []
     registerInterpreter().onEvent(e => registerEventList.push(e))
 
-    t.equal(registerState(), RegisteringActor.State.Idle, 'should be idle state')
+    t.equal(registerState(), duckula.State.Idle, 'should be idle state')
     t.same(registerContext().contacts, [], 'should be empty mention list')
 
     /**
@@ -96,13 +97,13 @@ test('registerMachine smoke testing', async t => {
     const noMentionMessage = await messageFutureNoMention
 
     registerInterpreter().send(
-      RegisteringActor.Event.MESSAGE(noMentionMessage.payload!),
+      duckula.Event.MESSAGE(noMentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), RegisteringActor.State.Parsing, 'should be in parsing state')
+    t.equal(registerState(), duckula.State.Parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      RegisteringActor.Type.MESSAGE,
+      duckula.Type.MESSAGE,
     ], 'should be MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -114,13 +115,13 @@ test('registerMachine smoke testing', async t => {
       Mailbox.events.CHILD_IDLE('idle'),
       Mailbox.events.CHILD_IDLE('idle'),
     ], 'should have 2 idle event after one message, with empty contacts list for non-mention message')
-    t.equal(registerState(), RegisteringActor.State.Idle, 'should be back to idle state')
+    t.equal(registerState(), duckula.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      RegisteringActor.Type.MENTION,
-      RegisteringActor.Type.NEXT,
-      RegisteringActor.Type.INTRODUCE,
-      RegisteringActor.Type.IDLE,
+      duckula.Type.MENTION,
+      duckula.Type.NEXT,
+      duckula.Type.INTRODUCE,
+      duckula.Type.IDLE,
       WechatyActor.Type.RESPONSE,
     ], 'should be BATCH_RESPONSE, INTRODUCE, IDLE, RESPONSE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
@@ -139,13 +140,13 @@ test('registerMachine smoke testing', async t => {
     consumerEventList.length = 0
     registerEventList.length = 0
     registerInterpreter().send(
-      RegisteringActor.Event.MESSAGE(mentionMessage.payload!),
+      duckula.Event.MESSAGE(mentionMessage.payload!),
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), RegisteringActor.State.Parsing, 'should be in parsing state')
+    t.equal(registerState(), duckula.State.Parsing, 'should be in parsing state')
     t.same(registerEventList.map(e => e.type), [
-      RegisteringActor.Type.MESSAGE,
+      duckula.Type.MESSAGE,
     ], 'should got MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -166,17 +167,17 @@ test('registerMachine smoke testing', async t => {
         Mailbox.events.CHILD_IDLE('idle'),
         Mailbox.events.CHILD_IDLE('idle'),
         Mailbox.events.CHILD_REPLY(
-          RegisteringActor.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
+          duckula.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
         ),
       ],
       'should have 2 events after one message with contacts list for mention message',
     )
-    t.equal(registerState(), RegisteringActor.State.Idle, 'should be in idle state')
+    t.equal(registerState(), duckula.State.Idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      RegisteringActor.Type.MENTION,
-      RegisteringActor.Type.NEXT,
-      RegisteringActor.Type.REPORT,
+      duckula.Type.MENTION,
+      duckula.Type.NEXT,
+      duckula.Type.REPORT,
       WechatyActor.Type.RESPONSE,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, RESPONSE event')
     t.same(
@@ -189,7 +190,6 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-TODO: continue Huan(20220417
 // Huan(202204) FIXME: this test is not working sometimes with race condition
 test.only('registerActor smoke testing', async t => {
   let interpreter: AnyInterpreter
@@ -200,8 +200,8 @@ test.only('registerActor smoke testing', async t => {
     const wechatyMailbox = WechatyActor.from(bus$, fixture.wechaty.wechaty.puppet.id)
     wechatyMailbox.open()
 
-    const registerMailbox = Mailbox.from(RegisteringActor.machine.withContext({
-      ...RegisteringActor.initialContext(),
+    const registerMailbox = Mailbox.from(machine.withContext({
+      ...duckula.initialContext(),
       address: {
         wechaty: String(wechatyMailbox.address),
       },
@@ -244,7 +244,7 @@ test.only('registerActor smoke testing', async t => {
 
     mary.say('register').to(meetingRoom)
 
-    const NO_MENTION_MESSAGE = RegisteringActor.Event.MESSAGE(
+    const NO_MENTION_MESSAGE = duckula.Event.MESSAGE(
       (await messageFutureNoMention).payload!,
     )
 
@@ -270,7 +270,7 @@ test.only('registerActor smoke testing', async t => {
       console.info('-------------------------')
     })
     console.info('######################################')
-    // await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100))
 
     /**
      * 2. test mention
@@ -284,13 +284,13 @@ test.only('registerActor smoke testing', async t => {
     const contactsFuture = new Promise(resolve =>
       interpreter.onEvent(e => {
         console.info('event:', e)
-        if (e.type === RegisteringActor.Type.CONTACTS) {
+        if (e.type === duckula.Type.CONTACTS) {
           resolve(e)
         }
       }),
     )
 
-    const MESSAGE = RegisteringActor.Event.MESSAGE(
+    const MESSAGE = duckula.Event.MESSAGE(
       (await messageFutureMentions).payload!,
     )
 
@@ -306,7 +306,7 @@ test.only('registerActor smoke testing', async t => {
     // console.info(eventList)
     t.same(
       CONTACTS,
-      RegisteringActor.Event.CONTACTS(
+      duckula.Event.CONTACTS(
         CONTACT_MENTION_LIST.map(c => c.payload!),
       ),
       'should get CONTACT events with mention list',

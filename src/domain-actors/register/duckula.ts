@@ -1,9 +1,9 @@
 /* eslint-disable sort-keys */
 import type * as PUPPET             from 'wechaty-puppet'
 
-import * as WechatyActor    from '../wechaty-actor/mod.js'
-import * as duck            from '../duck/mod.js'
-import { duckularize }      from '../duckula/duckularize.js'
+import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as duck            from '../../duck/mod.js'
+import { duckularize }      from '../../duckula/duckularize.js'
 
 export interface Context {
   message?: PUPPET.payloads.MessageRoom
@@ -16,7 +16,7 @@ export interface Context {
 }
 
 const duckula = duckularize({
-  id: 'RegisterMachine',
+  id: 'RegisterActor',
   events: [ { ...duck.Event, ...WechatyActor.Event }, [
     'CONTACTS',
     'GERROR',

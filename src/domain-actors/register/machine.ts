@@ -4,7 +4,7 @@ import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
-import duckula from './registering-duckula.js'
+import duckula from './duckula.js'
 
 const ctxRoomId     = (ctx: ReturnType<typeof duckula.initialContext>) => ctx.message!.roomId!
 const ctxContactNum = (ctx: ReturnType<typeof duckula.initialContext>) => Object.keys(ctx.contacts).length
@@ -90,6 +90,7 @@ const machine = createMachine<
       ],
       always: duckula.State.Idle,
     },
+
     [duckula.State.Resetting]: {
       entry: [
         actions.log('states.resetting.entry', duckula.ID),
@@ -97,9 +98,18 @@ const machine = createMachine<
       ],
       always: duckula.State.Initializing,
     },
+
     [duckula.State.Parsing]: {
       entry: [
-        actions.log((_, e) => `states.parsing.entry message mentionIdList: ${((e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message as PUPPET.payloads.MessageRoom).mentionIdList}`, duckula.ID),
+        actions.log((_, e) => [
+          'states.parsing.entry message mentionIdList: [',
+          (
+            (e as ReturnType<typeof duckula.Event['MESSAGE']>)
+              .payload
+              .message as PUPPET.payloads.MessageRoom
+          ).mentionIdList,
+          ']',
+        ].join(''), duckula.ID),
         actions.send(
           (_, e) => {
             const messagePayload = (e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message
@@ -112,15 +122,24 @@ const machine = createMachine<
               )),
             )
           },
-          {
-            to: ctx => ctx.address!.wechaty,
-          },
+          { to: ctx => ctx.address!.wechaty },
         ),
       ],
       on: {
         [duckula.Type.BATCH_RESPONSE]: {
           actions: [
-            actions.log((_, e) => `states.parsing.on.BATCH_RESPONSE <- #${e.payload.responseList.length}`, duckula.ID),
+            actions.log((_, e) => [
+              'State.Parsing.on.BATCH_RESPONSE [',
+              [
+                ...new Set(
+                  e.payload
+                    .responseList
+                    .map(r => r.type),
+                ),
+              ].join(','),
+              ']#',
+              e.payload.responseList.length,
+            ].join(''), duckula.ID),
             actions.send((_, e) => duckula.Event.MENTION(e.payload.responseList
               .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
               .map(response => response.payload.contact)
@@ -132,6 +151,7 @@ const machine = createMachine<
         [duckula.Type.MENTION]: duckula.State.Mentioning,
       },
     },
+
     [duckula.State.Mentioning]: {
       entry: [
         actions.log((_, e) => `states.mentioning.entry ${(e as ReturnType<typeof duckula.Event['MENTION']>).payload.contacts.map(c => c.name).join(',')}`, duckula.ID),
@@ -185,9 +205,19 @@ const machine = createMachine<
       },
       // TODO: ask 'do you need to edit the list?' with 60 seconds timeout with default N
     },
+
     [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.erroring.entry <- [GERROR(${(e as ReturnType<typeof duckula.Event['GERROR']>).payload.gerror})]`, duckula.ID),
+        actions.log(
+          (_, e) =>
+            [
+              'State.Erroring.entry [GERROR]: ',
+              (e as ReturnType<typeof duckula.Event['GERROR']>)
+                .payload
+                .gerror,
+            ].join(''),
+          duckula.ID,
+        ),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
@@ -195,5 +225,4 @@ const machine = createMachine<
   },
 })
 
-duckula.machine = machine
-export default duckula as Required<typeof duckula>
+export default machine
