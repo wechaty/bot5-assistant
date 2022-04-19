@@ -13,8 +13,8 @@ import * as Mailbox     from 'mailbox'
 
 import * as WechatyActor    from '../wechaty-actor/mod.js'
 
-import NoticingActor   from './noticing-actor.js'
-import { bot5Fixtures }     from './bot5-fixture.js'
+import { bot5Fixtures }   from './bot5-fixture.js'
+import NoticingActor      from './noticing-actor.js'
 
 test('noticeActor smoke testing', async t => {
   for await (const {
@@ -28,10 +28,12 @@ test('noticeActor smoke testing', async t => {
 
     const bus$ = CQRS.from(wechatyFixtures.wechaty)
 
-    const wechatyMailbox = WechatyActor.from(
-      bus$,
-      wechatyFixtures.wechaty.puppet.id,
-      Mailbox.nil.logger,
+    const wechatyMailbox = Mailbox.from(
+      WechatyActor.machine.withContext({
+        ...WechatyActor.initialContext(),
+        bus$,
+        puppetId: wechatyFixtures.wechaty.puppet.id,
+      }),
     )
     wechatyMailbox.open()
 

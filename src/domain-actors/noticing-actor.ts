@@ -27,9 +27,9 @@ const duckula = Mailbox.duckularize({
   ] ],
   states: [ duck.State, [
     'Idle',
-    'initializing',
-    'noticing',
-    'responding',
+    'Initializing',
+    'Noticing',
+    'Responding',
   ] ],
   initialContext: ({}) as Context,
 })
@@ -39,18 +39,22 @@ const machine = createMachine<
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
   id: duckula.id,
-  initial: duckula.State.initializing,
+  initial: duckula.State.Initializing,
+  context: duckula.initialContext,
   states: {
-    [duckula.State.initializing]: {
+    [duckula.State.Initializing]: {
       always: duckula.State.Idle,
     },
     [duckula.State.Idle]: {
+      entry: [
+        Mailbox.actions.idle(duckula.id)('idle'),
+      ],
       on: {
         '*': {
           // actions: actions.forwardTo(String(wechatyAddress)),
           target: duckula.State.Idle,  // enforce external transition
         },
-        [duckula.Type.NOTICE]: duckula.State.noticing,
+        [duckula.Type.NOTICE]: duckula.State.Noticing,
         [duckula.Type.CONVERSATION]: {
           actions: [
             actions.log((_, e) => `duckula.State.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.id),
@@ -62,7 +66,7 @@ const machine = createMachine<
         },
       },
     },
-    [duckula.State.noticing]: {
+    [duckula.State.Noticing]: {
       entry: [
         actions.log('duckula.State.noticing.entry', duckula.id),
         actions.send(
@@ -79,10 +83,10 @@ const machine = createMachine<
       ],
       on: {
         [duckula.Type.IDLE]: duckula.State.Idle,
-        [duckula.Type.SendMessageCommand]: duckula.State.responding,
+        [duckula.Type.SendMessageCommand]: duckula.State.Responding,
       },
     },
-    [duckula.State.responding]: {
+    [duckula.State.Responding]: {
       entry: [
         actions.send(
           (_, e) => e,
