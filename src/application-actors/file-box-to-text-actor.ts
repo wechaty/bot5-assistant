@@ -6,9 +6,8 @@ import { FileBox }                  from 'file-box'
 
 import { speechToText }   from '../to-text/mod.js'
 import * as duck          from '../duck/mod.js'
-import { duckularize }    from '../duckula/duckularize.js'
 
-const duckula = duckularize({
+const duckula = Mailbox.duckularize({
   id:  'FileBoxToTextMachine',
   events: [ duck.Event, [
     /**
@@ -33,12 +32,12 @@ const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
-  id: duckula.ID,
+  id: duckula.id,
   initial: duckula.State.Idle,
   states: {
     [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(duckula.ID)('idle'),
+        Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
         [duckula.Type.FILE_BOX]: duckula.State.recognizing,
@@ -46,7 +45,7 @@ const machine = createMachine<
     },
     [duckula.State.recognizing]: {
       entry: [
-        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.ID),
+        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.id),
       ],
       invoke: {
         src: (_, e) => speechToText(FileBox.fromJSON(
@@ -54,13 +53,13 @@ const machine = createMachine<
         )),
         onDone: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, duckula.ID),
+            actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, duckula.id),
             actions.send((_, e) => duckula.Event.TEXT(e.data)),
           ],
         },
         onError: {
           actions: [
-            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, duckula.ID),
+            actions.log((_, e) => `states.recognizing.invoke.onError "${e.data}"`, duckula.id),
             actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
           ],
         },
@@ -72,7 +71,7 @@ const machine = createMachine<
     },
     [duckula.State.responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, duckula.ID),
+        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

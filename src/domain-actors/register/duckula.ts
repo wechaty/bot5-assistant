@@ -1,9 +1,9 @@
 /* eslint-disable sort-keys */
 import type * as PUPPET     from 'wechaty-puppet'
+import * as Mailbox         from 'mailbox'
 
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import * as duck            from '../../duck/mod.js'
-import { duckularize }      from '../../duckula/duckularize.js'
 
 export interface Context {
   message?: PUPPET.payloads.MessageRoom
@@ -15,7 +15,7 @@ export interface Context {
   },
 }
 
-const duckula = duckularize({
+const duckula = Mailbox.duckularize({
   id: 'RegisterActor',
   events: [ { ...duck.Event, ...WechatyActor.Event }, [
     'CONTACTS',

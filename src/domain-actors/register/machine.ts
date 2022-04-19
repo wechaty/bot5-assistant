@@ -13,7 +13,7 @@ const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
-  id: duckula.ID,
+  id: duckula.id,
   initial: duckula.State.Initializing,
   preserveActionOrder: true,
   on: {
@@ -50,20 +50,20 @@ const machine = createMachine<
     },
     [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(duckula.ID)('idle'),
+        Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
         '*': duckula.State.Idle,
         [duckula.Type.MESSAGE]: {
           actions: [
-            actions.log('states.idle.on.MESSAGE', duckula.ID),
+            actions.log('states.idle.on.MESSAGE', duckula.id),
             actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom }),
           ],
           target: duckula.State.Parsing,
         },
         [duckula.Type.REPORT]: {
           actions: [
-            actions.log('states.idle.on.REPORT', duckula.ID),
+            actions.log('states.idle.on.REPORT', duckula.id),
           ],
           target: duckula.State.Reporting,
         },
@@ -71,18 +71,18 @@ const machine = createMachine<
     },
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.ID),
+        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
         actions.choose<ReturnType<typeof duckula.initialContext>, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
-              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', duckula.ID),
+              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', duckula.id),
               Mailbox.actions.reply(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
             actions: [
-              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', duckula.ID),
+              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', duckula.id),
               actions.send(duckula.Event.INTRODUCE()),
             ],
           },
@@ -93,7 +93,7 @@ const machine = createMachine<
 
     [duckula.State.Resetting]: {
       entry: [
-        actions.log('states.resetting.entry', duckula.ID),
+        actions.log('states.resetting.entry', duckula.id),
         actions.assign(_ => duckula.initialContext()),
       ],
       always: duckula.State.Initializing,
@@ -109,7 +109,7 @@ const machine = createMachine<
               .message as PUPPET.payloads.MessageRoom
           ).mentionIdList,
           ']',
-        ].join(''), duckula.ID),
+        ].join(''), duckula.id),
         actions.send(
           (_, e) => {
             const messagePayload = (e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message
@@ -139,7 +139,7 @@ const machine = createMachine<
               ].join(','),
               ']#',
               e.payload.responseList.length,
-            ].join(''), duckula.ID),
+            ].join(''), duckula.id),
             actions.send((_, e) => duckula.Event.MENTION(e.payload.responseList
               .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
               .map(response => response.payload.contact)
@@ -154,7 +154,7 @@ const machine = createMachine<
 
     [duckula.State.Mentioning]: {
       entry: [
-        actions.log((_, e) => `states.mentioning.entry ${(e as ReturnType<typeof duckula.Event['MENTION']>).payload.contacts.map(c => c.name).join(',')}`, duckula.ID),
+        actions.log((_, e) => `states.mentioning.entry ${(e as ReturnType<typeof duckula.Event['MENTION']>).payload.contacts.map(c => c.name).join(',')}`, duckula.id),
         actions.assign<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MENTION']>>({
           contacts: (ctx, e) => ({
             ...ctx.contacts,
@@ -169,7 +169,7 @@ const machine = createMachine<
     },
     [duckula.State.Confirming]: {
       entry: [
-        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, duckula.ID),
+        actions.log(ctx => `states.confirming.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
         actions.choose<ReturnType<typeof duckula.initialContext>, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
@@ -216,7 +216,7 @@ const machine = createMachine<
                 .payload
                 .gerror,
             ].join(''),
-          duckula.ID,
+          duckula.id,
         ),
         Mailbox.actions.reply((_, e) => e),
       ],

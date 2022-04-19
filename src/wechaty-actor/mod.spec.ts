@@ -18,9 +18,8 @@
  *   limitations under the License.
  *
  */
-import { test }      from 'tstest'
-
-import type { Duckula } from '../duckula/mod.js'
+import { test }           from 'tstest'
+import type { Duckula }   from 'mailbox'
 
 import * as mod    from './mod.js'
 

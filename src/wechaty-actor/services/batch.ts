@@ -11,7 +11,7 @@ export const batch = async (
 ) => {
 
   if (!isActionOf(duckula.Event.BATCH, e)) {
-    throw new Error(`${duckula.ID} service.batch: unknown event [${e.type}]`)
+    throw new Error(`${duckula.id} service.batch: unknown event [${e.type}]`)
   }
 
   return Promise.all(

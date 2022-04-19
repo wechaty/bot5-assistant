@@ -3,11 +3,11 @@ import from       from './from.js'
 import machine    from './machine.js'
 
 export const {
+  id,
   Event,
   State,
   initialContext,
   Type,
-  ID,
 }                   = duckula
 
 export {

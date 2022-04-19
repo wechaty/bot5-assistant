@@ -6,9 +6,9 @@
 import { createMachine, actions }   from 'xstate'
 import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
+import * as Mailbox                 from 'mailbox'
 
 import * as duck    from '../duck/mod.js'
-import { duckularize } from '../duckula/duckularize.js'
 
 interface Context {
   conversationId?: string,
@@ -17,7 +17,7 @@ interface Context {
   },
 }
 
-const duckula = duckularize({
+const duckula = Mailbox.duckularize({
   id: 'NoticingMachine',
   events: [ { ...duck.Event, ...CQRS.commands }, [
     'CONVERSATION',
@@ -38,7 +38,7 @@ const machine = createMachine<
   Context,
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
-  id: duckula.ID,
+  id: duckula.id,
   initial: duckula.State.initializing,
   states: {
     [duckula.State.initializing]: {
@@ -53,7 +53,7 @@ const machine = createMachine<
         [duckula.Type.NOTICE]: duckula.State.noticing,
         [duckula.Type.CONVERSATION]: {
           actions: [
-            actions.log((_, e) => `duckula.State.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.ID),
+            actions.log((_, e) => `duckula.State.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.id),
             actions.assign({
               conversationId: (_, e) => e.payload.conversationId,
             }),
@@ -64,7 +64,7 @@ const machine = createMachine<
     },
     [duckula.State.noticing]: {
       entry: [
-        actions.log('duckula.State.noticing.entry', duckula.ID),
+        actions.log('duckula.State.noticing.entry', duckula.id),
         actions.send(
           (ctx, e) => isActionOf(duckula.Event.NOTICE, e) && ctx.conversationId
             ? CQRS.commands.SendMessageCommand(

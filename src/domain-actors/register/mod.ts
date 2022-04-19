@@ -2,7 +2,7 @@ import duckula from './duckula.js'
 import machine from './machine.js'
 
 export const {
-  ID,
+  id,
   Event,
   State,
   Type,

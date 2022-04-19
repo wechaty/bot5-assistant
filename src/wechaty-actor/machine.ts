@@ -33,13 +33,13 @@ const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
-  id: duckula.ID,
+  id: duckula.id,
   initial: duckula.State.Idle,
   states: {
     [duckula.State.Idle]: {
       entry: [
-        actions.log('State.Idle.entry', duckula.ID),
-        Mailbox.actions.idle(duckula.ID)('idle'),
+        actions.log('State.Idle.entry', duckula.id),
+        Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
         // '*': duckula.State.idle, // must have a external transition for all events to trigger the Mailbox state transition
@@ -49,7 +49,7 @@ const machine = createMachine<
 
     [duckula.State.Preparing]: {
       entry: [
-        actions.log('State.Preparing.entry', duckula.ID),
+        actions.log('State.Preparing.entry', duckula.id),
         actions.choose([
           {
             cond: (_, e) => CQRS.is(
@@ -60,20 +60,20 @@ const machine = createMachine<
               e,
             ),
             actions: [
-              actions.log((_, e) => `State.Preparing.entry found Command/Query [${e.type}]`, duckula.ID),
+              actions.log((_, e) => `State.Preparing.entry found Command/Query [${e.type}]`, duckula.id),
               actions.send((_, e) => duckula.Event.EXECUTE(e as CommandQuery)),
             ],
           },
           {
             cond: (_, e) => isActionOf(duckula.Event.BATCH, e),
             actions: [
-              actions.log('State.Preparing.entry found BATCH', duckula.ID),
+              actions.log('State.Preparing.entry found BATCH', duckula.id),
               actions.send((_, e) => e), // <- duckula.Event.batch / types.BATCH
             ],
           },
           {
             actions: [
-              actions.log((_, e) => `State.Preparing.entry neither BATCH nor Command/Query, ignore [${e.type}]`, duckula.ID),
+              actions.log((_, e) => `State.Preparing.entry neither BATCH nor Command/Query, ignore [${e.type}]`, duckula.id),
               actions.send(duckula.Event.IDLE()),
             ],
           },
@@ -95,7 +95,7 @@ const machine = createMachine<
             .commandQuery
             .type,
           ']',
-        ].join(''), duckula.ID),
+        ].join(''), duckula.id),
       ],
       invoke: {
         src: 'execute',
@@ -134,7 +134,7 @@ const machine = createMachine<
             .payload
             .commandQueryList
             .length,
-        ].join(''), duckula.ID),
+        ].join(''), duckula.id),
       ],
       invoke: {
         src: 'batch',
@@ -170,7 +170,7 @@ const machine = createMachine<
                 ) ].join(',')
               : e.type,
           ']',
-        ].join(''), duckula.ID),
+        ].join(''), duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
