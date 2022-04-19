@@ -3,27 +3,10 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
 
-import * as duck            from '../duck/mod.js'
-import { textToIntents }    from '../services/text-to-intents.js'
+import * as duck            from '../../duck/mod.js'
+import { textToIntents }    from '../../services/text-to-intents.js'
 
-interface Context {}
-
-const duckula = Mailbox.duckularize({
-  id: 'Intent',
-  events: [ duck.Event, [
-    'TEXT',     // request
-    'INTENTS',  // response: success
-    'GERROR',   // response: error
-    'IDLE',     // internal
-  ] ],
-  states: [ duck.State, [
-    'Idle',
-    'Recognizing',
-    'Understanding',
-    'Responding',
-  ] ],
-  initialContext: {} as Context,
-})
+import duckula    from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -78,5 +61,4 @@ const machine = createMachine<
   },
 })
 
-duckula.machine = machine
-export default duckula as Required<typeof duckula>
+export default machine

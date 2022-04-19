@@ -10,11 +10,11 @@ import { test }                         from 'tstest'
 import * as Mailbox                     from 'mailbox'
 import { Observable, firstValueFrom }   from 'rxjs'
 import { filter }                       from 'rxjs/operators'
+import { isActionOf }                   from 'typesafe-actions'
 
-import * as duck   from '../duck/mod.js'
+import * as duck from '../../duck/mod.js'
 
-import IntentActor    from './intent-actor.js'
-import { isActionOf } from 'typesafe-actions'
+import machine    from './machine.js'
 
 test('IntentActor happy path smoke testing', async t => {
   const FIXTURES = [
@@ -23,7 +23,7 @@ test('IntentActor happy path smoke testing', async t => {
     [ '三个Intents的测试', [ duck.Intent.Start, duck.Intent.Stop, duck.Intent.Unknown ] ],
   ] as const
 
-  const mailbox = Mailbox.from(IntentActor.machine)
+  const mailbox = Mailbox.from(machine)
   mailbox.open()
 
   const consumerMachine = createMachine({
