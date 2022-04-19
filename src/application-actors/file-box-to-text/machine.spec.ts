@@ -8,12 +8,13 @@ import { fileURLToPath }                from 'url'
 import * as Mailbox                     from 'mailbox'
 import { isActionOf }                   from 'typesafe-actions'
 
-import actor    from './file-box-to-text-actor.js'
+import machine    from './machine.js'
+import duckula    from './duckula.js'
 
 test('machine initialState', async t => {
-  t.equal(actor.machine.initialState.value, actor.State.Idle, 'should be initial state idle')
-  t.equal(actor.machine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
-  t.same(actor.machine.initialState.context, undefined, 'should be initial context')
+  t.equal(machine.initialState.value, duckula.State.Idle, 'should be initial state idle')
+  t.equal(machine.initialState.event.type, 'xstate.init', 'should be initial event from xstate')
+  t.same(machine.initialState.context, undefined, 'should be initial context')
 })
 
 test('process audio message', async t => {
@@ -21,18 +22,18 @@ test('process audio message', async t => {
 
   const FILE_BOX_FIXTURE_LOCAL = FileBox.fromFile(path.join(
     __dirname,
-    '../../tests/fixtures/sample.sil',
+    '../../../tests/fixtures/sample.sil',
   )) as FileBoxInterface
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
-  const FILE_BOX_FIXTURE_EVENT = actor.Event.FILE_BOX(
+  const FILE_BOX_FIXTURE_EVENT = duckula.Event.FILE_BOX(
     JSON.stringify(FILE_BOX_FIXTURE_BASE64),
   )
   const EXPECTED_TEXT = '大可乐两个统一，冰红茶三箱。'
 
   const mailbox = Mailbox.from(
-    actor.machine.withContext({
-      ...actor.initialContext(),
+    machine.withContext({
+      ...duckula.initialContext(),
     }),
   )
   mailbox.open()
@@ -64,8 +65,8 @@ test('process audio message', async t => {
     interpreter.onEvent(e =>
       isActionOf(
         [
-          actor.Event.TEXT,
-          actor.Event.GERROR,
+          duckula.Event.TEXT,
+          duckula.Event.GERROR,
         ],
         e,
       ) && resolve(e))
@@ -78,7 +79,7 @@ test('process audio message', async t => {
   // eventList.forEach(e => console.info(e))
   t.same(
     eventList.at(-1),
-    actor.Event.TEXT(EXPECTED_TEXT),
+    duckula.Event.TEXT(EXPECTED_TEXT),
     `should get expected TEXT: ${EXPECTED_TEXT}`,
   )
   interpreter.stop()
@@ -89,17 +90,17 @@ test('process non-audio(image) message ', async t => {
 
   const FILE_BOX_FIXTURE_LOCAL = FileBox.fromFile(path.join(
     __dirname,
-    '../../docs/images/caq-bot5-qingyu.webp',
+    '../../../docs/images/caq-bot5-qingyu.webp',
   )) as FileBoxInterface
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
-  const FILE_BOX_FIXTURE_EVENT = actor.Event.FILE_BOX(
+  const FILE_BOX_FIXTURE_EVENT = duckula.Event.FILE_BOX(
     JSON.stringify(FILE_BOX_FIXTURE_BASE64),
   )
 
   const mailbox = Mailbox.from(
-    actor.machine.withContext({
-      ...actor.initialContext(),
+    machine.withContext({
+      ...duckula.initialContext(),
     }),
   )
   mailbox.open()
@@ -131,8 +132,8 @@ test('process non-audio(image) message ', async t => {
     interpreter.onEvent(e =>
       isActionOf(
         [
-          actor.Event.TEXT,
-          actor.Event.GERROR,
+          duckula.Event.TEXT,
+          duckula.Event.GERROR,
         ],
         e,
       ) && resolve(e))
@@ -145,7 +146,7 @@ test('process non-audio(image) message ', async t => {
   // eventList.forEach(e => console.info(e))
   t.same(
     eventList.at(-1).type,
-    actor.Type.GERROR,
+    duckula.Type.GERROR,
     'should get GERROR for image',
   )
   interpreter.stop()

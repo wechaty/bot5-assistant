@@ -4,29 +4,9 @@ import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
 import { FileBox }                  from 'file-box'
 
-import { speechToText }   from '../to-text/mod.js'
-import * as duck          from '../duck/mod.js'
+import { speechToText }   from '../../to-text/mod.js'
 
-const duckula = Mailbox.duckularize({
-  id:  'FileBoxToText',
-  events: [ duck.Event, [
-    /**
-     * @request
-     */
-    'FILE_BOX',
-    /**
-     * @response
-     */
-    'TEXT',
-    'GERROR',
-  ] ],
-  states: [ duck.State, [
-    'Idle',
-    'Recognizing',
-    'Responding',
-  ] ],
-  initialContext: ({}),
-})
+import duckula          from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -79,5 +59,4 @@ const machine = createMachine<
   },
 })
 
-duckula.machine = machine
-export default duckula as Required<typeof duckula>
+export default machine
