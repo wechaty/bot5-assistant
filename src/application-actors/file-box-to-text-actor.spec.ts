@@ -84,7 +84,7 @@ test('process audio message', async t => {
   interpreter.stop()
 })
 
-test.only('process non-audio(image) message ', async t => {
+test('process non-audio(image) message ', async t => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
   const FILE_BOX_FIXTURE_LOCAL = FileBox.fromFile(path.join(

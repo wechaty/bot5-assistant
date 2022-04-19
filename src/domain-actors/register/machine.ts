@@ -115,7 +115,6 @@ const machine = createMachine<
             const messagePayload = (e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message
             const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
 
-            console.info('######## BATCH to wechaty in Parsing')
             return duckula.Event.BATCH(
               mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
                 CQRS.uuid.NIL,
