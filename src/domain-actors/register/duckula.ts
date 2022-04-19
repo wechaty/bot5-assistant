@@ -1,5 +1,5 @@
 /* eslint-disable sort-keys */
-import type * as PUPPET             from 'wechaty-puppet'
+import type * as PUPPET     from 'wechaty-puppet'
 
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import * as duck            from '../../duck/mod.js'

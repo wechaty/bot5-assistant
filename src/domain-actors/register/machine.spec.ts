@@ -112,8 +112,8 @@ test('registerMachine smoke testing', async t => {
     // consumerEventList.forEach(e => console.info('consumer:', e))
     // registerEventList.forEach(e => console.info('register:', e))
     t.same(consumerEventList, [
-      Mailbox.events.CHILD_IDLE('idle'),
-      Mailbox.events.CHILD_IDLE('idle'),
+      Mailbox.Event.CHILD_IDLE('idle'),
+      Mailbox.Event.CHILD_IDLE('idle'),
     ], 'should have 2 idle event after one message, with empty contacts list for non-mention message')
     t.equal(registerState(), duckula.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
@@ -164,9 +164,9 @@ test('registerMachine smoke testing', async t => {
     t.same(
       consumerEventList,
       [
-        Mailbox.events.CHILD_IDLE('idle'),
-        Mailbox.events.CHILD_IDLE('idle'),
-        Mailbox.events.CHILD_REPLY(
+        Mailbox.Event.CHILD_IDLE('idle'),
+        Mailbox.Event.CHILD_IDLE('idle'),
+        Mailbox.Event.CHILD_REPLY(
           duckula.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
         ),
       ],
@@ -190,8 +190,11 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-// Huan(202204) FIXME: this test is not working sometimes with race condition
-test.only('registerActor smoke testing', async t => {
+/**
+ * Huan(202204) FIXME: this test is not working sometimes with race condition
+ *  Fixed by https://github.com/huan/mailbox/issues/5
+ */
+test('registerActor smoke testing', async t => {
   let interpreter: AnyInterpreter
 
   for await (const fixture of createFixture()) {
@@ -253,24 +256,24 @@ test.only('registerActor smoke testing', async t => {
     await new Promise(setImmediate)
     t.same(eventList, [ NO_MENTION_MESSAGE ], 'should no report contact when there is no mention')
 
-    ;(registerMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
-      console.info('______________________________')
-      console.info(`Actor: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
-      console.info('-------------------------')
-    })
-    ;(registerMailbox as Mailbox.impls.Mailbox).internal.interpreter!.onTransition(s => {
-      console.info('______________________________')
-      console.info(`Mailbox: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child})`)
-      console.info('-------------------------')
-    })
-    ;(wechatyMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
-      console.info('______________________________')
-      // console.info(`Wechaty: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child}})`)
-      console.info(`Wechaty: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
-      console.info('-------------------------')
-    })
-    console.info('######################################')
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // ;(registerMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+    //   console.info('______________________________')
+    //   console.info(`Actor: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
+    //   console.info('-------------------------')
+    // })
+    // ;(registerMailbox as Mailbox.impls.Mailbox).internal.interpreter!.onTransition(s => {
+    //   console.info('______________________________')
+    //   console.info(`Mailbox: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child})`)
+    //   console.info('-------------------------')
+    // })
+    // ;(wechatyMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+    //   console.info('______________________________')
+    //   // console.info(`Wechaty: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child}})`)
+    //   console.info(`Wechaty: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
+    //   console.info('-------------------------')
+    // })
+    // console.info('######################################')
+    // await new Promise(resolve => setTimeout(resolve, 100))
 
     /**
      * 2. test mention
