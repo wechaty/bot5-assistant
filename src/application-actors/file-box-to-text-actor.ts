@@ -8,7 +8,7 @@ import { speechToText }   from '../to-text/mod.js'
 import * as duck          from '../duck/mod.js'
 
 const duckula = Mailbox.duckularize({
-  id:  'FileBoxToTextMachine',
+  id:  'FileBoxToText',
   events: [ duck.Event, [
     /**
      * @request
@@ -22,8 +22,8 @@ const duckula = Mailbox.duckularize({
   ] ],
   states: [ duck.State, [
     'Idle',
-    'recognizing',
-    'responding',
+    'Recognizing',
+    'Responding',
   ] ],
   initialContext: ({}),
 })
@@ -40,12 +40,12 @@ const machine = createMachine<
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        [duckula.Type.FILE_BOX]: duckula.State.recognizing,
+        [duckula.Type.FILE_BOX]: duckula.State.Recognizing,
       },
     },
-    [duckula.State.recognizing]: {
+    [duckula.State.Recognizing]: {
       entry: [
-        actions.log((_, e) => `states.recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.id),
+        actions.log((_, e) => `states.Recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.id),
       ],
       invoke: {
         src: (_, e) => speechToText(FileBox.fromJSON(
@@ -65,13 +65,13 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.TEXT]: duckula.State.responding,
-        [duckula.Type.GERROR]: duckula.State.responding,
+        [duckula.Type.TEXT]: duckula.State.Responding,
+        [duckula.Type.GERROR]: duckula.State.Responding,
       },
     },
-    [duckula.State.responding]: {
+    [duckula.State.Responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry "${JSON.stringify(e)}"`, duckula.id),
+        actions.log((_, e) => `states.Responding.entry "${JSON.stringify(e)}"`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

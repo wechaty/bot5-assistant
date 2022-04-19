@@ -6,113 +6,77 @@ import { isActionOf }               from 'typesafe-actions'
 import * as duck            from '../duck/mod.js'
 import { textToIntents }    from '../services/text-to-intents.js'
 
-const EventRequest = {
-  TEXT: duck.Event.TEXT,
-} as const
-
-const EventResponse = {
-  /**
-   * @error
-   */
-  GERROR: duck.Event.GERROR,
-  /**
-   * @success
-   */
-  INTENTS: duck.Event.INTENTS,
-} as const
-
-const EventInternal = {
-  IDLE: duck.Event.IDLE,
-}
-
-const Event = {
-  ...EventRequest,
-  ...EventResponse,
-  ...EventInternal,
-}
-
-// eslint-disable-next-line no-redeclare
-type Event = {
-  [key in keyof typeof Event]: ReturnType<typeof Event[key]>
-}
-
-const State = {
-  Idle          : duck.State.Idle,
-  Recognizing   : duck.State.recognizing,
-  Understanding : duck.State.understanding,
-  Responding: duck.State.responding,
-} as const
-
 interface Context {}
 
-function initialContext (): Context {
-  const context: Context = {}
-  return JSON.parse(JSON.stringify(context))
-}
+const duckula = Mailbox.duckularize({
+  id: 'Intent',
+  events: [ duck.Event, [
+    'TEXT',     // request
+    'INTENTS',  // response: success
+    'GERROR',   // response: error
+    'IDLE',     // internal
+  ] ],
+  states: [ duck.State, [
+    'Idle',
+    'Recognizing',
+    'Understanding',
+    'Responding',
+  ] ],
+  initialContext: {} as Context,
+})
 
-const Type = {
-  INTENTS: duck.Type.INTENTS,
-  IDLE   : duck.Type.IDLE,
-  TEXT   : duck.Type.TEXT,
-} as const
-
-const ID = 'IntentMachine'
-
-const machine = createMachine<Context, Event[keyof Event]>({
-  id: ID,
-  initial: State.Idle,
+const machine = createMachine<
+  ReturnType<typeof duckula.initialContext>,
+  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+>({
+  id: duckula.id,
+  initial: duckula.State.Idle,
+  context: duckula.initialContext,
   states: {
-    [State.Idle]: {
+    [duckula.State.Idle]: {
       entry: [
-        actions.log('states.idle.entry', ID),
-        Mailbox.actions.idle(ID)('idle'),
+        actions.log('states.idle.entry', duckula.id),
+        Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        '*': State.Idle,
-        [Type.TEXT]: State.Understanding,
+        '*': duckula.State.Idle,
+        [duckula.Type.TEXT]: duckula.State.Understanding,
       },
     },
-    [State.Understanding]: {
+    [duckula.State.Understanding]: {
       entry: [
-        actions.log((_, e) => `states.understanding.entry TEXT: "${(e as Event['TEXT']).payload.text}"`, ID),
+        actions.log((_, e) => `states.understanding.entry TEXT: "${(e as ReturnType<typeof duckula.Event['TEXT']>).payload.text}"`, duckula.id),
       ],
       invoke: {
-        src: (_, e) => isActionOf(Event.TEXT, e)
+        src: (_, e) => isActionOf(duckula.Event.TEXT, e)
           ? textToIntents(e.payload.text)
           : () => { throw new Error(`isActionOf(${e.type}) unexpected.`) },
         onDone: {
-          actions: actions.send((_, e) => Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
+          actions: actions.send((_, e) => duckula.Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
         },
         onError: {
           actions: [
-            actions.log((_, e) => `states.understanding.invoke.onError: ${e.data}`, ID),
-            actions.send(Event.INTENTS([ duck.Intent.Unknown ])),
+            actions.log((_, e) => `states.understanding.invoke.onError: ${e.data}`, duckula.id),
+            actions.send(duckula.Event.INTENTS([ duck.Intent.Unknown ])),
           ],
         },
       },
       on: {
-        [Type.INTENTS]: State.Responding,
+        [duckula.Type.INTENTS]: duckula.State.Responding,
       },
     },
-    [State.Responding]: {
+    [duckula.State.Responding]: {
       entry: [
-        actions.log((_, e) => `states.responding.entry [${e.type}](${(e as Event['INTENTS']).payload.intents})`, ID),
+        actions.log((_, e) => `states.responding.entry [${e.type}](${(e as ReturnType<typeof duckula.Event['INTENTS']>).payload.intents})`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
-        actions.send(Event.IDLE()),
+        actions.send(duckula.Event.IDLE()),
       ],
       on: {
-        [Type.IDLE]: State.Idle,
+        [duckula.Type.IDLE]: duckula.State.Idle,
       },
     },
   },
 })
 
-export {
-  ID,
-  Type,
-  Event,
-  State,
-  machine,
-  type Context,
-  initialContext,
-}
+duckula.machine = machine
+export default duckula as Required<typeof duckula>

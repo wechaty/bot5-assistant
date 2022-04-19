@@ -13,7 +13,7 @@ import { filter }                       from 'rxjs/operators'
 
 import * as duck   from '../duck/mod.js'
 
-import * as IntentActor   from './intent-actor.js'
+import IntentActor    from './intent-actor.js'
 import { isActionOf } from 'typesafe-actions'
 
 test('IntentActor happy path smoke testing', async t => {

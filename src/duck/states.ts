@@ -25,7 +25,7 @@
 export const Idle = 'bot5-assistant/Idle'
 export const Busy = 'bot5-assistant/Busy'
 
-export const meeting = 'bot5-assistant/meeting'
+export const meeting = 'bot5-assistant/Meeting'
 /**
  * Huan(202112): Recommended states transition for actors with Mailbox
  *  1. initializing / onDone: idle
@@ -33,99 +33,98 @@ export const meeting = 'bot5-assistant/meeting'
  *    - RESET: resetting -> initializing
  *    - *: idle (make sure it's an external transition)
  */
-export const Initializing  = 'bot5-assistant/initializing'
+export const Initializing  = 'bot5-assistant/Initializing'
 
-export const unknown = 'bot5-assistant/unknown'
+export const Unknown = 'bot5-assistant/Unknown'
 
-export const listening = 'bot5-assistant/listening'
-export const thinking = 'bot5-assistant/thinking'
-export const feedbacking = 'bot5-assistant/feedbacking'
-export const feedbacked = 'bot5-assistant/feedbacked'
-export const checking = 'bot5-assistant/checking'
-export const validating = 'bot5-assistant/validating'
+export const Listening   = 'bot5-assistant/Listening'
+export const Thinking    = 'bot5-assistant/Thinking'
+export const Feedbacking = 'bot5-assistant/Feedbacking'
+export const Feedbacked  = 'bot5-assistant/Feedbacked'
+export const Checking    = 'bot5-assistant/Checking'
+export const Validating  = 'bot5-assistant/Validating'
 
 /**
  * Complete v.s. Finish
  *  @see https://ejoy-english.com/blog/complete-vs-finish-similar-but-different/
  */
-export const completed  = 'bot5-assistant/completed'
-export const completing = 'bot5-assistant/completing'
-export const finished   = 'bot5-assistant/finished'
-export const finishing  = 'bot5-assistant/finishing'
+export const Completed  = 'bot5-assistant/Completed'
+export const Completing = 'bot5-assistant/Completing'
+export const Finished   = 'bot5-assistant/Finished'
+export const Finishing  = 'bot5-assistant/Finishing'
 
 /**
  * Abort v.s. Cancel
  *  @see https://stackoverflow.com/a/9838022/1123955
  */
-export const aborting = 'bot5-assistant/aborted'
-export const canceled = 'bot5-assistant/canceled'
+export const Aborting = 'bot5-assistant/Aborted'
+export const Canceled = 'bot5-assistant/Canceled'
 
 /**
  * Which one is better: errored v.s. failed?
  *  @see https://stackoverflow.com/questions/6323049/understanding-what-fault-error-and-failure-mean
  */
-export const errored  = 'bot5-assistant/errored'
+export const Errored  = 'bot5-assistant/Errored'
 export const Erroring = 'bot5-assistant/Erroring'
-export const failed   = 'bot5-assistant/failed'
+export const Failed   = 'bot5-assistant/Failed'
 
-export const starting  = 'bot5-assistant/starting'
-export const stopping  = 'bot5-assistant/stopping'
+export const Starting  = 'bot5-assistant/Starting'
+export const Stopping  = 'bot5-assistant/Stopping'
 
 export const Resetting = 'bot5-assistant/Resetting'
 
-export const active = 'bot5-assistant/active'
-export const inactive = 'bot5-assistant/inactive'
+export const Active = 'bot5-assistant/Active'
+export const Inactive = 'bot5-assistant/Inactive'
 
-export const recognizing = 'bot5-assistant/recognizing'
-export const recognized = 'bot5-assistant/recognized'
+export const Recognizing  = 'bot5-assistant/Recognizing'
+export const Recognized   = 'bot5-assistant/Recognized'
 
-export const processing = 'bot5-assistant/processing'
-export const delivering = 'bot5-assistant/delivering'
+export const Processing = 'bot5-assistant/Processing'
+export const Delivering = 'bot5-assistant/Delivering'
 
-export const Mentioning = 'bot5-assistant/Mentioning'
-export const registering = 'bot5-assistant/registering'
-export const registered = 'bot5-assistant/registered'
+export const Mentioning   = 'bot5-assistant/Mentioning'
+export const Registering  = 'bot5-assistant/Registering'
+export const Registered   = 'bot5-assistant/Registered'
 
-export const saying = 'bot5-assistant/saying'
-export const updating = 'bot5-assistant/updating'
-export const Confirming = 'bot5-assistant/Confirming'
-export const understanding = 'bot5-assistant/understanding'
+export const Saying       = 'bot5-assistant/Saying'
+export const Updating     = 'bot5-assistant/Updating'
+export const Confirming   = 'bot5-assistant/Confirming'
+export const Understanding = 'bot5-assistant/Understanding'
 
-export const introducing = 'bot5-assistant/introducing'
-export const selecting = 'bot5-assistant/selecting'
-export const scheduling = 'bot5-assistant/scheduling'
-export const noticing = 'bot5-assistant/noticing'
-export const Reporting = 'bot5-assistant/Reporting'
-export const Parsing = 'bot5-assistant/Parsing'
-export const loading = 'bot5-assistant/loading'
+export const Introducing = 'bot5-assistant/Introducing'
+export const Selecting   = 'bot5-assistant/Selecting'
+export const Scheduling  = 'bot5-assistant/Scheduling'
+export const Noticing    = 'bot5-assistant/Noticing'
+export const Reporting   = 'bot5-assistant/Reporting'
+export const Parsing     = 'bot5-assistant/Parsing'
+export const Loading     = 'bot5-assistant/Loading'
 
 /**
  * 吐槽：https://www.sohu.com/a/222322905_509197
  */
-export const brainstorming = 'bot5-assistant/brainstorming'
-export const roasting = 'bot5-assistant/roasting'
+export const Brainstorming = 'bot5-assistant/Brainstorming'
+export const Roasting = 'bot5-assistant/Roasting'
 
 /**
  * retrospect means: a review of the past
  * @link https://wikidiff.com/reminisce/retrospect
  */
-export const retrospecting = 'bot5-assistant/retrospecting'
+export const Retrospecting = 'bot5-assistant/Retrospecting'
 
 /**
  * Meeting related
  */
-export const joining      = 'bot5-assistant/joining'
-export const presenting   = 'bot5-assistant/presenting'
-export const upgrading    = 'bot5-assistant/upgrading'
-export const electing     = 'bot5-assistant/electing'
-export const elected      = 'bot5-assistant/elected'
-export const photoing     = 'bot5-assistant/photoing'
-export const housekeeping = 'bot5-assistant/housekeeping'
-export const summarizing  = 'bot5-assistant/summarizing'
-export const summarized   = 'bot5-assistant/summarized'
-export const chatting     = 'bot5-assistant/chatting'
-export const drinking     = 'bot5-assistant/drinking'
-export const pledging     = 'bot5-assistant/pledging'
-export const announcing   = 'bot5-assistant/announcing'
-export const responding   = 'bot5-assistant/responding'
-export const Introducing = 'bot5-assistant/Introducing'
+export const Joining      = 'bot5-assistant/Joining'
+export const Presenting   = 'bot5-assistant/Presenting'
+export const Upgrading    = 'bot5-assistant/Upgrading'
+export const Electing     = 'bot5-assistant/Electing'
+export const Elected      = 'bot5-assistant/Elected'
+export const Photoing     = 'bot5-assistant/Photoing'
+export const Housekeeping = 'bot5-assistant/Housekeeping'
+export const Summarizing  = 'bot5-assistant/Summarizing'
+export const Summarized   = 'bot5-assistant/Summarized'
+export const Chatting     = 'bot5-assistant/Chatting'
+export const Drinking     = 'bot5-assistant/Drinking'
+export const Pledging     = 'bot5-assistant/Pledging'
+export const Announcing   = 'bot5-assistant/Announcing'
+export const Responding   = 'bot5-assistant/Responding'
