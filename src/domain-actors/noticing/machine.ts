@@ -8,34 +8,10 @@ import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
 import * as Mailbox                 from 'mailbox'
 
-import * as duck    from '../duck/mod.js'
-
-interface Context {
-  conversationId?: string,
-  address?: {
-    wechaty: string,
-  },
-}
-
-const duckula = Mailbox.duckularize({
-  id: 'NoticingMachine',
-  events: [ { ...duck.Event, ...CQRS.commands }, [
-    'CONVERSATION',
-    'IDLE',
-    'NOTICE',
-    'SendMessageCommand',
-  ] ],
-  states: [ duck.State, [
-    'Idle',
-    'Initializing',
-    'Noticing',
-    'Responding',
-  ] ],
-  initialContext: ({}) as Context,
-})
+import duckula    from './duckula.js'
 
 const machine = createMachine<
-  Context,
+  ReturnType<typeof duckula.initialContext>,
   ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
 >({
   id: duckula.id,
@@ -98,5 +74,4 @@ const machine = createMachine<
   },
 })
 
-duckula.machine = machine
-export default duckula as Required<typeof duckula>
+export default machine

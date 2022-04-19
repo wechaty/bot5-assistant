@@ -11,10 +11,12 @@ import { test, sinon }  from 'tstest'
 import * as CQRS        from 'wechaty-cqrs'
 import * as Mailbox     from 'mailbox'
 
-import * as WechatyActor    from '../wechaty-actor/mod.js'
+import * as WechatyActor    from '../../wechaty-actor/mod.js'
 
-import { bot5Fixtures }   from './bot5-fixture.js'
-import NoticingActor      from './noticing-actor.js'
+import { bot5Fixtures }   from '../bot5-fixture.js'
+
+import machine    from './machine.js'
+import duckula    from './duckula.js'
 
 test('noticeActor smoke testing', async t => {
   for await (const {
@@ -37,8 +39,8 @@ test('noticeActor smoke testing', async t => {
     )
     wechatyMailbox.open()
 
-    const noticeMachine = NoticingActor.machine.withContext({
-      ...NoticingActor.initialContext(),
+    const noticeMachine = machine.withContext({
+      ...duckula.initialContext(),
       address: {
         wechaty: String(wechatyMailbox.address),
       },
@@ -65,16 +67,16 @@ test('noticeActor smoke testing', async t => {
       .start()
 
     const noticeRef = proxyInterpreter.children.get(CHILD_ID) as Interpreter<any>
-    const noticeContext = () => noticeRef.getSnapshot().context as ReturnType<typeof NoticingActor.initialContext>
+    const noticeContext = () => noticeRef.getSnapshot().context as ReturnType<typeof duckula.initialContext>
 
     const noticeEventList: AnyEventObject[] = []
     noticeRef.subscribe(s => noticeEventList.push(s.event))
 
-    proxyInterpreter.send(NoticingActor.Event.NOTICE('test'))
+    proxyInterpreter.send(duckula.Event.NOTICE('test'))
     await sandbox.clock.runAllAsync()
     t.equal(moList.length, 0, 'should no message send out before set conversationId')
 
-    proxyInterpreter.send(NoticingActor.Event.CONVERSATION(mockerFixtures.groupRoom.id))
+    proxyInterpreter.send(duckula.Event.CONVERSATION(mockerFixtures.groupRoom.id))
     await sandbox.clock.runAllAsync()
     t.same(noticeContext(), {
       conversationId: mockerFixtures.groupRoom.id,
@@ -84,7 +86,7 @@ test('noticeActor smoke testing', async t => {
     }, 'should set conversation id after send event')
 
     const EXPECTED_TEXT = 'test'
-    proxyInterpreter.send(NoticingActor.Event.NOTICE(EXPECTED_TEXT))
+    proxyInterpreter.send(duckula.Event.NOTICE(EXPECTED_TEXT))
     await sandbox.clock.runAllAsync()
     t.equal(moList.length, 1, 'should sent message after set conversationId')
     t.equal(moList[0]!.room()!.id, mockerFixtures.groupRoom.id, 'should get room')
