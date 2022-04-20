@@ -9,13 +9,16 @@ const duckula = Mailbox.duckularize({
   id:  'FileBoxToText',
   events: [ duck.Event, [
     /**
-     * @request
+     * Request
      */
     'FILE_BOX',
     /**
-     * @response
+     * Response
      */
     'TEXT',
+    /**
+     * Internal
+     */
     'GERROR',
   ] ],
   states: [ duck.State, [

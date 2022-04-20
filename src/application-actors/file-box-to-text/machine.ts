@@ -2,7 +2,6 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
-import { FileBox }                  from 'file-box'
 
 import { speechToText }   from '../../to-text/mod.js'
 
@@ -25,12 +24,12 @@ const machine = createMachine<
     },
     [duckula.State.Recognizing]: {
       entry: [
-        actions.log((_, e) => `states.Recognizing.entry fileBox: "${JSON.parse((e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox).name}"`, duckula.id),
+        actions.log((_, e) => `states.Recognizing.entry fileBox: "${(e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox.name}"`, duckula.id),
       ],
       invoke: {
-        src: (_, e) => speechToText(FileBox.fromJSON(
+        src: (_, e) => speechToText(
           (e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox,
-        )),
+        ),
         onDone: {
           actions: [
             actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, duckula.id),

@@ -27,7 +27,7 @@ test('process audio message', async t => {
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
   const FILE_BOX_FIXTURE_EVENT = duckula.Event.FILE_BOX(
-    JSON.stringify(FILE_BOX_FIXTURE_BASE64),
+    FILE_BOX_FIXTURE_BASE64,
   )
   const EXPECTED_TEXT = '大可乐两个统一，冰红茶三箱。'
 
@@ -95,7 +95,7 @@ test('process non-audio(image) message ', async t => {
   const FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await FILE_BOX_FIXTURE_LOCAL.toBase64(), FILE_BOX_FIXTURE_LOCAL.name)
 
   const FILE_BOX_FIXTURE_EVENT = duckula.Event.FILE_BOX(
-    JSON.stringify(FILE_BOX_FIXTURE_BASE64),
+    FILE_BOX_FIXTURE_BASE64,
   )
 
   const mailbox = Mailbox.from(
