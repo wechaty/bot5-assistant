@@ -13,17 +13,17 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'Noticing',
-  events: [ { ...duck.Event, ...CQRS.commands }, [
-    'CONVERSATION',
-    'IDLE',
+  events: [ { ...duck.Event, ...CQRS.duck.actions }, [
+    /**
+     * Requests
+     */
     'NOTICE',
-    'SendMessageCommand',
+    'CONVERSATION',
   ] ],
   states: [ duck.State, [
-    'Idle',
     'Initializing',
+    'Idle',
     'Noticing',
-    'Responding',
   ] ],
   initialContext: ({}) as Context,
 })

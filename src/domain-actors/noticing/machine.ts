@@ -21,13 +21,13 @@ const machine = createMachine<
     [duckula.State.Initializing]: {
       always: duckula.State.Idle,
     },
+
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
         '*': {
-          // actions: actions.forwardTo(String(wechatyAddress)),
           target: duckula.State.Idle,  // enforce external transition
         },
         [duckula.Type.NOTICE]: duckula.State.Noticing,
@@ -42,35 +42,34 @@ const machine = createMachine<
         },
       },
     },
+
     [duckula.State.Noticing]: {
       entry: [
-        actions.log('duckula.State.noticing.entry', duckula.id),
-        actions.send(
-          (ctx, e) => isActionOf(duckula.Event.NOTICE, e) && ctx.conversationId
-            ? CQRS.commands.SendMessageCommand(
-              CQRS.uuid.NIL,
-              ctx.conversationId,
-              CQRS.sayables.text(
-                `【信使系统】${e.payload.notice}`,
+        actions.log('duckula.State.Noticing.entry', duckula.id),
+        actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event.NOTICE>>([
+          {
+            cond: ctx => !!ctx.conversationId,
+            actions: [
+              actions.send(
+                (ctx, e) => CQRS.commands.SendMessageCommand(
+                  CQRS.uuid.NIL,
+                  ctx.conversationId!,
+                  CQRS.sayables.text(
+                    `【系统通知】${e.payload.notice}`,
+                  ),
+                ),
+                { to: ctx => ctx.address!.wechaty },
               ),
-            )
-            : duckula.Event.IDLE('duckula.State.noticing.entry not NOTICE'),
-        ),
-      ],
-      on: {
-        [duckula.Type.IDLE]: duckula.State.Idle,
-        [duckula.Type.SendMessageCommand]: duckula.State.Responding,
-      },
-    },
-    [duckula.State.Responding]: {
-      entry: [
-        actions.send(
-          (_, e) => e,
-          { to: ctx => ctx.address!.wechaty },
-        ),
+            ],
+          },
+          {
+            actions: actions.log('duckula.State.Noticing.entry no conversationId', duckula.id),
+          },
+        ]),
       ],
       always: duckula.State.Idle,
     },
+
   },
 })
 
