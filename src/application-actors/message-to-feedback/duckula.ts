@@ -5,7 +5,8 @@ import * as CQRS      from 'wechaty-cqrs'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  address: {
+  talkerId?: string,
+  address?: {
     wechaty: string,
   }
 }
@@ -16,19 +17,22 @@ const duckula = Mailbox.duckularize({
     // request
     'MESSAGE',
     // response
+    'FEEDBACK',
+    // internal
     'TEXT',
     'GERROR',
-    // internal
     'FILE_BOX',
     'LOAD',
     'GET_MESSAGE_FILE_QUERY_RESPONSE',
   ] ],
   states: [ duck.State, [
-    'Idle',
-    'Recognizing',
-    'Responding',
     'Classifying',
+    'Erroring',
+    'Feedbacking',
+    'Idle',
     'Loading',
+    'Texting',
+    'Recognizing',
   ] ],
   initialContext: {} as Context,
 })

@@ -19,14 +19,35 @@ const machine = createMachine<
   initial: duckula.State.Idle,
   context: duckula.initialContext,
   states: {
+
+    /**
+     *
+     * Idle
+     *
+     *  1. receive MESSAGE -> transition to Classifying
+     *
+     */
     [duckula.State.Idle]: {
       entry: [
+        actions.assign({ talkerId: undefined }),
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        [duckula.Type.MESSAGE]: duckula.State.Classifying,
+        [duckula.Type.MESSAGE]: {
+          actions: actions.assign({
+            talkerId: (_, e) => e.payload.message.talkerId,
+          }),
+          target: duckula.State.Classifying,
+        },
       },
     },
+
+    /**
+     * Classifying
+     *
+     *  1. received MESSAGE -> TEXT / LOAD
+     */
+
     [duckula.State.Classifying]: {
       entry: [
         actions.choose([
@@ -44,15 +65,25 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.TEXT] : duckula.State.Responding,
+        [duckula.Type.TEXT] : duckula.State.Texting,
         [duckula.Type.LOAD] : duckula.State.Loading,
       },
     },
+
+    /**
+     * Load
+     *
+     *  1. received LOAD                            -> emit GET_MESSAGE_FILE_QUERY_RESPONSE
+     *  2. received GET_MESSAGE_FILE_QUERY_RESPONSE -> emit FILE_BOX / GERROR
+     *
+     *  3. received FILE_BOX -> transition to Recognizing
+     *  4. received GERROR   -> transition to Erroring
+     */
     [duckula.State.Loading]: {
       entry: [
         actions.send(
           (_, e) => CQRS.queries.GetMessageFileQuery(CQRS.uuid.NIL, (e as ReturnType<typeof duckula.Event['LOAD']>).payload.id),
-          { to: ctx => ctx.address.wechaty },
+          { to: ctx => ctx.address!.wechaty },
         ),
       ],
       on: {
@@ -70,7 +101,7 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.FILE_BOX] : duckula.State.Recognizing,
-        [duckula.Type.GERROR]   : duckula.State.Responding,
+        [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
     [duckula.State.Recognizing]: {
@@ -98,18 +129,47 @@ const machine = createMachine<
         onError: {
           actions: [
             actions.log((_, e) => `states.Recognizing.invoke.onError "${e.data}"`, duckula.id),
-            actions.send((_, e) => duckula.Event.TEXT(GError.stringify(e.data))),
+            actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
           ],
         },
       },
       on: {
-        [duckula.Type.TEXT]: duckula.State.Responding,
-        [duckula.Type.GERROR]: duckula.State.Responding,
+        [duckula.Type.TEXT]: duckula.State.Texting,
+        [duckula.Type.GERROR]: duckula.State.Erroring,
       },
     },
-    [duckula.State.Responding]: {
+
+    [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.Responding.entry "${JSON.stringify(e)}"`, duckula.id),
+        actions.send((ctx, e) =>
+          duckula.Event.FEEDBACK(
+            ctx.talkerId!,
+            (e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror,
+          ),
+        ),
+      ],
+      on: {
+        [duckula.Type.FEEDBACK]: duckula.State.Feedbacking,
+      },
+    },
+
+    [duckula.State.Texting]: {
+      entry: [
+        actions.send((ctx, e) =>
+          duckula.Event.FEEDBACK(
+            ctx.talkerId!,
+            (e as ReturnType<typeof duckula.Event.TEXT>).payload.text,
+          ),
+        ),
+      ],
+      on: {
+        [duckula.Type.FEEDBACK]: duckula.State.Feedbacking,
+      },
+    },
+
+    [duckula.State.Feedbacking]: {
+      entry: [
+        actions.log((_, e) => `states.Feedbacking.entry ${(e as ReturnType<typeof duckula.Event.FEEDBACK>).payload.feedback}`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

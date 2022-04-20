@@ -101,6 +101,7 @@ export const Noticing    = 'bot5-assistant/Noticing'
 export const Reporting   = 'bot5-assistant/Reporting'
 export const Parsing     = 'bot5-assistant/Parsing'
 export const Loading     = 'bot5-assistant/Loading'
+export const Texting     = 'bot5-assistant/Texting'
 
 /**
  * 吐槽：https://www.sohu.com/a/222322905_509197
