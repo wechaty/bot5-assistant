@@ -18,7 +18,7 @@ const machine = createMachine<
   states: {
     [duckula.State.Idle]: {
       entry: [
-        actions.log('states.idle.entry', duckula.id),
+        actions.log('states.Idle.entry', duckula.id),
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
