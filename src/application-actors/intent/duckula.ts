@@ -8,19 +8,25 @@ export interface Context {}
 const duckula = Mailbox.duckularize({
   id: 'Intent',
   events: [ duck.Event, [
-    // request
+    /**
+     * Request
+     */
     'TEXT',
-    // response
+    /**
+     * Response
+     */
     'INTENTS',
-    // internal
+    /**
+     * Internal
+     */
     'GERROR',
     'IDLE',
   ] ],
   states: [ duck.State, [
     'Idle',
-    'Recognizing',
     'Understanding',
-    'Responding',
+    'Understood',
+    'Erroring',
   ] ],
   initialContext: {} as Context,
 })

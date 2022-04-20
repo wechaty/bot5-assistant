@@ -89,10 +89,12 @@ export const Mentioning   = 'bot5-assistant/Mentioning'
 export const Registering  = 'bot5-assistant/Registering'
 export const Registered   = 'bot5-assistant/Registered'
 
-export const Saying       = 'bot5-assistant/Saying'
-export const Updating     = 'bot5-assistant/Updating'
-export const Confirming   = 'bot5-assistant/Confirming'
-export const Understanding = 'bot5-assistant/Understanding'
+export const Saying         = 'bot5-assistant/Saying'
+export const Updating       = 'bot5-assistant/Updating'
+export const Confirming     = 'bot5-assistant/Confirming'
+
+export const Understanding  = 'bot5-assistant/Understanding'
+export const Understood     = 'bot5-assistant/Understood'
 
 export const Introducing = 'bot5-assistant/Introducing'
 export const Selecting   = 'bot5-assistant/Selecting'

@@ -2,6 +2,7 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
+import { GError }                   from 'gerror'
 
 import * as duck            from '../../duck/mod.js'
 import { textToIntents }    from '../../services/text-to-intents.js'
@@ -16,6 +17,7 @@ const machine = createMachine<
   initial: duckula.State.Idle,
   context: duckula.initialContext,
   states: {
+
     [duckula.State.Idle]: {
       entry: [
         actions.log('states.Idle.entry', duckula.id),
@@ -26,6 +28,7 @@ const machine = createMachine<
         [duckula.Type.TEXT]: duckula.State.Understanding,
       },
     },
+
     [duckula.State.Understanding]: {
       entry: [
         actions.log((_, e) => `states.understanding.entry TEXT: "${(e as ReturnType<typeof duckula.Event['TEXT']>).payload.text}"`, duckula.id),
@@ -38,17 +41,25 @@ const machine = createMachine<
           actions: actions.send((_, e) => duckula.Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
         },
         onError: {
-          actions: [
-            actions.log((_, e) => `states.understanding.invoke.onError: ${e.data}`, duckula.id),
-            actions.send(duckula.Event.INTENTS([ duck.Intent.Unknown ])),
-          ],
+          actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
         },
       },
       on: {
-        [duckula.Type.INTENTS]: duckula.State.Responding,
+        [duckula.Type.INTENTS]: duckula.State.Understood,
       },
     },
-    [duckula.State.Responding]: {
+
+    [duckula.State.Erroring]: {
+      entry: [
+        actions.log((_, e) => `states.Erroring.entry ${(e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror}`, duckula.id),
+        actions.send(duckula.Event.INTENTS([ duck.Intent.Unknown ])),
+      ],
+      on: {
+        [duckula.Type.INTENTS]: duckula.State.Understood,
+      },
+    },
+
+    [duckula.State.Understood]: {
       entry: [
         actions.log((_, e) => `states.responding.entry [${e.type}](${(e as ReturnType<typeof duckula.Event['INTENTS']>).payload.intents})`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
@@ -58,6 +69,7 @@ const machine = createMachine<
         [duckula.Type.IDLE]: duckula.State.Idle,
       },
     },
+
   },
 })
 
