@@ -38,6 +38,9 @@ const machine = createMachine<
             cond: (_, e) => isActionOf(duckula.Event.MESSAGE, e) && e.payload.message.type === PUPPET.types.Message.Audio,
             actions: actions.send((_, e) => duckula.Event.LOAD((e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message.id)),
           },
+          {
+            actions: actions.send(duckula.Event.TEXT('')),
+          },
         ]),
       ],
       on: {
@@ -95,7 +98,7 @@ const machine = createMachine<
         onError: {
           actions: [
             actions.log((_, e) => `states.Recognizing.invoke.onError "${e.data}"`, duckula.id),
-            actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
+            actions.send((_, e) => duckula.Event.TEXT(GError.stringify(e.data))),
           ],
         },
       },

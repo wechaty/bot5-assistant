@@ -3,13 +3,11 @@
 import {
   AnyEventObject,
   createMachine,
-  EventObject,
   interpret,
 }                                       from 'xstate'
 import { test }                         from 'tstest'
 import * as Mailbox                     from 'mailbox'
-import { Observable, firstValueFrom }   from 'rxjs'
-import { filter, map, tap, mergeMap }                       from 'rxjs/operators'
+import { filter, map, mergeMap }        from 'rxjs/operators'
 import { isActionOf }                   from 'typesafe-actions'
 import * as CQRS                        from 'wechaty-cqrs'
 import path                             from 'path'
@@ -70,12 +68,12 @@ test('MessageToFeedback actor smoke testing', async t => {
     )) as FileBoxInterface
     const SIL_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await SIL_FILE_BOX_FIXTURE_LOCAL.toBase64(), SIL_FILE_BOX_FIXTURE_LOCAL.name)
     const SIL_EXPECTED_TEXT           = '大可乐两个统一，冰红茶三箱。'
-    const DAT_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await SIL_FILE_BOX_FIXTURE_LOCAL.toBase64(), 'test.dat')
+    const DAT_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64('aGVsbG8=', 'test.unknown')
 
     const FIXTURES = [
       [ 'hello world', 'hello world' ],
       [ SIL_FILE_BOX_FIXTURE_BASE64, SIL_EXPECTED_TEXT ],
-      // [ DAT_FILE_BOX_FIXTURE_BASE64, '' ],
+      [ DAT_FILE_BOX_FIXTURE_BASE64, '' ],
     ] as const
 
     for (const [ sayable, expectedText ] of FIXTURES) {
@@ -96,13 +94,13 @@ test('MessageToFeedback actor smoke testing', async t => {
       fixtures.mocker.player.say(sayable).to(fixtures.mocker.bot)
       await future
 
-      eventList.forEach(e => console.info(e))
+      // eventList.forEach(e => console.info(e))
       t.same(
         eventList.filter(isActionOf(duckula.Event.TEXT)),
         [
           duckula.Event.TEXT(expectedText),
         ],
-        `should get expected [TEXT(${expectedText})] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
+        `should get expected [TEXT("${expectedText}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )
     }
 
