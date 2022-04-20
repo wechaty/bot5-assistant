@@ -38,7 +38,7 @@ const clientConfig = {
 // 实例化要请求产品(以cvm为例)的client对象
 const client = new AsrClient(clientConfig)
 
-async function speechToText (
+export async function speechToText (
   fileBox?: FileBoxInterface | Promise<FileBoxInterface>,
 ): Promise<string> {
   if (!fileBox) {
@@ -58,6 +58,8 @@ async function speechToText (
     case 'sil':
       voiceFormat = 'silk'
       break
+    default:
+      throw new Error('ext not supported: ' + voiceFormat)
   }
 
   const req: SentenceRecognitionRequest = {
@@ -139,8 +141,4 @@ async function speechToText (
   // 通过client对象调用想要访问的接口，需要传入请求对象以及响应回调函数
   const data = await client.SentenceRecognition(req)
   return data.Result
-}
-
-export {
-  speechToText,
 }
