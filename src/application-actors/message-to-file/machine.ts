@@ -5,8 +5,8 @@ import { FileBox }                  from 'file-box'
 import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import duckula        from './duckula.js'
-import { fileTypes }  from './file-types.js'
+import duckula                from './duckula.js'
+import { fileMessageTypes }   from './file-message-types.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -45,7 +45,7 @@ const machine = createMachine<
       entry: [
         actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MESSAGE']>>([
           {
-            cond: (_, e) => fileTypes.includes(e.payload.message.type),
+            cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
             actions: actions.send((_, e) => duckula.Event.LOAD(e.payload.message.id)),
           },
           {

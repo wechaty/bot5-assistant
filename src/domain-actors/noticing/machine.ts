@@ -4,7 +4,6 @@
  *  @link https://github.com/wechaty/bot5-assistant
  */
 import { createMachine, actions }   from 'xstate'
-import { isActionOf }               from 'typesafe-actions'
 import * as CQRS                    from 'wechaty-cqrs'
 import * as Mailbox                 from 'mailbox'
 
