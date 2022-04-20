@@ -24,8 +24,8 @@ const machine = createMachine<
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        '*': duckula.State.Idle,
         [duckula.Type.TEXT]: duckula.State.Understanding,
+        '*': duckula.State.Idle,
       },
     },
 
