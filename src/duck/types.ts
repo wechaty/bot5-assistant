@@ -79,3 +79,4 @@ export const CONVERSATION = 'bot5-assistant/CONVERSATION'
 export const NOP = 'bot5-assistant/NOP'
 
 export const FILE_BOX = 'bot5-assistant/FILE_BOX'
+export const LOAD = 'bot5-assisstant/LOAD'

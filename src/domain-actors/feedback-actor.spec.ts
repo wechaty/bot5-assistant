@@ -27,7 +27,6 @@ import * as Mailbox       from 'mailbox'
 
 import * as duck          from '../duck/mod.js'
 import { audioFixtures }  from '../to-text/mod.js'
-import { isMailboxType }  from '../mailbox/duck.Type.js'
 
 import * as Feedback      from './feedback-actor.js'
 import { bot5Fixtures }   from './bot5-fixture.js'

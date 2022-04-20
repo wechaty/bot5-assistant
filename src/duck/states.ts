@@ -79,6 +79,9 @@ export const Inactive = 'bot5-assistant/Inactive'
 export const Recognizing  = 'bot5-assistant/Recognizing'
 export const Recognized   = 'bot5-assistant/Recognized'
 
+export const Classifying  = 'bot5-assisstant/Classifying'
+export const Classified   = 'bot5-assistant/Classified'
+
 export const Processing = 'bot5-assistant/Processing'
 export const Delivering = 'bot5-assistant/Delivering'
 

@@ -22,6 +22,7 @@ import type * as PUPPET   from 'wechaty-puppet'
 
 import { Type }         from './type-fancy-enum.js'
 import type { Intent }  from './intent-fancy-enum.js'
+import type { FileBoxInterface } from 'file-box'
 
 const payloadText      = (text: string)     => ({ text })
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
@@ -104,5 +105,8 @@ export const CONVERSATION = createAction(Type.CONVERSATION, payloadConversation)
 
 export const NOP = createAction(Type.NOP)()
 
-const payloadFileBox = (fileBox: string) => ({ fileBox })
+const payloadFileBox  = (fileBox: FileBoxInterface) => ({ fileBox })
 export const FILE_BOX = createAction(Type.FILE_BOX, payloadFileBox)()
+
+const payloadLoad = (id: string) => ({ id })
+export const LOAD = createAction(Type.LOAD, payloadLoad)()
