@@ -18,17 +18,26 @@ export interface Context {
 const duckula = Mailbox.duckularize({
   id: 'RegisterActor',
   events: [ { ...duck.Event, ...WechatyActor.Event }, [
+    /**
+     * Request
+     */
+    'MESSAGE',
+    'REPORT',
+    'RESET',
+    /**
+     * Response
+     */
     'CONTACTS',
+    /**
+     * Internal
+     */
     'GERROR',
     'IDLE',
     'INTRODUCE',
     'MENTION',
-    'MESSAGE',
     'NEXT',
-    'REPORT',
-    'RESET',
     'BATCH_RESPONSE',
-    'BATCH',
+    'BATCH_EXECUTE',
   ] ],
   states: [ duck.State, [
     'Confirming',
@@ -39,6 +48,8 @@ const duckula = Mailbox.duckularize({
     'Parsing',
     'Reporting',
     'Resetting',
+    'Introducing',
+    'Responding',
   ] ],
   initialContext: {
     message  : undefined,

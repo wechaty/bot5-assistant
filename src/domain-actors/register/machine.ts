@@ -15,45 +15,27 @@ const machine = createMachine<
 >({
   id: duckula.id,
   initial: duckula.State.Initializing,
-  preserveActionOrder: true,
-  on: {
-    /**
-     * Huan(202203): FIXME
-     *  process events outside of the `duckula.state.idle` state might block the MailBox
-     *  because it does not call `Mailbox.actions.idle(...)`?
-     */
-    [duckula.Type.RESET]: duckula.State.Resetting,
-    [duckula.Type.INTRODUCE]:{
-      actions: [
-        actions.send(
-          ctx => CQRS.commands.SendMessageCommand(
-            CQRS.uuid.NIL,
-            ctxRoomId(ctx),
-            CQRS.sayables.text(
-              [
-                '【注册系统】说用说明书：',
-                '请主席发送一条消息，同时一次性 @ 所有参会人员，即可完成参会活动人员注册。',
-                `当前注册人数：${Object.keys(ctx.contacts).length}`,
-              ].join(''),
-              Object.keys(ctx.chairs),
-            ),
-          ),
-          { to: ctx => ctx.address!.wechaty },
-        ),
-      ],
-    },
-  },
-  // preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
+  preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
   states: {
+
     [duckula.State.Initializing]: {
       always: duckula.State.Idle,
     },
+
+    /**
+     *
+     * Idle
+     *
+     *  1. received MESSAGE  -> transition to Parsing
+     *  2. received REPORT   -> transition to Reporting
+     *  3. received RESET    -> transition to Resetting
+     *
+     */
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        '*': duckula.State.Idle,
         [duckula.Type.MESSAGE]: {
           actions: [
             actions.log('states.idle.on.MESSAGE', duckula.id),
@@ -67,26 +49,43 @@ const machine = createMachine<
           ],
           target: duckula.State.Reporting,
         },
+        [duckula.Type.RESET]: duckula.State.Resetting,
+        '*': duckula.State.Idle,
       },
     },
+
+    /**
+     * 1. context.contacts.length > 0 -> emit CONTACTS
+     * 2. otherwise                   -> emit INTRODUCE
+     */
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `states.reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
+        actions.log(ctx => `states.Reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
         actions.choose<ReturnType<typeof duckula.initialContext>, any>([
           {
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
-              actions.log(_ => 'states.reporting.entry -> [CONTACTS]', duckula.id),
-              Mailbox.actions.reply(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
+              actions.log(_ => 'states.Reporting.entry -> [CONTACTS]', duckula.id),
+              actions.send(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
             actions: [
-              actions.log(_ => 'states.reporting.entry ctx.contacts is empty', duckula.id),
+              actions.log(_ => 'states.Reporting.entry ctx.contacts is empty', duckula.id),
               actions.send(duckula.Event.INTRODUCE()),
             ],
           },
         ]),
+      ],
+      on: {
+        [duckula.Type.CONTACTS]: duckula.State.Responding,
+        [duckula.Type.INTRODUCE]: duckula.State.Introducing,
+      },
+    },
+
+    [duckula.State.Responding]: {
+      entry: [
+        Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
     },
@@ -94,7 +93,10 @@ const machine = createMachine<
     [duckula.State.Resetting]: {
       entry: [
         actions.log('states.resetting.entry', duckula.id),
-        actions.assign(_ => duckula.initialContext()),
+        actions.assign(ctx => ({
+          ...ctx,
+          ...duckula.initialContext(),
+        })),
       ],
       always: duckula.State.Initializing,
     },
@@ -115,7 +117,7 @@ const machine = createMachine<
             const messagePayload = (e as ReturnType<typeof duckula.Event['MESSAGE']>).payload.message
             const mentionIdList = (messagePayload as PUPPET.payloads.MessageRoom).mentionIdList || []
 
-            return duckula.Event.BATCH(
+            return duckula.Event.BATCH_EXECUTE(
               mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
                 CQRS.uuid.NIL,
                 id,
@@ -140,11 +142,14 @@ const machine = createMachine<
               ']#',
               e.payload.responseList.length,
             ].join(''), duckula.id),
-            actions.send((_, e) => duckula.Event.MENTION(e.payload.responseList
-              .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
-              .map(response => response.payload.contact)
-              .filter(Boolean) as PUPPET.payloads.Contact[],
-            )),
+            actions.send((_, e) =>
+              duckula.Event.MENTION(
+                e.payload.responseList
+                  .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
+                  .map(response => response.payload.contact)
+                  .filter(Boolean) as PUPPET.payloads.Contact[],
+              ),
+            ),
           ],
         },
         [duckula.Type.GERROR]: duckula.State.Erroring,
@@ -194,16 +199,36 @@ const machine = createMachine<
           {
             actions: [
               actions.send(duckula.Event.INTRODUCE()),
-              actions.send(duckula.Event.IDLE()),
             ],
           },
         ]),
       ],
       on: {
-        [duckula.Type.REPORT]: duckula.State.Reporting,
-        [duckula.Type.IDLE]:   duckula.State.Idle,
+        [duckula.Type.REPORT]    : duckula.State.Reporting,
+        [duckula.Type.INTRODUCE] : duckula.State.Introducing,
       },
       // TODO: ask 'do you need to edit the list?' with 60 seconds timeout with default N
+    },
+
+    [duckula.State.Introducing]: {
+      entry: [
+        actions.send(
+          ctx => CQRS.commands.SendMessageCommand(
+            CQRS.uuid.NIL,
+            ctxRoomId(ctx),
+            CQRS.sayables.text(
+              [
+                '【注册系统】说用说明书：',
+                '请主席发送一条消息，同时一次性 @ 所有参会人员，即可完成参会活动人员注册。',
+                `当前注册人数：${Object.keys(ctx.contacts).length}`,
+              ].join(''),
+              Object.keys(ctx.chairs),
+            ),
+          ),
+          { to: ctx => ctx.address!.wechaty },
+        ),
+      ],
+      always: duckula.State.Idle,
     },
 
     [duckula.State.Erroring]: {

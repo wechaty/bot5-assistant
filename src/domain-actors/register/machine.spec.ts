@@ -122,7 +122,7 @@ test('registerMachine smoke testing', async t => {
       duckula.Type.NEXT,
       duckula.Type.INTRODUCE,
       duckula.Type.IDLE,
-      WechatyActor.Type.RESPONSE,
+      CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
     ], 'should be BATCH_RESPONSE, INTRODUCE, IDLE, RESPONSE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -178,8 +178,8 @@ test('registerMachine smoke testing', async t => {
       duckula.Type.MENTION,
       duckula.Type.NEXT,
       duckula.Type.REPORT,
-      WechatyActor.Type.RESPONSE,
-    ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, RESPONSE event')
+      CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
+    ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, SEND_MESSAGE_COMMAND_RESPONSE event')
     t.same(
       Object.values(registerContext().contacts).map(c => c.id),
       MENTION_LIST.map(c =>  c.id),
