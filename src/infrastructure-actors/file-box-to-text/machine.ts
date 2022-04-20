@@ -44,13 +44,23 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.TEXT]: duckula.State.Responding,
-        [duckula.Type.GERROR]: duckula.State.Responding,
+        [duckula.Type.TEXT]   : duckula.State.Texting,
+        [duckula.Type.GERROR] : duckula.State.Erroring,
       },
     },
-    [duckula.State.Responding]: {
+
+    [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.Responding.entry "${JSON.stringify(e)}"`, duckula.id),
+        actions.send((_, e) => duckula.Event.TEXT((e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror)),
+      ],
+      on: {
+        [duckula.Type.TEXT]: duckula.State.Texting,
+      },
+    },
+
+    [duckula.State.Texting]: {
+      entry: [
+        actions.log((_, e) => `states.Texting.entry "${JSON.stringify(e)}"`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

@@ -64,7 +64,7 @@
     "utility-types": "^3.10.0",
     "wechaty": "^1.18.1",
     "wechaty-mocker": "^1.11.3",
-    "wechaty-puppet-mock": "^1.18.2",
+    "wechaty-puppet-mock": "^1.19.2",
     "ws": "^8.5.0"
   },
   "peerDependencies": {

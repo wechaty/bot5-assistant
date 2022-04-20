@@ -24,7 +24,9 @@ const duckula = Mailbox.duckularize({
   states: [ duck.State, [
     'Idle',
     'Recognizing',
+    'Erroring',
     'Responding',
+    'Texting',
   ] ],
   initialContext: ({}),
 })
