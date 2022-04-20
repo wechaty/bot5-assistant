@@ -1,8 +1,8 @@
-export const Idle = 'wechaty-actor/idle'
-// export const busy = 'wechaty-actor/busy'
+export const Idle         = 'wechaty-actor/Idle'
+export const Classifying  = 'wechaty-actor/Preparing'
 
-export const Preparing  = 'wechaty-actor/preparing'
-export const Executing  = 'wechaty-actor/executing'
-export const Responding = 'wechaty-actor/responding'
+export const Executing  = 'wechaty-actor/Executing'
+export const Responding = 'wechaty-actor/Responding'
 
-export const Batching  = 'wechaty-actor/batching'
+export const Batching         = 'wechaty-actor/Batching'
+export const BatchResponding  = 'wechaty-actor/BatchResponding'

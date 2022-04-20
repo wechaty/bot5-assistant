@@ -38,8 +38,8 @@ export const RESPONSE = createAction(types.RESPONSE, payloadResponse)()
 /**
  * Batched
  */
-const payloadBatch = (commandQueryList: CommandQuery[]) => ({ commandQueryList })
-export const BATCH = createAction(types.BATCH, payloadBatch)()
+const payloadBatchExecute   = (commandQueryList: CommandQuery[]) => ({ commandQueryList })
+export const BATCH_EXECUTE  = createAction(types.BATCH_EXECUTE, payloadBatchExecute)()
 
 const payloadBatchResponse = (responseList: ResponseEvent[]) => ({ responseList })
 export const BATCH_RESPONSE = createAction(types.BATCH_RESPONSE, payloadBatchResponse)()

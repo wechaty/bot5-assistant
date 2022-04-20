@@ -245,7 +245,78 @@ test('wechatyMachine isLoggedIn & currentUserId & authQrCode', async t => {
 
 })
 
-test('wechatyMachine BATCH events', async t => {
+test('wechatyMachine EXECUTE & RESPONSE events', async t => {
+  for await (const {
+    wechaty: {
+      wechaty,
+    },
+  } of createFixture()) {
+
+    const bus$ = CQRS.from(wechaty)
+    const puppetId = wechaty.puppet.id
+
+    const wechatyMailbox = Mailbox.from(
+      machine.withContext({
+        bus$,
+        puppetId: wechaty.puppet.id,
+      }),
+    )
+
+    wechatyMailbox.open()
+
+    const testMachine = createMachine({
+      id: 'testMachine',
+      on: {
+        '*': {
+          actions: wechatyMailbox.address.send((_, e) => e),
+        },
+      },
+    })
+
+    const eventList: AnyEventObject[] = []
+    const interpreter = interpret(testMachine)
+      .onEvent(e => eventList.push(e))
+      .start()
+
+    const future = new Promise<InstanceType<typeof CQRS.responses.GetIsLoggedInQueryResponse>>(
+      resolve => interpreter.onEvent(
+        e => {
+          // console.info('onEvent', e)
+          if (isActionOf(CQRS.responses.GetIsLoggedInQueryResponse, e)) {
+            resolve(e)
+          }
+        },
+      ),
+    )
+
+    const query = CQRS.queries.GetIsLoggedInQuery(puppetId)
+
+    interpreter.send(query)
+
+    const EXPECTED = CQRS.responses.GetIsLoggedInQueryResponse({
+      ...query.meta,
+      isLoggedIn: true,
+    })
+
+    // await new Promise(resolve => setTimeout(resolve, 100))
+    // console.info(eventList)
+
+    const response = await future
+
+    // console.info('###', response)
+
+    t.same(
+      JSON.parse(JSON.stringify(response)),
+      JSON.parse(JSON.stringify(EXPECTED)),
+      'should get CQRS.responses.GetIsLoggedInQueryResponse response from CQRS.queries.GetIsLoggedInQuery',
+    )
+
+    interpreter.stop()
+  }
+
+})
+
+test('wechatyMachine BATCH_EXECUTE & BATCH_RESPONSE events', async t => {
   for await (const {
     wechaty: {
       wechaty,
@@ -291,7 +362,7 @@ test('wechatyMachine BATCH events', async t => {
     )
 
     interpreter.send(
-      duck.Event.BATCH([
+      duck.Event.BATCH_EXECUTE([
         CQRS.queries.GetIsLoggedInQuery(puppetId),
         CQRS.queries.GetCurrentUserIdQuery(puppetId),
         CQRS.queries.GetAuthQrCodeQuery(puppetId),
@@ -310,7 +381,7 @@ test('wechatyMachine BATCH events', async t => {
     ])
 
     // await new Promise(resolve => setTimeout(resolve, 100))
-    // console.info(eventList)
+    // eventList.forEach(e => console.info(e))
 
     const response = await future
     response.payload.responseList.forEach(r => { 'id' in r.meta && (r.meta.id = CQRS.uuid.NIL) })

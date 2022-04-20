@@ -42,14 +42,32 @@ const machine = createMachine<
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
-        // '*': duckula.State.idle, // must have a external transition for all events to trigger the Mailbox state transition
-        '*': duckula.State.Preparing,
+        /**
+         * Wechaty Actor accepts and responses:
+         *
+         *  1. CQRS.commands.* & CQRS.queries.*
+         *  2. BATCH()
+         */
+        '*': duckula.State.Classifying,
       },
     },
 
-    [duckula.State.Preparing]: {
+    /**
+     *
+     * Classifying EVENTs
+     *
+     * 1. received CQRS.commands.* & CQRS.queries.*  -> emit EXECUTE
+     * 2. received BATCH_EXECUTE                     -> emit BATCH_EXECUTE
+     * 3. '*'                                        -> emit IDLE
+     *
+     * 4. received EXECUTE        -> tarnsit to Executing
+     * 5. received BATCH_EXECUTE  -> transit to Executing
+     * 6. received IDLE           -> transit to Idle
+     *
+     */
+    [duckula.State.Classifying]: {
       entry: [
-        actions.log('State.Preparing.entry', duckula.id),
+        actions.log('State.Classifying.entry', duckula.id),
         actions.choose([
           {
             cond: (_, e) => CQRS.is(
@@ -60,32 +78,39 @@ const machine = createMachine<
               e,
             ),
             actions: [
-              actions.log((_, e) => `State.Preparing.entry found Command/Query [${e.type}]`, duckula.id),
+              actions.log((_, e) => `State.Classifying.entry found Command/Query [${e.type}]`, duckula.id),
               actions.send((_, e) => duckula.Event.EXECUTE(e as CommandQuery)),
             ],
           },
           {
-            cond: (_, e) => isActionOf(duckula.Event.BATCH, e),
+            cond: (_, e) => isActionOf(duckula.Event.BATCH_EXECUTE, e),
             actions: [
-              actions.log('State.Preparing.entry found BATCH', duckula.id),
+              actions.log('State.Classifying.entry found BATCH', duckula.id),
               actions.send((_, e) => e), // <- duckula.Event.batch / types.BATCH
             ],
           },
           {
             actions: [
-              actions.log((_, e) => `State.Preparing.entry neither BATCH nor Command/Query, ignore [${e.type}]`, duckula.id),
+              actions.log((_, e) => `State.Classifying.entry neither BATCH nor Command/Query, ignore [${e.type}]`, duckula.id),
               actions.send(duckula.Event.IDLE()),
             ],
           },
         ]),
       ],
       on: {
-        [duckula.Type.IDLE]    : duckula.State.Idle,
-        [duckula.Type.EXECUTE] : duckula.State.Executing,
-        [duckula.Type.BATCH]   : duckula.State.Batching,
+        [duckula.Type.IDLE]          : duckula.State.Idle,
+        [duckula.Type.EXECUTE]       : duckula.State.Executing,
+        [duckula.Type.BATCH_EXECUTE] : duckula.State.Batching,
       },
     },
 
+    /**
+     *
+     * Execute CQRS.commands.* & CQRS.queries.*
+     *
+     * 1. received EXECUTE -> emit RESPONSE
+     *
+     */
     [duckula.State.Executing]: {
       entry: [
         actions.log((_, e) => [
@@ -117,20 +142,42 @@ const machine = createMachine<
       },
     },
 
+    /**
+     *
+     * Response CQRS.commands.* & CQRS.queries.*
+     *
+     * Unwrap the RESPONSE and emit CQRS.responses.*
+     *  1. received RESPONSE -> emit [RESPONSE].payload.response
+     *  2. transit to Idle
+     *
+     */
+    [duckula.State.Responding]: {
+      entry: [
+        actions.log((_, e) => `State.Responding.entry RESPONSE [${(e as ReturnType<typeof duckula.Event.RESPONSE>).payload.response.type}]`, duckula.id),
+        Mailbox.actions.reply((_, e) => (e as ReturnType<typeof duckula.Event.RESPONSE>).payload.response),
+      ],
+      always: duckula.State.Idle,
+    },
+
+    /**
+     *
+     * Batch Execute CQRS.commands.* & CQRS.queries.*
+     *
+     */
     [duckula.State.Batching]: {
       entry: [
         actions.log((_, e) => [
           'State.Batching.entry BATCH [',
           [
             ...new Set(
-              (e as ReturnType<typeof duckula.Event['BATCH']>)
+              (e as ReturnType<typeof duckula.Event['BATCH_EXECUTE']>)
                 .payload
                 .commandQueryList
                 .map(cq => cq.type),
             ),
           ].join(','),
           ']#',
-          (e as ReturnType<typeof duckula.Event['BATCH']>)
+          (e as ReturnType<typeof duckula.Event['BATCH_EXECUTE']>)
             .payload
             .commandQueryList
             .length,
@@ -153,22 +200,25 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.BATCH_RESPONSE]: duckula.State.Responding,
+        [duckula.Type.BATCH_RESPONSE]: duckula.State.BatchResponding,
       },
     },
 
-    [duckula.State.Responding]: {
+    /**
+     *
+     * Batch Response CQRS.commands.* & CQRS.queries.*
+     *
+     */
+    [duckula.State.BatchResponding]: {
       entry: [
         actions.log((_, e) => [
-          `State.Responding.entry ${e.type} [`,
-          CQRS.is(duckula.Event.RESPONSE, e)
-            ? e.payload.response.type
-            : CQRS.is(duckula.Event.BATCH_RESPONSE, e)
-              ? [ ...new Set(
-                  e.payload.responseList
-                    .map(r => r.type),
-                ) ].join(',')
-              : e.type,
+          `State.BatchResponding.entry ${e.type} [`,
+          CQRS.is(duckula.Event.BATCH_RESPONSE, e)
+            ? [ ...new Set(
+                e.payload.responseList
+                  .map(r => r.type),
+              ) ].join(',')
+            : e.type,
           ']',
         ].join(''), duckula.id),
         Mailbox.actions.reply((_, e) => e),
