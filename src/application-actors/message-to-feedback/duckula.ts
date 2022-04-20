@@ -14,11 +14,17 @@ export interface Context {
 const duckula = Mailbox.duckularize({
   id: 'MessageToFeedback',
   events: [ { ...duck.Event, ...CQRS.duck.actions }, [
-    // request
+    /**
+     * Request
+     */
     'MESSAGE',
-    // response
+    /**
+     * Response
+     */
     'FEEDBACK',
-    // internal
+    /**
+     * Internal
+     */
     'TEXT',
     'GERROR',
     'FILE_BOX',
