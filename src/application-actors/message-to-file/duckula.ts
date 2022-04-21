@@ -21,10 +21,10 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'FILE_BOX',
+    'GERROR',
     /**
      * Internal
      */
-    'GERROR',
     'LOAD',
     'GET_MESSAGE_FILE_QUERY_RESPONSE',
   ] ],
@@ -33,7 +33,7 @@ const duckula = Mailbox.duckularize({
     'Idle',
     'Loading',
     'Messaging',
-    'FileBoxing',
+    'Responding',
   ] ],
   initialContext: {} as Context,
 })

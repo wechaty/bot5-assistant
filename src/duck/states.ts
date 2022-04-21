@@ -105,7 +105,6 @@ export const Parsing     = 'bot5-assistant/Parsing'
 export const Loading     = 'bot5-assistant/Loading'
 export const Texting     = 'bot5-assistant/Texting'
 export const Messaging   = 'bot5-assistant/Messaging'
-export const FileBoxing  = 'bot5-assistant/FileBoxing'
 
 /**
  * 吐槽：https://www.sohu.com/a/222322905_509197

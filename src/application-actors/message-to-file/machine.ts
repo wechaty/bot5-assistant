@@ -65,7 +65,7 @@ const machine = createMachine<
      *  1. received LOAD                            -> emit GET_MESSAGE_FILE_QUERY_RESPONSE
      *  2. received GET_MESSAGE_FILE_QUERY_RESPONSE -> emit FILE_BOX / GERROR
      *
-     *  3. received FILE_BOX -> transition to FileBoxing
+     *  3. received FILE_BOX -> transition to Responding
      *  4. received GERROR   -> transition to Erroring
      */
     [duckula.State.Loading]: {
@@ -84,12 +84,12 @@ const machine = createMachine<
             actions.send((_, e) => duckula.Event.FILE_BOX(FileBox.fromJSON(e.payload.file!))),
           ],
         },
-        [duckula.Type.FILE_BOX] : duckula.State.FileBoxing,
+        [duckula.Type.FILE_BOX] : duckula.State.Responding,
         [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
 
-    [duckula.State.FileBoxing]: {
+    [duckula.State.Responding]: {
       entry: [
         Mailbox.actions.reply((_, e) => e),
       ],
@@ -98,22 +98,9 @@ const machine = createMachine<
 
     [duckula.State.Erroring]: {
       entry: [
-        actions.send((_, e) =>
-          duckula.Event.FILE_BOX(
-            FileBox.fromBase64(
-              Buffer.from(
-                (e as ReturnType<typeof duckula.Event.GERROR>)
-                  .payload
-                  .gerror,
-              ).toString('base64'),
-              'gerror.txt',
-            ),
-          ),
-        ),
+        Mailbox.actions.reply((_, e) => e),
       ],
-      on: {
-        [duckula.Type.FILE_BOX]: duckula.State.FileBoxing,
-      },
+      always: duckula.State.Idle,
     },
 
   },

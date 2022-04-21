@@ -66,17 +66,20 @@ test('MessageToFile actor smoke testing', async t => {
     )
 
     const FIXTURES = [
-      [ 'hello world', FileBox.fromBase64('TWVzc2FnZSB0eXBlICJUZXh0IiBpcyBub3Qgc3VwcG9ydGVkIGJ5IHRoZSBtZXNzYWdlVG9GaWxlQm94IGFjdG9y', 'gerror.txt') ],
-      [ FILE_BOX_FIXTURE, FILE_BOX_FIXTURE ],
+      [ 'hello world', duckula.Event.GERROR('Message type "Text" is not supported by the messageToFileBox actor') ],
+      [ FILE_BOX_FIXTURE, duckula.Event.FILE_BOX(FILE_BOX_FIXTURE) ],
     ] as const
 
-    for (const [ sayable, expectedFileBox ] of FIXTURES) {
+    for (const [ sayable, expected ] of FIXTURES) {
 
       eventList.length = 0
 
       const future = new Promise(resolve =>
         interpreter.onEvent(e =>
-          isActionOf(duckula.Event.FILE_BOX, e) && resolve(e),
+          isActionOf([
+            duckula.Event.FILE_BOX,
+            duckula.Event.GERROR,
+          ], e) && resolve(e),
         ),
       )
 
@@ -86,12 +89,12 @@ test('MessageToFile actor smoke testing', async t => {
       // eventList.forEach(e => console.info(e))
       t.same(
         eventList
-          .filter(isActionOf(duckula.Event.FILE_BOX))
-          .map(e => JSON.stringify(e)),
+          .filter(isActionOf([ duckula.Event.FILE_BOX, duckula.Event.GERROR ]))
+          .map(e => JSON.parse(JSON.stringify(e))),
         [
-          JSON.stringify(duckula.Event.FILE_BOX(expectedFileBox)),
+          JSON.parse(JSON.stringify(expected)),
         ],
-        `should get expected [FILE_BOX("${expectedFileBox.name}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
+        `should get expected "${expected}" for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )
     }
 
