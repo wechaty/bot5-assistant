@@ -18,8 +18,9 @@
  *
  */
 
-export const NOP  = 'wechaty-actor/NOP'
-export const IDLE = 'wechaty-actor/IDLE'
+export const NOP    = 'wechaty-actor/NO P'
+export const IDLE   = 'wechaty-actor/IDLE'
+export const GERROR = 'wechaty-actor/GERROR'
 
 export const EXECUTE  = 'wechaty-actor/EXECUTE'
 export const RESPONSE = 'wechaty-actor/RESPONSE'

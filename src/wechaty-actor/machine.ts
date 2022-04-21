@@ -125,20 +125,15 @@ const machine = createMachine<
       invoke: {
         src: 'execute',
         onDone: {
-          actions: [
-            actions.send((_, e) => duckula.Event.RESPONSE(e.data)),
-          ],
+          actions: actions.send((_, e) => duckula.Event.RESPONSE(e.data)),
         },
         onError: {
-          actions: [
-            actions.send((ctx: any, e) => duckula.Event.RESPONSE(
-              CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
-            )),
-          ],
+          actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
         },
       },
       on: {
-        [duckula.Type.RESPONSE]: duckula.State.Responding,
+        [duckula.Type.RESPONSE] : duckula.State.Responding,
+        [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
 
@@ -186,21 +181,15 @@ const machine = createMachine<
       invoke: {
         src: 'batch',
         onDone: {
-          actions: [
-            actions.send((_, e) => duckula.Event.BATCH_RESPONSE(e.data)),
-          ],
+          actions: actions.send((_, e) => duckula.Event.BATCH_RESPONSE(e.data)),
         },
         onError: {
-          actions: [
-            actions.send((ctx: any, e) => duckula.Event.BATCH_RESPONSE([
-              // TODO: how to make the length the same as the batached request?
-              CQRS.events.ErrorReceivedEvent(ctx.puppetId, { data: GError.stringify(e.data) }),
-            ])),
-          ],
+          actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),
         },
       },
       on: {
-        [duckula.Type.BATCH_RESPONSE]: duckula.State.BatchResponding,
+        [duckula.Type.BATCH_RESPONSE] : duckula.State.BatchResponding,
+        [duckula.Type.GERROR]         : duckula.State.Erroring,
       },
     },
 
@@ -221,6 +210,13 @@ const machine = createMachine<
             : e.type,
           ']',
         ].join(''), duckula.id),
+        Mailbox.actions.reply((_, e) => e),
+      ],
+      always: duckula.State.Idle,
+    },
+
+    [duckula.State.Erroring]: {
+      entry: [
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

@@ -11,8 +11,32 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'WechatyActor',
-  events: duck.Event,
-  states: duck.State,
+  events: [ duck.Event, [
+    /**
+     * Request
+     */
+    'EXECUTE',
+    'BATCH_EXECUTE',
+    /**
+     * Response
+     */
+    'RESPONSE',
+    'BATCH_RESPONSE',
+    'GERROR',
+    /**
+     * Internal
+     */
+    'IDLE',
+  ] ],
+  states: [ duck.State, [
+    'Idle',
+    'Classifying',
+    'Erroring',
+    'Executing',
+    'Responding',
+    'Batching',
+    'BatchResponding',
+  ] ],
   initialContext: {} as Context,
 })
 

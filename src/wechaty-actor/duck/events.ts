@@ -27,6 +27,12 @@ export const NOP  = createAction(types.NOP)()
 export const IDLE = createAction(types.IDLE)()
 
 /**
+ * Error
+ */
+const payloadGError = (gerror: string) => ({ gerror })
+export const GERROR = createAction(types.EXECUTE, payloadGError)()
+
+/**
  * Execute
  */
 const payloadExecute = (commandQuery: CommandQuery) => ({ commandQuery })

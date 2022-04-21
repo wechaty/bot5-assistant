@@ -396,3 +396,7 @@ test('wechatyMachine BATCH_EXECUTE & BATCH_RESPONSE events', async t => {
   }
 
 })
+
+test('TODO: add a GERROR test', async t => {
+  await t.skip('TBW')
+})
