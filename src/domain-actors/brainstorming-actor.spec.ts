@@ -21,7 +21,7 @@ import { WebSocketServer }  from 'ws'
 import type * as Mailbox    from 'mailbox'
 
 import * as duck              from '../duck/mod.js'
-import { audioFixtures }      from '../to-text/mod.js'
+import { audioFixtures }      from '../infrastructure-actors/file-to-text/lib/mod.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 
 import * as Brainstorming   from './brainstorming-actor.js'

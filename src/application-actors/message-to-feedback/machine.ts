@@ -7,7 +7,7 @@ import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
 
-import { speechToText }   from '../../to-text/mod.js'
+import { speechToText }   from '../../infrastructure-actors/file-to-text/lib/mod.js'
 
 import duckula from './duckula.js'
 

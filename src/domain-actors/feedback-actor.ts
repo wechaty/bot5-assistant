@@ -6,7 +6,7 @@ import { GError }                   from 'gerror'
 import * as Mailbox                 from 'mailbox'
 
 import * as duck            from '../duck/mod.js'
-import { messageToText }    from '../to-text/mod.js'
+import { messageToText }    from '../infrastructure-actors/file-to-text/lib/mod.js'
 
 import * as actors  from './mod.js'
 

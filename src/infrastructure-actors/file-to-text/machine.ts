@@ -13,6 +13,7 @@ const machine = createMachine<
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
+  context: duckula.initialContext,
   states: {
     [duckula.State.Idle]: {
       entry: [

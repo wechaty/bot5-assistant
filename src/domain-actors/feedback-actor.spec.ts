@@ -26,7 +26,7 @@ import type { mock }      from 'wechaty-puppet-mock'
 import * as Mailbox       from 'mailbox'
 
 import * as duck          from '../duck/mod.js'
-import { audioFixtures }  from '../to-text/mod.js'
+import { audioFixtures }  from '../infrastructure-actors/file-to-text/lib/mod.js'
 
 import * as Feedback      from './feedback-actor.js'
 import { bot5Fixtures }   from './bot5-fixture.js'
