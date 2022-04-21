@@ -3,7 +3,7 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
 
-import { speechToText }   from '../../to-text/mod.js'
+import { speechToText }   from './lib/mod.js'
 
 import duckula          from './duckula.js'
 

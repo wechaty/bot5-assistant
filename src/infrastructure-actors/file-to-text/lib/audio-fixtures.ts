@@ -12,7 +12,7 @@ const getSilk = async () => {
   const EXPECTED_TEXT = '大可乐两个统一，冰红茶三箱。'
   const base64 = await FileBox.fromFile(path.join(
     __dirname,
-    '../../tests/fixtures/sample.sil',
+    '../../../../tests/fixtures/sample.sil',
   )).toBase64()
 
   const FILE_BOX = FileBox.fromBase64(base64, 'sample.sil') as FileBoxInterface
