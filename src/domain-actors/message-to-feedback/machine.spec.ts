@@ -73,7 +73,7 @@ test('MessageToFeedback actor smoke testing', async t => {
     const FIXTURES = [
       [ 'hello world', 'hello world' ],
       [ SIL_FILE_BOX_FIXTURE_BASE64, SIL_EXPECTED_TEXT ],
-      [ DAT_FILE_BOX_FIXTURE_BASE64, '' ],
+      [ DAT_FILE_BOX_FIXTURE_BASE64, 'Message type "Unknown" is not supported by the messageToFileBox actor' ],
     ] as const
 
     for (const [ sayable, expectedText ] of FIXTURES) {
