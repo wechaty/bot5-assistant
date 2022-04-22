@@ -95,7 +95,7 @@ export const CHECK = createAction(Type.CHECK)()
 export const PROCESS = createAction(Type.PROCESS)()
 export const PARSE = createAction(Type.PARSE)()
 
-const payloadNotice = (notice: string) => ({ notice })
+const payloadNotice = (notice: string, mentions: string[] = []) => ({ mentions, notice })
 export const NOTICE = createAction(Type.NOTICE, payloadNotice)()
 
 export const MINUTE = createAction(Type.MINUTE, payloadMinute)()

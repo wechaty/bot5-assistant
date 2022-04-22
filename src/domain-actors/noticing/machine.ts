@@ -55,9 +55,10 @@ const machine = createMachine<
                   ctx.conversationId!,
                   CQRS.sayables.text(
                     `【系统通知】${e.payload.notice}`,
+                    e.payload.mentions,
                   ),
                 ),
-                { to: ctx => ctx.address!.wechaty },
+                { to: ctx => ctx.address.wechaty },
               ),
             ],
           },

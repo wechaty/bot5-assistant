@@ -74,13 +74,13 @@
   "dependencies": {
     "file-box": "^1.4.15",
     "lru-cache": "^7.5.0",
-    "mailbox": "^0.7.10",
+    "mailbox": "^0.7.14",
     "request": "^2.88.2",
     "tencentcloud-sdk-nodejs": "^4.0.306",
     "typed-inject": "^3.0.1",
     "typesafe-actions": "^5.1.0",
     "uuid": "^8.3.2",
-    "wechaty-cqrs": "^0.15.2",
+    "wechaty-cqrs": "^0.15.4",
     "xstate": "^4.31.0"
   },
   "git": {

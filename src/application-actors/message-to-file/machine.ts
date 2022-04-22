@@ -5,7 +5,7 @@ import { FileBox }                  from 'file-box'
 import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import duckula                from './duckula.js'
+import duckula, { Context }   from './duckula.js'
 import { fileMessageTypes }   from './file-message-types.js'
 
 const machine = createMachine<
@@ -47,10 +47,13 @@ const machine = createMachine<
     [duckula.State.Classifying]: {
       entry: [
         actions.log('state.Classifying.entry', duckula.id),
-        actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MESSAGE']>>([
+        actions.choose<
+          Context,
+          ReturnType<typeof duckula.Event['MESSAGE']>
+        >([
           {
             cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
-            actions: actions.send((_, e) => duckula.Event.LOAD(e.payload.message.id)),
+            actions: actions.send((_, e) => e),
           },
           {
             actions: actions.send((_, e) => duckula.Event.GERROR(`Message type "${PUPPET.types.Message[e.payload.message.type]}" is not supported by the messageToFileBox actor`)),
@@ -58,15 +61,15 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.LOAD]   : duckula.State.Loading,
-        [duckula.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.MESSAGE] : duckula.State.Loading,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 
     /**
      * Load
      *
-     *  1. received LOAD                            -> emit GET_MESSAGE_FILE_QUERY_RESPONSE
+     *  1. received MESSAGE                         -> emit GET_MESSAGE_FILE_QUERY_RESPONSE
      *  2. received GET_MESSAGE_FILE_QUERY_RESPONSE -> emit FILE_BOX / GERROR
      *
      *  3. received FILE_BOX -> transition to Responding
@@ -75,17 +78,23 @@ const machine = createMachine<
     [duckula.State.Loading]: {
       entry: [
         actions.log('state.Loading.entry', duckula.id),
-        actions.send(
-          (_, e) => CQRS.queries.GetMessageFileQuery(
+        actions.send<Context, ReturnType<typeof duckula.Event['MESSAGE']>>(
+          (_, e) => CQRS.duck.actions.GET_MESSAGE_FILE_QUERY(
             CQRS.uuid.NIL,
-            (e as ReturnType<typeof duckula.Event['LOAD']>).payload.id,
+            e.payload.message.id,
           ),
-          { to: ctx => ctx.address!.wechaty },
+          { to: ctx => ctx.address.wechaty },
         ),
       ],
       on: {
+        '*': {
+          actions: [
+            actions.log((_, e) => `state.Loading.on.* ${JSON.stringify(e)}`, duckula.id),
+          ],
+        },
         [duckula.Type.GET_MESSAGE_FILE_QUERY_RESPONSE]: {
           actions: [
+            actions.log('state.Loading.on.GET_MESSAGE_FILE_QUERY_RESPONSE', duckula.id),
             actions.send((_, e) => duckula.Event.FILE_BOX(FileBox.fromJSON(e.payload.file!))),
           ],
         },
@@ -96,7 +105,7 @@ const machine = createMachine<
 
     [duckula.State.Responding]: {
       entry: [
-        actions.log('state.Responding.entry', duckula.id),
+        actions.log((_, e) => `state.Responding.entry [${e.type}]`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
@@ -104,7 +113,7 @@ const machine = createMachine<
 
     [duckula.State.Erroring]: {
       entry: [
-        actions.log('state.Erroring.entry', duckula.id),
+        actions.log((_, e) => `state.Erroring.entry [${e.type}(${e.payload.gerror}]`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

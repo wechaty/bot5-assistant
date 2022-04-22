@@ -25,7 +25,6 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
-    'LOAD',
     'GET_MESSAGE_FILE_QUERY_RESPONSE',
   ] ],
   states: [ duck.State, [

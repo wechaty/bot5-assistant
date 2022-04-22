@@ -1,46 +1,7 @@
-import type { ActionCreator }   from 'typesafe-actions'
-import type * as Mailbox        from 'mailbox'
+export * as assistant     from './assistant-actor.js'
+export * as feedback      from './feedback/mod.js'
+export * as noticing      from './noticing/mod.js'
+export * as register      from './register/mod.js'
 
-import * as wechaty       from '../wechaty-actor/mod.js'
-
-import * as intent        from '../application-actors/intent-actor.js'
-
-import * as assistant     from './assistant-actor.js'
-import * as feedback      from './feedback-actor.js'
-import * as meeting       from './meeting-actor.js'
-import * as register      from './register-actor.js'
-import * as brainstorming from './brainstorming-actor.js'
-import * as notice        from './noticer-actor.js'
-
-interface ActorModel {
-  mailboxFactory: (...args: any[]) => Mailbox.Interface
-  // machineFactory: (...args: any[]) => StateMachine<any, any, any>
-  events: {
-    [key: string]: ActionCreator,
-  }
-}
-
-const actors: {
-  [key: string]: ActorModel,
-} = {
-  assistant,
-  brainstorming,
-  feedback,
-  intent,
-  meeting,
-  notice,
-  register,
-  wechaty,
-}
-void actors // for typing testing only
-
-export {
-  assistant,
-  brainstorming,
-  feedback,
-  intent,
-  meeting,
-  register,
-  wechaty,
-  notice,
-}
+export * as meeting       from './meeting-actor.js'
+export * as brainstorming from './brainstorming-actor.js'

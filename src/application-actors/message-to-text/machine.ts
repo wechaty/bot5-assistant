@@ -8,7 +8,7 @@ import * as fileToTextActor    from '../../infrastructure-actors/file-to-text/mo
 
 import * as messageToFileActor    from '../message-to-file/mod.js'
 
-import duckula from './duckula.js'
+import duckula, { Context } from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -48,7 +48,11 @@ const machine = createMachine<
      */
     [duckula.State.Classifying]: {
       entry: [
-        actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event.MESSAGE>>([
+        actions.log<Context, ReturnType<typeof duckula.Event.MESSAGE>>(
+          (_, e) => `state.Classifying.entry MessageType: ${PUPPET.types.Message[e.payload.message.type]}`,
+          duckula.id,
+        ),
+        actions.choose<Context, ReturnType<typeof duckula.Event.MESSAGE>>([
           {
             cond: (_, e) => e.payload.message.type === PUPPET.types.Message.Text,
             actions: [

@@ -1,1 +1,2 @@
-export * as fileBoxToText from './file-box-to-text/mod.js'
+export * as fileToText    from './file-to-text/mod.js'
+export * as textToIntents from './text-to-intents/mod.js'
