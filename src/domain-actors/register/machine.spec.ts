@@ -112,8 +112,8 @@ test('registerMachine smoke testing', async t => {
     // consumerEventList.forEach(e => console.info('consumer:', e))
     // registerEventList.forEach(e => console.info('register:', e))
     t.same(consumerEventList, [
-      Mailbox.Event.CHILD_IDLE('idle'),
-      Mailbox.Event.CHILD_IDLE('idle'),
+      Mailbox.Event.ACTOR_IDLE('idle'),
+      Mailbox.Event.ACTOR_IDLE('idle'),
     ], 'should have 2 idle event after one message, with empty contacts list for non-mention message')
     t.equal(registerState(), duckula.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
@@ -121,7 +121,6 @@ test('registerMachine smoke testing', async t => {
       duckula.Type.MENTION,
       duckula.Type.NEXT,
       duckula.Type.INTRODUCE,
-      duckula.Type.IDLE,
       CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
     ], 'should be BATCH_RESPONSE, INTRODUCE, IDLE, RESPONSE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
@@ -164,9 +163,9 @@ test('registerMachine smoke testing', async t => {
     t.same(
       consumerEventList,
       [
-        Mailbox.Event.CHILD_IDLE('idle'),
-        Mailbox.Event.CHILD_IDLE('idle'),
-        Mailbox.Event.CHILD_REPLY(
+        Mailbox.Event.ACTOR_IDLE('idle'),
+        Mailbox.Event.ACTOR_IDLE('idle'),
+        Mailbox.Event.ACTOR_REPLY(
           duckula.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
         ),
       ],
@@ -178,6 +177,7 @@ test('registerMachine smoke testing', async t => {
       duckula.Type.MENTION,
       duckula.Type.NEXT,
       duckula.Type.REPORT,
+      duckula.Type.CONTACTS,
       CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, SEND_MESSAGE_COMMAND_RESPONSE event')
     t.same(

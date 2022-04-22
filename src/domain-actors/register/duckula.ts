@@ -10,7 +10,7 @@ export interface Context {
   contacts: { [id: string]: PUPPET.payloads.Contact },
   chairs:   { [id: string]: PUPPET.payloads.Contact },
   gerror?:  string
-  address?: {
+  address: {
     wechaty: string,
   },
 }
@@ -56,7 +56,6 @@ const duckula = Mailbox.duckularize({
     contacts : {},
     chairs   : {},
     gerror   : undefined,
-    address : undefined,
   } as Context,
 })
 
