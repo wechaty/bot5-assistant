@@ -21,7 +21,7 @@ const machine = createMachine<
      *
      * Idle
      *
-     *  1. receive MESSAGE -> transition to Messaging
+     *  1. receive MESSAGE -> transition to Classifying
      *
      */
     [duckula.State.Idle]: {
@@ -30,19 +30,23 @@ const machine = createMachine<
       ],
       on: {
         [duckula.Type.MESSAGE]: {
-          target: duckula.State.Messaging,
+          actions: [
+            actions.log('state.Idle.on.MESSAGE', duckula.id),
+          ],
+          target: duckula.State.Classifying,
         },
       },
     },
 
     /**
-     * Messaging
+     * Classifying
      *
      *  1. received MESSAGE -> TEXT / LOAD
      */
 
-    [duckula.State.Messaging]: {
+    [duckula.State.Classifying]: {
       entry: [
+        actions.log('state.Classifying.entry', duckula.id),
         actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MESSAGE']>>([
           {
             cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
@@ -70,6 +74,7 @@ const machine = createMachine<
      */
     [duckula.State.Loading]: {
       entry: [
+        actions.log('state.Loading.entry', duckula.id),
         actions.send(
           (_, e) => CQRS.queries.GetMessageFileQuery(
             CQRS.uuid.NIL,
@@ -91,6 +96,7 @@ const machine = createMachine<
 
     [duckula.State.Responding]: {
       entry: [
+        actions.log('state.Responding.entry', duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
@@ -98,6 +104,7 @@ const machine = createMachine<
 
     [duckula.State.Erroring]: {
       entry: [
+        actions.log('state.Erroring.entry', duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

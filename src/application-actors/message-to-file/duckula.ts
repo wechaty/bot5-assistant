@@ -5,7 +5,7 @@ import * as CQRS      from 'wechaty-cqrs'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  address?: {
+  address: {
     wechaty: string,
   }
 }
@@ -32,7 +32,7 @@ const duckula = Mailbox.duckularize({
     'Erroring',
     'Idle',
     'Loading',
-    'Messaging',
+    'Classifying',
     'Responding',
   ] ],
   initialContext: {} as Context,
