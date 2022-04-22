@@ -4,7 +4,7 @@ import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
 import * as PUPPET                  from 'wechaty-puppet'
 
-import * as messageToTextActor from '../../application-actors/message-to-text/mod.js'
+import * as messageToTextActor from '../message-to-text/mod.js'
 
 import duckula from './duckula.js'
 
