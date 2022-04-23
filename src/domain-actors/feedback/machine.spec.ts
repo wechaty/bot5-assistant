@@ -32,7 +32,7 @@ const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => 
   return future
 }
 
-test.only('feedbackMachine smoke testing', async t => {
+test('feedbackMachine smoke testing', async t => {
   for await (const {
     mocker: mockerFixtures,
     wechaty: wechatyFixtures,
@@ -416,41 +416,4 @@ test('feedbackActor smoke testing', async t => {
   }
 
   interpreter.stop()
-})
-
-test('nextContact()', async t => {
-  for await (const {
-    wechaty: wechatyFixtures,
-  } of bot5Fixtures()) {
-    const context = machine.initialContext()
-    t.equal(machine.ctxNextContact(context), undefined, 'should return undefined when context is empty')
-
-    context.contacts = [
-      wechatyFixtures.mary,
-      wechatyFixtures.mike,
-      wechatyFixtures.player,
-      wechatyFixtures.bot,
-    ]
-    t.equal(machine.ctxNextContact(context), wechatyFixtures.mary, 'should return first contact in the list when context.feedbacks is empty')
-
-    context.feedbacks = {
-      [wechatyFixtures.mary.id]: 'im mary',
-    }
-    t.equal(machine.ctxNextContact(context), wechatyFixtures.mike, 'should return second contact in the list when context.feedbacks is set to mary feedback')
-
-    context.feedbacks = {
-      [wechatyFixtures.mary.id]: 'im mary',
-      [wechatyFixtures.mike.id]: 'im mike',
-    }
-    t.equal(machine.ctxNextContact(context), wechatyFixtures.player, 'should return third contact in the list when context.feedbacks is set to mary&mike feedbacks')
-
-    context.feedbacks = {
-      [wechatyFixtures.mary.id]: 'im mary',
-      [wechatyFixtures.mike.id]: 'im mike',
-      [wechatyFixtures.player.id]: 'im player',
-      [wechatyFixtures.bot.id]: 'im bot',
-    }
-    t.equal(machine.ctxNextContact(context), undefined, 'should return undefined if everyone has feedbacked')
-
-  }
 })

@@ -9,15 +9,7 @@ import { messageToText }    from '../../application-actors/mod.js'
 import * as noticing    from '../noticing/mod.js'
 
 import duckula, { Context }   from './duckula.js'
-
-const ctxContactNum   = (ctx: Context) => Object.keys(ctx.contacts).length
-const ctxFeedbackNum  = (ctx: Context) => Object.values(ctx.feedbacks).filter(Boolean).length
-const ctxNextContact  = (ctx: Context) => Object.values(ctx.contacts).filter(c =>
-  !Object.keys(ctx.feedbacks).includes(c.id),
-)[0]
-const ctxContactAfterNext   = (ctx: Context) => Object.values(ctx.contacts).filter(c =>
-  !Object.keys(ctx.feedbacks).includes(c.id),
-)[1]
+import * as selectors         from './selectors.js'
 
 const machine = createMachine<
   Context,
@@ -170,17 +162,17 @@ const machine = createMachine<
       entry: [
         actions.choose<Context, any>([
           {
-            cond: ctx => !!ctxNextContact(ctx),
+            cond: ctx => !!selectors.nextContact(ctx),
             actions: [
               actions.send(ctx => noticing.Event.NOTICE(
                 [
                   '【反馈系统】',
-                  `下一位：@${ctxNextContact(ctx)?.name}`,
-                  ctxContactAfterNext(ctx)?.name ? `。（请@${ctxContactAfterNext(ctx)?.name}做准备）` : '',
+                  `下一位：@${selectors.nextContact(ctx)?.name}`,
+                  selectors.contactAfterNext(ctx)?.name ? `。（请@${selectors.contactAfterNext(ctx)?.name}做准备）` : '',
                 ].join(''),
-                ctxContactAfterNext(ctx)
-                  ? [ ctxNextContact(ctx)!.id, ctxContactAfterNext(ctx)!.id ]
-                  : [ ctxNextContact(ctx)!.id ],
+                selectors.contactAfterNext(ctx)
+                  ? [ selectors.nextContact(ctx)!.id, selectors.contactAfterNext(ctx)!.id ]
+                  : [ selectors.nextContact(ctx)!.id ],
               )),
             ],
           },
@@ -231,7 +223,7 @@ const machine = createMachine<
       entry: actions.log('state.processing.entry', duckula.id),
       always: [
         {
-          cond: ctx => ctxContactNum(ctx) <= 0,
+          cond: ctx => selectors.contactNum(ctx) <= 0,
           actions:[
             actions.log('state.processing.always -> registering because no contacts', duckula.id),
           ],
@@ -246,16 +238,16 @@ const machine = createMachine<
 
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `state.reporting.entry feedbacks/contacts(${ctxFeedbackNum(ctx)}/${ctxContactNum(ctx)})`, duckula.id),
+        actions.log(ctx => `state.reporting.entry feedbacks/contacts(${selectors.feedbackNum(ctx)}/${selectors.contactNum(ctx)})`, duckula.id),
         actions.choose<Context, any>([
           {
-            cond: ctx => ctxContactNum(ctx) <= 0,
+            cond: ctx => selectors.contactNum(ctx) <= 0,
             actions: [
               actions.log(_ => 'state.reporting.entry contacts is not set', duckula.id),
             ],
           },
           {
-            cond: ctx => ctxFeedbackNum(ctx) < ctxContactNum(ctx),
+            cond: ctx => selectors.feedbackNum(ctx) < selectors.contactNum(ctx),
             actions: [
               actions.log('state.reporting.entry feedbacks is not enough', duckula.id),
             ],
