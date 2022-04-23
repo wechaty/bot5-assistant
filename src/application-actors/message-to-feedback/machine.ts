@@ -1,16 +1,14 @@
 /* eslint-disable sort-keys */
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
-import { GError }                   from 'gerror'
-import * as PUPPET                  from 'wechaty-puppet'
 
 import * as messageToTextActor from '../message-to-text/mod.js'
 
-import duckula from './duckula.js'
+import duckula, { Context, Event, Events } from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
@@ -34,50 +32,61 @@ const machine = createMachine<
           actions: actions.assign({
             talkerId: (_, e) => e.payload.message.talkerId,
           }),
-          target: duckula.State.Messaging,
+          target: duckula.State.Textualizing,
         },
       },
     },
 
-    [duckula.State.Messaging]: {
-      TODO: wip
-    },
-
-    [duckula.State.Feedbacking]: {
-      entry: [
-        actions.send((ctx, e) =>
-          duckula.Event.FEEDBACK(
-            ctx.talkerId!,
-            (e as ReturnType<typeof duckula.Event.TEXT>).payload.text,
-          ),
-        ),
-      ],
-      on: {
-        [duckula.Type.FEEDBACK]: duckula.State.Responding,
+    [duckula.State.Textualizing]: {
+      invoke: {
+        id: messageToTextActor.id,
+        src: ctx => messageToTextActor.machine.withContext({
+          ...messageToTextActor.initialContext(),
+          address: {
+            wechaty: ctx.address.wechaty,
+          },
+        }),
       },
-    },
-
-    [duckula.State.Erroring]: {
       entry: [
-        actions.send((ctx, e) =>
-          duckula.Event.FEEDBACK(
-            ctx.talkerId!,
-            (e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror,
-          ),
-        ),
+        actions.send((_, e) => e, { to: messageToTextActor.id }),
       ],
       on: {
-        [duckula.Type.FEEDBACK]: duckula.State.Feedbacking,
+        [duckula.Type.ACTOR_REPLY]: {
+          actions: [
+            actions.log((_, e) => `state.Textualizing.on.ACTOR_REPLY [${e.payload.message.type}]`, duckula.id),
+            actions.send((_, e) => e.payload.message),
+          ],
+        },
+        [duckula.Type.TEXT]: {
+          actions: [
+            actions.log((_, e) => `state.Textualizing.on.TEXT [${e.payload.text}]`, duckula.id),
+            actions.send((ctx, e) => duckula.Event.FEEDBACK(
+              ctx.talkerId!,
+              e.payload.text,
+            )),
+          ],
+        },
+        [duckula.Type.FEEDBACK] : duckula.State.Responding,
+        [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
-        actions.log((_, e) => `states.Responding.entry ${(e as ReturnType<typeof duckula.Event.FEEDBACK>).payload.feedback}`, duckula.id),
+        actions.log<Context, Events['FEEDBACK']>((_, e) => `states.Responding.entry ${e.payload.feedback}`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
     },
+
+    [duckula.State.Erroring]: {
+      entry: [
+        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry ${e.payload.gerror}`, duckula.id),
+        Mailbox.actions.reply((_, e) => e),
+      ],
+      always: duckula.State.Idle,
+    },
+
   },
 })
 

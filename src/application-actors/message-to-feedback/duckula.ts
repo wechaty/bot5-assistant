@@ -22,11 +22,11 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'FEEDBACK',
+    'GERROR',
     /**
      * Internal
      */
     'TEXT',
-    'GERROR',
     'FILE_BOX',
     'LOAD',
     // CQRS
@@ -39,10 +39,15 @@ const duckula = Mailbox.duckularize({
     'Feedbacking',
     'Idle',
     'Loading',
-    'Messaging',
+    'Textualizing',
     'Responding',
   ] ],
   initialContext: {} as Context,
 })
+
+export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+export type Events = {
+  [key in keyof typeof duckula.Event]: ReturnType<typeof duckula.Event[key]>
+}
 
 export default duckula
