@@ -320,19 +320,13 @@ test('feedback actor smoke testing', async t => {
 
     const FIXTURES = {
       members: MEMBER_LIST,
-      sayables: {
-        mary: 'im mary',
-        mike: 'im mike',
-        player: SILK.fileBox,
-        bot: 'im bot',
-      },
       feedbacks: {
-        mary: 'im mary',
-        mike: 'im mike',
-        player: SILK.text,
-        bot: 'im bot',
+        mary   : [ 'im mary',     'im mary' ],
+        mike   : [ 'im mike',     'im mike' ],
+        player : [ SILK.fileBox,  SILK.text ],
+        bot    : [ 'im bot',      'im bot' ],
       },
-    }
+    } as const
 
     /**
      * Send initial message to start the feedback
@@ -357,10 +351,10 @@ test('feedback actor smoke testing', async t => {
      * Send MESSAGE event
      */
     ;[
-      await listenMessage(() => mary.say(FIXTURES.sayables.mary).to(mockMeetingRoom)),
-      await listenMessage(() => mike.say(FIXTURES.sayables.mike).to(mockMeetingRoom)),
-      await listenMessage(() => mocker.bot.say(FIXTURES.sayables.bot).to(mockMeetingRoom)),
-      await listenMessage(() => mocker.player.say(FIXTURES.sayables.player).to(mockMeetingRoom)),
+      await listenMessage(() => mary.say(FIXTURES.feedbacks.mary[0]).to(mockMeetingRoom)),
+      await listenMessage(() => mike.say(FIXTURES.feedbacks.mike[0]).to(mockMeetingRoom)),
+      await listenMessage(() => mocker.bot.say(FIXTURES.feedbacks.bot[0]).to(mockMeetingRoom)),
+      await listenMessage(() => mocker.player.say(FIXTURES.feedbacks.player[0]).to(mockMeetingRoom)),
     ]
       .map(m => m.payload)
       .filter(removeUndefined)
@@ -382,11 +376,11 @@ test('feedback actor smoke testing', async t => {
       ),
     )
     const EXPECTED_FEEDBACKS = {
-      [mary.id]          : FIXTURES.feedbacks.mary,
-      [mocker.bot.id]    : FIXTURES.feedbacks.bot,
-      [mike.id]          : FIXTURES.feedbacks.mike,
-      [mocker.player.id] : FIXTURES.feedbacks.player,
-    }
+      [mary.id]          : FIXTURES.feedbacks.mary[1],
+      [mocker.bot.id]    : FIXTURES.feedbacks.bot[1],
+      [mike.id]          : FIXTURES.feedbacks.mike[1],
+      [mocker.player.id] : FIXTURES.feedbacks.player[1],
+    } as const
     t.same(
       eventList,
       [
@@ -395,7 +389,7 @@ test('feedback actor smoke testing', async t => {
       'should get FEEDBACKS event',
     )
 
-    const msg = await listenMessage(() => mary.say(FIXTURES.sayables.mary).to(mockMeetingRoom))
+    const msg = await listenMessage(() => mary.say(FIXTURES.feedbacks.player[0]).to(mockMeetingRoom))
     interpreter.send(duckula.Event.MESSAGE(msg.payload!))
     eventList.length = 0
     await firstValueFrom(
@@ -409,10 +403,10 @@ test('feedback actor smoke testing', async t => {
       [
         duckula.Event.FEEDBACKS({
           ...EXPECTED_FEEDBACKS,
-          [mary.id] : FIXTURES.feedbacks.mary,
+          [mary.id] : FIXTURES.feedbacks.player[1],
         }),
       ],
-      'should get FEEDBACKS event immediately after mary sent feedback once again',
+      'should get FEEDBACKS event immediately after mary sent feedback of player once again',
     )
 
     interpreter.stop()
