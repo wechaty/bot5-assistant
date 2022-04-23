@@ -52,4 +52,9 @@ const duckula = Mailbox.duckularize({
   initialContext: {} as Context,
 })
 
+export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+export type Events = {
+  [key in keyof typeof duckula.Event]: ReturnType<typeof duckula.Event[key]>
+}
+
 export default duckula
