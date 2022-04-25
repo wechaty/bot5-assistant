@@ -25,7 +25,9 @@ export const ADMINS = 'bot5-assistant/ADMINS'
 export const ATTENDEES = 'bot5-assistant/ATTENDEES'
 export const CHAIRS = 'bot5-assistant/CHAIRS'
 
-export const NO_AUDIO = 'bot5-assistant/NO_AUDIO'
+export const NO_AUDIO   = 'bot5-assistant/NO_AUDIO'
+export const NO_CONTACT = 'bot5-assistant/NO_CONTACT'
+
 export const NO_TEXT  = 'bot5-assistant/NO_TEXT'
 export const TEXT     = 'bot5-assistant/TEXT'
 

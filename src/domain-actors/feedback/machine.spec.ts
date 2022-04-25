@@ -31,7 +31,7 @@ const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => 
   return future
 }
 
-test.only('feedback machine smoke testing', async t => {
+test('feedback machine smoke testing', async t => {
   for await (const {
     mocker: mockerFixtures,
     wechaty: wechatyFixtures,
@@ -104,7 +104,7 @@ test.only('feedback machine smoke testing', async t => {
     t.equal(feedbackState(), duckula.State.Idle, 'should be idle state after initial')
     t.same(feedbackContext().contacts, [], 'should be empty attendee list')
 
-    const subscription = bus$.pipe(
+    bus$.pipe(
       // tap(e => console.info('### bus$', e)),
       filter(CQRS.is(CQRS.events.MessageReceivedEvent)),
       map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixtures.wechaty.puppet.id, e.payload.messageId)),
@@ -157,14 +157,12 @@ test.only('feedback machine smoke testing', async t => {
     t.same(Object.values(feedbackContext().contacts).map(c => c.id), FIXTURES.members.map(c => c.id), 'should get context contacts list')
 
     /**
-     * Send MESSAGE event
+     * Send MESSAGE event: Mary
      */
     feedbackEventList.length = 0
-    await listenMessage(() => mockerFixtures.mary.say(FIXTURES.feedbacks.mary[0]).to(mockerFixtures.groupRoom))
-    // feedbackInterpreter.send([
-    //   duckula.Event.MESSAGE(maryMsg),
-    // ])
-    // console.info((snapshot.event.payload as any).message)
+    await listenMessage(() =>
+      mockerFixtures.mary.say(FIXTURES.feedbacks.mary[0]).to(mockerFixtures.groupRoom),
+    )
     t.same(
       feedbackEventList
         .map(e => e.type)
@@ -173,15 +171,17 @@ test.only('feedback machine smoke testing', async t => {
       'should get MESSAGE event',
     )
     t.same(feedbackState(), duckula.State.Textualizing, 'should be back to state Textualizing after received a text message')
-
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
     t.same(feedbackContext().feedbacks, {
       [wechatyFixtures.mary.id]: FIXTURES.feedbacks.mary[1],
     }, 'should have feedback from mary')
     t.equal(Object.keys(feedbackContext().feedbacks).length, 1, 'should have 1 feedback so far')
 
+    /**
+     * Mike
+     */
     await listenMessage(() => mockerFixtures.mike.say(FIXTURES.feedbacks.mike[0]).to(mockerFixtures.groupRoom))
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
     // console.info((snapshot.event.payload as any).message)
     t.same(
       feedbackState(),
@@ -194,8 +194,11 @@ test.only('feedback machine smoke testing', async t => {
     }, 'should have feedback from 2 users')
     t.equal(Object.keys(feedbackContext().feedbacks).length, 2, 'should have 2 feedback so far')
 
+    /**
+     * Bot
+     */
     await listenMessage(() => mockerFixtures.bot.say(FIXTURES.feedbacks.bot[0]).to(mockerFixtures.groupRoom))
-    await sandbox.clock.runToLastAsync()
+    await sandbox.clock.runAllAsync()
     t.same(feedbackContext().feedbacks, {
       [wechatyFixtures.mary.id]: FIXTURES.feedbacks.mary[1],
       [wechatyFixtures.mike.id]: FIXTURES.feedbacks.mike[1],
@@ -203,6 +206,9 @@ test.only('feedback machine smoke testing', async t => {
     }, 'should have feedback from 3 users including bot')
     t.equal(Object.keys(feedbackContext().feedbacks).length, 3, 'should have 3 feedback so far')
 
+    /**
+     * Player
+     */
     feedbackEventList.length = 0
     await listenMessage(() => mockerFixtures.player.say(FIXTURES.feedbacks.player[0]).to(mockerFixtures.groupRoom))
     t.same(
@@ -214,8 +220,9 @@ test.only('feedback machine smoke testing', async t => {
     )
     t.equal(feedbackState(), duckula.State.Textualizing, 'should in state Textualizing after received audio message')
 
-    sandbox.restore()
-
+    /**
+     * Wait for State.Idle of feedback
+     */
     const future = firstValueFrom(
       from(feedbackInterpreter as any).pipe(
         // tap((x: any) => console.info('> feedback:', [
@@ -228,7 +235,14 @@ test.only('feedback machine smoke testing', async t => {
         filter((s: any) => s.value === duckula.State.Idle),
       ),
     )
-    // await sandbox.clock.runToLastAsync()
+    /**
+     * Huan(202204): even after `sandbox.restore()`, `runAllAsync()` is still require below,
+     *  or the `await future` will never resolved.
+     *
+     * Maybe because this `future` is created before `restore()`?
+     */
+    sandbox.restore()
+    await sandbox.clock.runAllAsync()
     await future
 
     t.equal(feedbackState(), duckula.State.Idle, 'should in state idle after resolve stt message')
@@ -237,33 +251,37 @@ test.only('feedback machine smoke testing', async t => {
       [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot[1],
       [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike[1],
       [wechatyFixtures.player.id] : FIXTURES.feedbacks.player[1],
-    }, 'should have feedback from all users')
-    t.equal(Object.keys(feedbackContext().feedbacks).length, 4, 'should have all 4 feedbacks')
-    // await new Promise(setImmediate)
+    }, 'should have feedback from all users in feedback context')
+    t.equal(Object.keys(feedbackContext().feedbacks).length, 4, 'should have all 4 feedbacks in feedback context')
+
     /**
      * Huan(202201): must use setTimeout instead of setImmediate to make sure the following test pass
      *  it seems that the setImmediate is microtask (however the internet said that it should be a macrotask),
      *    and the setTimeout is macrotask?
+     *
+     * additional note: if we use `await sandbox.clock.runAllAsync()`, it has to be ran twice.
+     *  (the `setImmediate` need to be ran twice too)
+     *
+     * TODO: why?
      */
-    await sandbox.clock.runToLastAsync()
-    // console.info(eventList)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    // await new Promise(setImmediate)
+
     t.same(
       consumerEventList
-        .filter(e => e.type === Mailbox.Type.ACTOR_REPLY),
+        .filter(isActionOf(Mailbox.Event.ACTOR_REPLY))
+        .map(e => e.payload.message),
       [
-        Mailbox.Event.ACTOR_REPLY(
-          duckula.Event.FEEDBACKS({
-            [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary[1],
-            [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot[1],
-            [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike[1],
-            [wechatyFixtures.player.id] : FIXTURES.feedbacks.player[1],
-          }),
-        ),
+        duckula.Event.FEEDBACKS({
+          [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary[1],
+          [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot[1],
+          [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike[1],
+          [wechatyFixtures.player.id] : FIXTURES.feedbacks.player[1],
+        }),
       ],
-      'should get feedback EVENT from parent',
+      'should get feedback EVENT from consumer machine',
     )
 
-    subscription.unsubscribe()
     consumerInterpreter.stop()
   }
 })

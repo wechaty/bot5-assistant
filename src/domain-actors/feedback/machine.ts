@@ -1,6 +1,6 @@
 /* eslint-disable no-redeclare */
 /* eslint-disable sort-keys */
-import { actions, createMachine }   from 'xstate'
+import { actions, AnyEventObject, createMachine }   from 'xstate'
 import { GError }                   from 'gerror'
 import * as Mailbox                 from 'mailbox'
 
@@ -154,8 +154,11 @@ const machine = createMachine<
           ),
           { to: ctx => ctx.address.noticing },
         ),
+        actions.send(duckula.Event.NEXT()),
       ],
-      always: duckula.State.Nexting,
+      on: {
+        [duckula.Type.NEXT]: duckula.State.Nexting,
+      },
     },
 
     [duckula.State.Nexting]: {
@@ -199,11 +202,17 @@ const machine = createMachine<
         actions.send(duckula.Event.REPORT, { to: ctx => ctx.address.registering }),
       ],
       on: {
+        /**
+         * Forward the REPORT event to the registering machine.
+         */
         [duckula.Type.MESSAGE]: {
           actions: [
             actions.send((_, e) => e, { to: ctx => ctx.address.registering }),
           ],
         },
+        /**
+         * Accept the CONTACTS (in response to REPORT) event from the registering machine.
+         */
         [duckula.Type.CONTACTS]: {
           actions: [
             actions.assign({
@@ -215,25 +224,36 @@ const machine = createMachine<
             actions.send(duckula.Event.NEXT()),
           ],
         },
+        /**
+         * All done. Continue.
+         */
         [duckula.Type.NEXT]: duckula.State.Processing,
       },
     },
 
     [duckula.State.Processing]: {
-      entry: actions.log('state.processing.entry', duckula.id),
-      always: [
-        {
-          cond: ctx => selectors.contactNum(ctx) <= 0,
-          actions:[
-            actions.log('state.processing.always -> registering because no contacts', duckula.id),
-          ],
-          target: duckula.State.Registering,
-        },
-        {
-          target: duckula.State.Reporting,
-          actions: actions.log('state.processing.always -> reporting', duckula.id),
-        },
+      entry: [
+        actions.log('state.processing.entry', duckula.id),
+        actions.choose<Context, AnyEventObject>([
+          {
+            cond: ctx => selectors.contactNum(ctx) <= 0,
+            actions:[
+              actions.log('state.processing.entry no contacts', duckula.id),
+              actions.send(duckula.Event.NO_CONTACT()),
+            ],
+          },
+          {
+            actions: [
+              actions.log('state.processing.entry transition to NEXT', duckula.id),
+              actions.send(duckula.Event.NEXT()),
+            ],
+          },
+        ]),
       ],
+      on: {
+        [duckula.Type.NO_CONTACT] : duckula.State.Registering,
+        [duckula.Type.NEXT]       : duckula.State.Reporting,
+      },
     },
 
     [duckula.State.Reporting]: {
@@ -254,13 +274,16 @@ const machine = createMachine<
           },
           {
             actions: [
-              actions.log('state.reporting.entry feedbacks reported', duckula.id),
+              actions.log('state.reporting.entry replying [FEEDBACKS]', duckula.id),
               Mailbox.actions.reply(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
             ],
           },
         ]),
+        actions.send(duckula.Event.NEXT()),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.NEXT]: duckula.State.Idle,
+      },
     },
 
     [duckula.State.Erroring]: {

@@ -52,6 +52,7 @@ export const NEXT        = createAction(Type.NEXT)()
 
 export const NO_AUDIO    = createAction(Type.NO_AUDIO)()
 export const NO_MENTION  = createAction(Type.NO_MENTION)()
+export const NO_CONTACT  = createAction(Type.NO_CONTACT)()
 
 const payloadRoom = (room: PUPPET.payloads.Room) => ({ room })
 export const ROOM = createAction(Type.ROOM, payloadRoom)()
