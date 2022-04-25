@@ -2,7 +2,7 @@
 
 import { test } from 'tstest'
 
-import { getSilkFixtures } from '../../../fixtures/get-silk-fixtures.js'
+import { getSilkFixtures } from '../../fixtures/get-silk-fixtures.js'
 
 import { speechToText } from './speech-to-text.js'
 import { FileBox } from 'file-box'
