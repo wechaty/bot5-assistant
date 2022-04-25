@@ -18,7 +18,7 @@ import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
 import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
-import { removeUndefined }    from '../../utils/remove-undefined.js'
+import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
 
 import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 
@@ -73,7 +73,7 @@ test('feedback machine smoke testing', async t => {
           address: {
             wechaty: String(wechatyActor.address),
             noticing: String(Mailbox.nil.address),
-            registering: String(Mailbox.nil.address),
+            register: String(Mailbox.nil.address),
           },
         }),
       },
@@ -299,9 +299,9 @@ test('feedback actor smoke testing', async t => {
     const feedbackMachine = machine.withContext({
       ...duckula.initialContext(),
       address: {
-        noticing    : String(Mailbox.nil.address),
-        registering : String(Mailbox.nil.address),
-        wechaty     : String(wechatyActor.address),
+        noticing : String(Mailbox.nil.address),
+        register : String(Mailbox.nil.address),
+        wechaty  : String(wechatyActor.address),
       },
     })
 

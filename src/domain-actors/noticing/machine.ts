@@ -54,7 +54,7 @@ const machine = createMachine<
                   CQRS.uuid.NIL,
                   ctx.conversationId!,
                   CQRS.sayables.text(
-                    `【系统通知】${e.payload.notice}`,
+                    `【系统通知】${e.payload.text}`,
                     e.payload.mentions,
                   ),
                 ),

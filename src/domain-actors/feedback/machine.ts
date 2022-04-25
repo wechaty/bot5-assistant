@@ -199,7 +199,10 @@ const machine = createMachine<
     [duckula.State.Registering]: {
       entry: [
         actions.log('state.registering.entry', duckula.id),
-        actions.send(duckula.Event.REPORT, { to: ctx => ctx.address.registering }),
+        actions.send(
+          duckula.Event.REPORT(),
+          { to: ctx => ctx.address.register },
+        ),
       ],
       on: {
         /**
@@ -207,7 +210,10 @@ const machine = createMachine<
          */
         [duckula.Type.MESSAGE]: {
           actions: [
-            actions.send((_, e) => e, { to: ctx => ctx.address.registering }),
+            actions.send(
+              (_, e) => e,
+              { to: ctx => ctx.address.register },
+            ),
           ],
         },
         /**
@@ -301,6 +307,7 @@ const machine = createMachine<
         actions.log((_, e) => `state.Responding.entry [${e.type}]`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
+      always: duckula.State.Idle,
     },
   },
 })

@@ -2,42 +2,43 @@
 /* eslint-disable sort-keys */
 
 import {
-  test,
-  sinon,
-}                           from 'tstest'
-import {
   AnyEventObject,
   interpret,
   createMachine,
   EventObject,
-  // spawn,
-  actions,
   StateValue,
 }                           from 'xstate'
-import type * as WECHATY    from 'wechaty'
-
+import { map, mergeMap, filter } from 'rxjs/operators'
+import { test, sinon }      from 'tstest'
+import * as CQRS            from 'wechaty-cqrs'
 import { inspect }          from '@xstate/inspect/lib/server.js'
 import { WebSocketServer }  from 'ws'
-import type * as Mailbox    from 'mailbox'
+import * as Mailbox         from 'mailbox'
 
+import * as WechatyActor      from '../../wechaty-actor/mod.js'
 import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
+import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
+import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
 
-import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
+import * as RegisterDuckula   from '../register/mod.js'
+import * as FeedbackDuckula   from '../feedback/mod.js'
 
-import duckula    from './duckula.js'
-import machine    from './machine.js'
+import duckula, { Context }   from './duckula.js'
+import machine                from './machine.js'
 
 test('Brainstorming actor smoke testing', async t => {
   for await (
     const {
       mocker: mockerFixture,
       wechaty: wechatyFixture,
-      logger,
     } of bot5Fixtures()
   ) {
     const sandbox = sinon.createSandbox({
       useFakeTimers: { now: Date.now() },
     })
+
+    const bus$ = CQRS.from(wechatyFixture.wechaty)
+    const wechatyActor = WechatyActor.from(bus$, wechatyFixture.wechaty.puppet.id)
 
     const server = new WebSocketServer({
       port: 8888,
@@ -45,85 +46,113 @@ test('Brainstorming actor smoke testing', async t => {
 
     inspect({ server })
 
+    const SILK = await getSilkFixtures()
+
     const FEEDBACKS = {
       [mockerFixture.mary.id]: 'im mary',
       [mockerFixture.mike.id]: 'im mike',
-      [mockerFixture.player.id]: audioFixtures.silk.text,
+      [mockerFixture.player.id]: SILK.text,
       [mockerFixture.bot.id]: 'im bot',
     } as const
 
-    const injector = createBot5Injector({
-      wechatyStore: wechatyFixture.wechaty,
-      logger,
-      devTools: true,
+    const registerActor = Mailbox.from(RegisterDuckula.machine.withContext({
+      ...RegisterDuckula.initialContext(),
+      address: {
+        wechaty: String(wechatyActor.address),
+        noticing: String(Mailbox.nil.address),
+      },
+    }))
+    registerActor.open()
+
+    const feedbackActor = Mailbox.from(FeedbackDuckula.machine.withContext({
+      ...FeedbackDuckula.initialContext(),
+      address: {
+        wechaty: String(wechatyActor.address),
+        noticing: String(Mailbox.nil.address),
+        register: String(registerActor.address),
+      },
+    }))
+    feedbackActor.open()
+
+    const actor = Mailbox.from(machine.withContext({
+      ...duckula.initialContext(),
+      address: {
+        wechaty  : String(wechatyActor.address),
+        feedback : String(feedbackActor.address),
+        register : String(registerActor.address),
+        noticing : String(Mailbox.nil.address),
+      },
+    }))
+    actor.open()
+
+    const actorEventList: EventObject[] = []
+    const actorStateList: StateValue[] = []
+    ;(actor as Mailbox.impls.Mailbox).internal.actor.interpreter!.subscribe(s => {
+      actorEventList.push(s.event)
+      actorStateList.push(s.value)
+
+      console.info(`>>> ${s.machine?.id}:`, [
+        `(${s.history?.value || ''})`.padEnd(30, ' '),
+        ' + ',
+        `[${s.event.type}]`.padEnd(30, ' '),
+        ' = ',
+        `(${s.value})`.padEnd(30, ' '),
+      ].join(''))
     })
 
-    const mailbox = injector.injectFunction(machine.mailboxFactory) as Mailbox.impls.Mailbox
+    const targetSnapshot  = () => (actor as Mailbox.impls.Mailbox).internal.actor.interpreter!.getSnapshot()
+    const targetContext   = () => targetSnapshot().context as Context
 
-    const targetEventList: EventObject[] = []
-    const targetStateList: StateValue[] = []
-    mailbox.debug.target.interpreter!.onTransition(s => {
-      console.info('  - [TARGET]', s.value, s.event.type)
-      targetEventList.push(s.event)
-      targetStateList.push(s.value)
-    })
-
-    const targetSnapshot  = () => mailbox.debug.target.interpreter!.getSnapshot()
-    const targetContext   = () => targetSnapshot().context as machine.Context
-
-    const proxyMachine = createMachine<any>({
-      id: 'ProxyMachine',
+    const testMachine = createMachine<any>({
+      id: 'TestMachine',
       on: {
         '*': {
-          actions: actions.choose([
-            {
-              cond: mailbox.address.condNotOrigin(),
-              actions: mailbox.address.send((_, e) => e),
-            },
-          ]),
+          actions: Mailbox.actions.proxy('TestMachine')(actor),
         },
       },
     })
 
-    const proxyEventList: AnyEventObject[] = []
-    const proxyInterpreter = interpret(proxyMachine)
-      .onEvent(e => proxyEventList.push(e))
-      .onTransition(s => {
-        console.info('  - [PROXY]:', s.value, s.event.type)
-        // console.info('event:', s.event.type)
+    const testEventList: AnyEventObject[] = []
+    const testInterpreter = interpret(testMachine)
+      .onEvent(e => {
+        testEventList.push(e)
+        console.info('<<<', testMachine.id, ':', `[${e.type}]`)
       })
       .start()
 
-    const messageList: WECHATY.Message[] = []
-    wechatyFixture.wechaty.on('message', async msg => {
-      messageList.push(msg)
-      console.info('  - [Wechaty] message:', String(msg))
+    const messageList: ReturnType<typeof duckula.Event.MESSAGE>[] = []
 
-      if (msg.self()) {
-        return
-      }
-      proxyInterpreter.send(
-        duck.Event.MESSAGE(msg),
-      )
+    bus$.pipe(
+      // tap(e => console.info('### bus$', e)),
+      filter(CQRS.is(CQRS.events.MessageReceivedEvent)),
+      map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixture.wechaty.puppet.id, e.payload.messageId)),
+      mergeMap(CQRS.execute$(bus$)),
+      map(response => response.payload.message),
+      filter(removeUndefined),
+      map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
+    ).subscribe(e => {
+      console.info('### duckula.Event.MESSAGE', e)
+      messageList.push(e)
+      testInterpreter.send(e)
     })
 
     /**
      * Events.ROOM(groupRoom) - setting room
      */
-    targetEventList.length = 0
-    targetStateList.length = 0
-    proxyInterpreter.send(duck.Event.ROOM(wechatyFixture.groupRoom))
-    proxyInterpreter.send(duck.Event.REPORT())
+    actorEventList.length = 0
+    actorStateList.length = 0
+    testInterpreter.send(duckula.Event.ROOM(wechatyFixture.groupRoom.payload!))
+    testInterpreter.send(duckula.Event.REPORT())
     await sandbox.clock.runToLastAsync()
     t.equal(
       targetContext().room?.id,
       wechatyFixture.groupRoom.id,
       'should set room to context',
     )
-    t.same(targetStateList, [
-      duck.State.Idle,
-      duck.State.reporting,
-      duck.State.registering,
+    t.same(actorStateList, [
+      duckula.State.Idle,
+      duckula.State.Reporting,
+      duckula.State.Registering,
     ], 'should in state.{idle,reporting,registering}')
 
     /**
@@ -135,10 +164,10 @@ test('Brainstorming actor smoke testing', async t => {
     /**
      * Events.MESSAGE(message) - no mentions
      */
-    targetStateList.length = 0
-    mockerFixture.player.say('hello, no mention to anyone', []).to(mockerFixture.groupRoom)
+    actorStateList.length = 0
+    mockerFixture.player.say('hello, no mention to anyone').to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
-    t.same(targetStateList, [duck.State.registering], 'should in state.registering if no mention')
+    t.same(actorStateList, [ duckula.State.Registering ], 'should in state.registering if no mention')
 
     // console.info('eventList', eventList)
 
@@ -147,9 +176,9 @@ test('Brainstorming actor smoke testing', async t => {
     /**
      * Events.MESSAGE(message) - with mentions
      */
-    targetEventList.length = 0
-    proxyEventList.length = 0
-    targetStateList.length = 0
+    actorEventList.length = 0
+    actorStateList.length = 0
+    testEventList.length = 0
     mockerFixture.player
       .say('register mary & mike & player by mention them', [
         mockerFixture.mary,
@@ -161,7 +190,8 @@ test('Brainstorming actor smoke testing', async t => {
     // console.info('targetStateList', targetStateList)
     // console.info('proxyEventList', proxyEventList)
     t.same(
-      targetContext().contacts.map(c => c.id),
+      Object.values(targetContext().contacts)
+        .map(c => c.id),
       [
         mockerFixture.mary.id,
         mockerFixture.mike.id,
@@ -169,23 +199,23 @@ test('Brainstorming actor smoke testing', async t => {
       ],
       'should set contacts to mary, mike, player',
     )
-    t.same(targetStateList, [
-      duck.State.registering,
-      duck.State.feedbacking,
-      duck.State.feedbacking,
+    t.same(actorStateList, [
+      duckula.State.Registering,
+      duckula.State.Feedbacking,
+      duckula.State.Feedbacking,
     ], 'should transition to registering & feedbacking states')
-    t.same(targetEventList.map(e => e.type), [
-      duck.Type.MESSAGE,
-      duck.Type.CONTACTS,
-      duck.Type.NOTICE,
+    t.same(actorEventList.map(e => e.type), [
+      duckula.Type.MESSAGE,
+      duckula.Type.CONTACTS,
+      duckula.Type.NOTICE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
 
     await sandbox.clock.runAllAsync()
 
     // console.info(targetSnapshot().context)
     // console.info(targetSnapshot().value)
-    targetEventList.length = 0
-    targetStateList.length = 0
+    actorEventList.length = 0
+    actorStateList.length = 0
     mockerFixture.mary
       .say(FEEDBACKS[mockerFixture.mary.id])
       .to(mockerFixture.groupRoom)
@@ -195,12 +225,12 @@ test('Brainstorming actor smoke testing', async t => {
       {},
       'should no feedbacks because it will updated only all members have replied',
     )
-    t.same(targetStateList, [
-      duck.State.feedbacking,
-    ], 'should in state.feedbacking')
+    t.same(actorStateList, [
+      duckula.State.Feedbacking,
+    ], 'should in state.Feedbacking')
 
-    targetEventList.length = 0
-    targetStateList.length = 0
+    actorEventList.length = 0
+    actorStateList.length = 0
     mockerFixture.mike
       .say(FEEDBACKS[mockerFixture.mike.id])
       .to(mockerFixture.groupRoom)
@@ -217,24 +247,24 @@ test('Brainstorming actor smoke testing', async t => {
       },
       'should set feedbacks because all members have replied',
     )
-    t.same(targetStateList, [
-      duck.State.feedbacking,
-      duck.State.feedbacking,
-      duck.State.reporting,
-      duck.State.reporting,
-      duck.State.Idle,
-    ], 'should in state.feedbacking,reporting,idle')
-    t.same(targetEventList.map(e => e.type), [
-      duck.Type.MESSAGE,
-      duck.Type.MESSAGE,
-      duck.Type.FEEDBACKS,
-      duck.Type.NOTICE,
-      duck.Type.IDLE,
+    t.same(actorStateList, [
+      duckula.State.Feedbacking,
+      duckula.State.Feedbacking,
+      duckula.State.Reporting,
+      duckula.State.Reporting,
+      duckula.State.Idle,
+    ], 'should in state.Feedbacking,reporting,idle')
+    t.same(actorEventList.map(e => e.type), [
+      duckula.Type.MESSAGE,
+      duckula.Type.MESSAGE,
+      duckula.Type.FEEDBACKS,
+      duckula.Type.NOTICE,
+      duckula.Type.IDLE,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
     t.same(
-      targetEventList.filter(e => e.type === duck.Type.FEEDBACKS),
+      actorEventList.filter(e => e.type === duckula.Type.FEEDBACKS),
       [
-        duck.Event.FEEDBACKS({
+        duckula.Event.FEEDBACKS({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
           [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
           [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,

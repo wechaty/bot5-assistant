@@ -4,6 +4,8 @@ import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
 
+import * as NoticingDuckula   from '../noticing/mod.js'
+
 import duckula from './duckula.js'
 
 const ctxRoomId     = (ctx: ReturnType<typeof duckula.initialContext>) => ctx.message!.roomId!
@@ -180,18 +182,13 @@ const machine = createMachine<
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
               actions.send(
-                ctx => CQRS.commands.SendMessageCommand(
-                  CQRS.uuid.NIL,
-                  ctxRoomId(ctx),
-                  CQRS.sayables.text(
-                    [
-                      '【注册系统】',
-                      `恭喜：${Object.values(ctx.contacts).map(c => c.name).join('、')}，共${Object.keys(ctx.contacts).length}名组织成员注册成功！`,
-                    ].join(''),
-                    Object.values(ctx.contacts).map(c => c.id),
-                  ),
+                ctx => NoticingDuckula.Event.NOTICE(
+                  [
+                    '【注册系统】',
+                    `恭喜：${Object.values(ctx.contacts).map(c => c.name).join('、')}，共${Object.keys(ctx.contacts).length}名组织成员注册成功！`,
+                  ].join(''),
+                  Object.values(ctx.contacts).map(c => c.id),
                 ),
-                { to: ctx => ctx.address!.wechaty },
               ),
               actions.send(duckula.Event.REPORT()),
             ],
@@ -213,19 +210,14 @@ const machine = createMachine<
     [duckula.State.Introducing]: {
       entry: [
         actions.send(
-          ctx => CQRS.commands.SendMessageCommand(
-            CQRS.uuid.NIL,
-            ctxRoomId(ctx),
-            CQRS.sayables.text(
-              [
-                '【注册系统】说用说明书：',
-                '请主席发送一条消息，同时一次性 @ 所有参会人员，即可完成参会活动人员注册。',
-                `当前注册人数：${Object.keys(ctx.contacts).length}`,
-              ].join(''),
-              Object.keys(ctx.chairs),
-            ),
+          ctx => NoticingDuckula.Event.NOTICE(
+            [
+              '【注册系统】说用说明书：',
+              '请主席发送一条消息，同时一次性 @ 所有参会人员，即可完成参会活动人员注册。',
+              `当前注册人数：${Object.keys(ctx.contacts).length}`,
+            ].join(''),
+            Object.keys(ctx.chairs),
           ),
-          { to: ctx => ctx.address!.wechaty },
         ),
       ],
       always: duckula.State.Idle,

@@ -32,37 +32,51 @@ const duckula = Mailbox.duckularize({
     /**
      * Responses
      */
+    'GERROR',
+    'FEEDBACKS',
     /**
      * Internal
      */
-    'FEEDBACKS',
-    'INTRODUCE',
-    'ROOM',
-    'MESSAGE',
-    'RESET',
-    'NOTICE',
-    'IDLE',
-    'PROCESS',
     'ADMINS',
+    'COMPLETE',
     'CONTACTS',
-    'RESET',
+    'FEEDBACK',
+    'IDLE',
+    'INTRODUCE',
     'MESSAGE',
-    'REPORT',
     'NEXT',
+    'NO_CONTACT',
+    'NOTICE',
+    'REPORT',
+    'RESET',
+    'ROOM',
   ] ],
   states: [ duck.State, [
+    /**
+     * Request
+     */
     'Idle',
-    'Initializing',
-    'Registering',
-    'Registered',
+    /**
+     * Response
+     */
+    'Responding',
+    'Erroring',
+    /**
+     * Internal
+     */
     'Resetting',
     'Reporting',
-    'Erroring',
+    'Initializing',
+    'Completing',
+    'Completed',
+    'Nexting',
+    /**
+     * Interact with Actors
+     */
+    'Registering',
+    'Registered',
     'Feedbacking',
     'Feedbacked',
-    'Processing',
-    'Nexting',
-    'Responding',
   ] ],
   initialContext: ({
     chairs    : {},

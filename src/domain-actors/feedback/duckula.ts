@@ -12,7 +12,7 @@ export interface Context {
   message?: PUPPET.payloads.Message
   address: {
     noticing: string,
-    registering: string,
+    register: string,
     wechaty: string,
   },
 }

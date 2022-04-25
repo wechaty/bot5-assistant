@@ -7,7 +7,7 @@ import * as CQRS                    from 'wechaty-cqrs'
 import * as ACTOR                   from '../../wechaty-actor/mod.js'
 
 import duckula    from './duckula.js'
-import { removeUndefined } from '../../utils/remove-undefined.js'
+import { removeUndefined } from '../../pure-functions/remove-undefined.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,

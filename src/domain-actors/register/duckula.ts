@@ -12,11 +12,12 @@ export interface Context {
   gerror?:  string
   address: {
     wechaty: string,
+    noticing: string,
   },
 }
 
 const duckula = Mailbox.duckularize({
-  id: 'RegisterActor',
+  id: 'Register',
   events: [ { ...duck.Event, ...WechatyActor.Event }, [
     /**
      * Request

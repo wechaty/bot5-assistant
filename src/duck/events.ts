@@ -30,7 +30,7 @@ const payloadSay       = (text: string, conversation: string, mentions: string[]
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
-const payloadData      = (data: any) => ({ data })
+const payloadData      = (data?: string) => ({ data })
 
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
@@ -96,7 +96,7 @@ export const CHECK = createAction(Type.CHECK)()
 export const PROCESS = createAction(Type.PROCESS)()
 export const PARSE = createAction(Type.PARSE)()
 
-const payloadNotice = (notice: string, mentions: string[] = []) => ({ mentions, notice })
+const payloadNotice = (text: string, mentions: string[] = []) => ({ mentions, text })
 export const NOTICE = createAction(Type.NOTICE, payloadNotice)()
 
 export const MINUTE = createAction(Type.MINUTE, payloadMinute)()
@@ -111,3 +111,5 @@ export const FILE_BOX = createAction(Type.FILE_BOX, payloadFileBox)()
 
 const payloadLoad = (id: string) => ({ id })
 export const LOAD = createAction(Type.LOAD, payloadLoad)()
+
+export const REGISTER = createAction(Type.REGISTER)()
