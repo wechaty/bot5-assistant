@@ -3,9 +3,8 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
 
-import { speechToText }   from './lib/mod.js'
-
-import duckula          from './duckula.js'
+import { speechToText }   from './speech-to-text.js'
+import duckula            from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,

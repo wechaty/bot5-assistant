@@ -1,3 +1,6 @@
+import * as uuid                    from 'uuid'
+import type { FileBoxInterface }    from 'file-box'
+
 /**
  * 文档中心 > 语音识别 > API 文档 > 录音文件识别极速版相关接口 > 录音文件识别极速版
  *  @link https://cloud.tencent.com/document/product/1093/52097
@@ -7,13 +10,8 @@
  */
 
 /* eslint-disable sort-keys */
-import * as TencentCloud from 'tencentcloud-sdk-nodejs'
-import type { SentenceRecognitionRequest } from 'tencentcloud-sdk-nodejs/tencentcloud/services/asr/v20190614/asr_models'
-
-import * as uuid from 'uuid'
-import type {
-  FileBoxInterface,
-}                     from 'file-box'
+import * as TencentCloud                      from 'tencentcloud-sdk-nodejs'
+import type { SentenceRecognitionRequest }    from 'tencentcloud-sdk-nodejs/tencentcloud/services/asr/v20190614/asr_models'
 
 const AsrClient = TencentCloud.asr.v20190614.Client
 

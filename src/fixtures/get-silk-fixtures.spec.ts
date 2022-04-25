@@ -2,11 +2,12 @@
 
 import { test } from 'tstest'
 
-import * as audioFixtures from './audio-fixtures.js'
+import { getSilkFixtures }   from './get-silk-fixtures.js'
 
 test('silk fixture existance testing', async t => {
+  const silkFixtures = await getSilkFixtures()
   await t.resolves(
-    () => audioFixtures.silk.fileBox.toBase64(),
+    () => silkFixtures.fileBox.toBase64(),
     'should be able to read file to base64',
   )
 })
