@@ -24,7 +24,7 @@ import * as duck              from '../duck/mod.js'
 import { audioFixtures }      from '../infrastructure-actors/file-to-text/lib/mod.js'
 import { createBot5Injector } from '../ioc/ioc.js'
 
-import * as Brainstorming   from './brainstorming-actor.js'
+import * as Brainstorming   from './machine.js'
 import { bot5Fixtures }     from './bot5-fixture.js'
 
 test('Brainstorming actor smoke testing', async t => {
