@@ -148,7 +148,7 @@ const machine = createMachine<
           (ctx, e) => noticing.Event.NOTICE(
             [
               '【反馈系统】',
-              `收到${ctx.contacts[e.payload.contactId]!.name}的反馈：`,
+              `收到${ctx.contacts[e.payload.contactId]?.name}的反馈：`,
               `“${e.payload.feedback}”`,
             ].join(''),
           ),
