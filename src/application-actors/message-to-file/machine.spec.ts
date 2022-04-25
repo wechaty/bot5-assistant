@@ -45,6 +45,17 @@ test('MessageToFile actor smoke testing', async t => {
       .onEvent(e => eventList.push(e))
       .start()
 
+    ;(mailbox as Mailbox.impls.Mailbox).internal.actor.interpreter?.subscribe(s => {
+      console.info(s.value)
+      console.info('>>> transition:', [
+        `(${s.history?.value || ''})`.padEnd(30, ' '),
+        ' + ',
+        `[${s.event.type}]`.padEnd(30, ' '),
+        ' = ',
+        `(${s.value})`.padEnd(30, ' '),
+      ].join(''))
+    })
+
     bus$.pipe(
       // tap(e => console.info('### bus$', e)),
       filter(CQRS.is(CQRS.events.MessageReceivedEvent)),
