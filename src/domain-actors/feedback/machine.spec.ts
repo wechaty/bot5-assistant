@@ -17,10 +17,10 @@ import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
-import { audioFixtures }      from '../../infrastructure-actors/file-to-text/lib/mod.js'
+import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
 import { removeUndefined }    from '../../utils/remove-undefined.js'
 
-import { bot5Fixtures }   from '../bot5-fixture.js'
+import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 
 import duckula, { Context }     from './duckula.js'
 import machine                  from './machine.js'
@@ -119,7 +119,7 @@ test('feedback machine smoke testing', async t => {
 
     const listenMessage = awaitMessageWechaty(wechatyFixtures.wechaty)
 
-    const SILK = audioFixtures.silk
+    const SILK = await getSilkFixtures()
 
     const FIXTURES = {
       room: wechatyFixtures.groupRoom,
@@ -352,7 +352,7 @@ test('feedback actor smoke testing', async t => {
 
     // console.info('MEMBER_LIST', MEMBER_LIST)
 
-    const SILK = audioFixtures.silk
+    const SILK = await getSilkFixtures()
 
     const FIXTURES = {
       members: MEMBER_LIST,

@@ -3,7 +3,7 @@
 
 import { test }           from 'tstest'
 
-import { bot5Fixtures }   from '../bot5-fixture.js'
+import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 
 import duckula            from './duckula.js'
 import * as selectors     from './selectors.js'

@@ -20,12 +20,12 @@ import { inspect }          from '@xstate/inspect/lib/server.js'
 import { WebSocketServer }  from 'ws'
 import type * as Mailbox    from 'mailbox'
 
-import * as duck              from '../duck/mod.js'
-import { audioFixtures }      from '../infrastructure-actors/file-to-text/lib/mod.js'
-import { createBot5Injector } from '../ioc/ioc.js'
+import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
 
-import * as Brainstorming   from './machine.js'
-import { bot5Fixtures }     from './bot5-fixture.js'
+import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
+
+import duckula    from './duckula.js'
+import machine    from './machine.js'
 
 test('Brainstorming actor smoke testing', async t => {
   for await (
@@ -58,7 +58,7 @@ test('Brainstorming actor smoke testing', async t => {
       devTools: true,
     })
 
-    const mailbox = injector.injectFunction(Brainstorming.mailboxFactory) as Mailbox.impls.Mailbox
+    const mailbox = injector.injectFunction(machine.mailboxFactory) as Mailbox.impls.Mailbox
 
     const targetEventList: EventObject[] = []
     const targetStateList: StateValue[] = []
@@ -69,7 +69,7 @@ test('Brainstorming actor smoke testing', async t => {
     })
 
     const targetSnapshot  = () => mailbox.debug.target.interpreter!.getSnapshot()
-    const targetContext   = () => targetSnapshot().context as Brainstorming.Context
+    const targetContext   = () => targetSnapshot().context as machine.Context
 
     const proxyMachine = createMachine<any>({
       id: 'ProxyMachine',
