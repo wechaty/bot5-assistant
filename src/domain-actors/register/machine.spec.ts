@@ -256,7 +256,7 @@ test('registerActor smoke testing', async t => {
     await new Promise(setImmediate)
     t.same(eventList, [ NO_MENTION_MESSAGE ], 'should no report contact when there is no mention')
 
-    // ;(registerMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+    // ;(registerMailbox as Mailbox.impls.Mailbox).internal.actor.interpreter!.onTransition(s => {
     //   console.info('______________________________')
     //   console.info(`Actor: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
     //   console.info('-------------------------')
@@ -266,7 +266,7 @@ test('registerActor smoke testing', async t => {
     //   console.info(`Mailbox: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child})`)
     //   console.info('-------------------------')
     // })
-    // ;(wechatyMailbox as Mailbox.impls.Mailbox).internal.target.interpreter!.onTransition(s => {
+    // ;(wechatyMailbox as Mailbox.impls.Mailbox).internal.actor.interpreter!.onTransition(s => {
     //   console.info('______________________________')
     //   // console.info(`Wechaty: (${(s.history?.value as any).child}) + [${s.event.type}] = (${(s.value as any).child}})`)
     //   console.info(`Wechaty: (${s.history?.value}) + [${s.event.type}] = (${s.value})`)
