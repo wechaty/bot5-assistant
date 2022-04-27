@@ -41,7 +41,7 @@ const machine = createMachine<Context, Event>({
 
     [duckula.State.Resetting]: {
       entry: [
-        actions.log('state.Resetting.entry', duckula.id),
+        actions.log('states.Resetting.entry', duckula.id),
         actions.assign(_ => duckula.initialContext()),
       ],
       always: duckula.State.Initializing,
@@ -49,7 +49,7 @@ const machine = createMachine<Context, Event>({
 
     [duckula.State.Initializing]: {
       entry: [
-        actions.log('state.Initializing.entry', duckula.id),
+        actions.log('states.Initializing.entry', duckula.id),
       ],
       always: duckula.State.Idle,
     },
@@ -63,7 +63,7 @@ const machine = createMachine<Context, Event>({
      */
     [duckula.State.Idle]: {
       entry: [
-        actions.log('state.Idle.entry', duckula.id),
+        actions.log('states.Idle.entry', duckula.id),
         Mailbox.actions.idle(duckula.id)('idle'),
       ],
       on: {
@@ -88,7 +88,7 @@ const machine = createMachine<Context, Event>({
      */
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `state.reporting.entry feedbacks/contacts #${selectors.feedbacksNum(ctx)}/${selectors.contactsNum(ctx)}`, duckula.id),
+        actions.log(ctx => `states.Reporting.entry feedbacks/contacts #${selectors.feedbacksNum(ctx)}/${selectors.contactsNum(ctx)}`, duckula.id),
         actions.choose<Context, any>([
           {
             cond: ctx => selectors.contactsNum(ctx) <= 0,
@@ -123,7 +123,7 @@ const machine = createMachine<Context, Event>({
      */
     [duckula.State.Completing]: {
       entry: [
-        actions.log('state.Completing.entry', duckula.id),
+        actions.log('states.Completing.entry', duckula.id),
         actions.choose<Context, AnyEventObject>([
           {
             cond: ctx => selectors.contactsNum(ctx) <= 0,
@@ -149,7 +149,7 @@ const machine = createMachine<Context, Event>({
 
     [duckula.State.Completed]: {
       entry: [
-        actions.log('state.Completed.entry', duckula.id),
+        actions.log('states.Completed.entry', duckula.id),
         actions.send(ctx => NoticingActor.Event.NOTICE(
           '【脑爆系统】叮！系统检测到您已经成功完成头脑风暴，恭喜宿主！',
           Object.values(ctx.contacts).map(c => c.id),
@@ -168,7 +168,7 @@ const machine = createMachine<Context, Event>({
      */
     [duckula.State.Registering]: {
       entry: [
-        actions.log('state.Registering.entry', duckula.id),
+        actions.log('states.Registering.entry', duckula.id),
         actions.send(
           RegisterActor.Event.REPORT(),
           { to: ctx => ctx.address.register },
@@ -179,10 +179,13 @@ const machine = createMachine<Context, Event>({
          * 1. Forward [MESSAGE] to RegisterActor
          */
         [duckula.Type.MESSAGE]: {
-          actions: actions.send(
-            (_, e) => e,
-            { to: ctx => ctx.address.register },
-          ),
+          actions: [
+            actions.send(
+              (_, e) => e,
+              { to: ctx => ctx.address.register },
+            ),
+            actions.log('states.Registering.on.MESSAGE forwarding to register ...', duckula.id),
+          ],
         },
         /**
          * 2. Expect [CONTACTS] from RegisterActor
@@ -208,7 +211,7 @@ const machine = createMachine<Context, Event>({
 
     [duckula.State.Registered]: {
       entry: [
-        actions.log('state.Registered.entry', duckula.id),
+        actions.log('states.Registered.entry', duckula.id),
         actions.send(ctx => NoticingActor.Event.NOTICE(`欢迎${Object.values(ctx.contacts).map(c => c.name).join('，')}参加头脑风暴！`)),
         actions.send(duckula.Event.NEXT()),
       ],
@@ -224,7 +227,7 @@ const machine = createMachine<Context, Event>({
      */
     [duckula.State.Feedbacking]: {
       entry: [
-        actions.log('state.Feedbacking.entry', duckula.id),
+        actions.log('states.Feedbacking.entry', duckula.id),
         actions.send(
           RegisterActor.Event.REPORT(),
           { to: ctx => ctx.address.feedback },
@@ -252,7 +255,7 @@ const machine = createMachine<Context, Event>({
 
     [duckula.State.Feedbacked]: {
       entry: [
-        actions.log('state.feedbacked.entry', duckula.id),
+        actions.log('states.Feedbacked.entry', duckula.id),
         actions.send(ctx => NoticingActor.Event.NOTICE(`感谢${Object.values(ctx.contacts).map(c => c.name).join('，')}的精彩头脑风暴！`)),
         actions.send(duckula.Event.NEXT()),
       ],

@@ -65,8 +65,8 @@ test('wechatyActor SAY with concurrency', async t => {
 
     const testActor = createMachine({
       invoke: {
-        src: Mailbox.helpers.wrap(wechatyMachine),
         id: WECHATY_MACHINE_ID,
+        src: Mailbox.helpers.wrap(wechatyMachine),
       },
       on: {
         '*': {

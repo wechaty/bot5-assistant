@@ -74,7 +74,7 @@ test('Brainstorming actor smoke testing', async t => {
     }))
     feedbackActor.open()
 
-    const actor = Mailbox.from(machine.withContext({
+    const mailbox = Mailbox.from(machine.withContext({
       ...duckula.initialContext(),
       address: {
         wechaty  : String(wechatyActor.address),
@@ -83,11 +83,11 @@ test('Brainstorming actor smoke testing', async t => {
         noticing : String(Mailbox.nil.address),
       },
     }))
-    actor.open()
+    mailbox.open()
 
     const actorEventList: EventObject[] = []
     const actorStateList: StateValue[] = []
-    ;(actor as Mailbox.impls.Mailbox).internal.actor.interpreter!.subscribe(s => {
+    ;(mailbox as Mailbox.impls.Mailbox).internal.actor.interpreter!.subscribe(s => {
       actorEventList.push(s.event)
       actorStateList.push(s.value)
 
@@ -100,14 +100,14 @@ test('Brainstorming actor smoke testing', async t => {
       ].join(''))
     })
 
-    const targetSnapshot  = () => (actor as Mailbox.impls.Mailbox).internal.actor.interpreter!.getSnapshot()
-    const targetContext   = () => targetSnapshot().context as Context
+    const actorSnapshot  = () => (mailbox as Mailbox.impls.Mailbox).internal.actor.interpreter!.getSnapshot()
+    const actorContext   = () => actorSnapshot().context as Context
 
     const testMachine = createMachine<any>({
       id: 'TestMachine',
       on: {
         '*': {
-          actions: Mailbox.actions.proxy('TestMachine')(actor),
+          actions: Mailbox.actions.proxy('TestMachine')(mailbox),
         },
       },
     })
@@ -145,7 +145,7 @@ test('Brainstorming actor smoke testing', async t => {
     testInterpreter.send(duckula.Event.REPORT())
     await sandbox.clock.runToLastAsync()
     t.equal(
-      targetContext().room?.id,
+      actorContext().room?.id,
       wechatyFixture.groupRoom.id,
       'should set room to context',
     )
@@ -164,14 +164,9 @@ test('Brainstorming actor smoke testing', async t => {
     /**
      * Events.MESSAGE(message) - no mentions
      */
-    actorStateList.length = 0
     mockerFixture.player.say('hello, no mention to anyone').to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
-    t.same(actorStateList, [ duckula.State.Registering ], 'should in state.registering if no mention')
-
-    // console.info('eventList', eventList)
-
-    // await new Promise(resolve => setTimeout(resolve, 5000))
+    t.same(actorSnapshot().value, duckula.State.Registering, 'should in State.Segistering if no mention')
 
     /**
      * Events.MESSAGE(message) - with mentions
@@ -180,7 +175,7 @@ test('Brainstorming actor smoke testing', async t => {
     actorStateList.length = 0
     testEventList.length = 0
     mockerFixture.player
-      .say('register mary & mike & player by mention them', [
+      .say('register mary & mike by mention them', [
         mockerFixture.mary,
         mockerFixture.mike,
         mockerFixture.player,
@@ -190,27 +185,31 @@ test('Brainstorming actor smoke testing', async t => {
     // console.info('targetStateList', targetStateList)
     // console.info('proxyEventList', proxyEventList)
     t.same(
-      Object.values(targetContext().contacts)
+      Object.values(actorContext().contacts)
         .map(c => c.id),
       [
         mockerFixture.mary.id,
         mockerFixture.mike.id,
         mockerFixture.player.id,
       ],
-      'should set contacts to mary, mike, player',
+      'should set contacts to mary, mike',
     )
     t.same(actorStateList, [
       duckula.State.Registering,
+      duckula.State.Registering,
+      duckula.State.Registered,
+      duckula.State.Registered,
+      duckula.State.Completing,
       duckula.State.Feedbacking,
-      duckula.State.Feedbacking,
-    ], 'should transition to registering & feedbacking states')
+    ], 'should transition to Registering, Registered, Completing, and Feedbacking states')
     t.same(actorEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
       duckula.Type.CONTACTS,
+      duckula.Type.NEXT,
       duckula.Type.NOTICE,
+      duckula.Type.NEXT,
+      duckula.Type.NEXT,
     ], 'should have MESSAGE,CONTACTS,NOTICE event')
-
-    await sandbox.clock.runAllAsync()
 
     // console.info(targetSnapshot().context)
     // console.info(targetSnapshot().value)
@@ -221,7 +220,7 @@ test('Brainstorming actor smoke testing', async t => {
       .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
     t.same(
-      targetContext().feedbacks,
+      actorContext().feedbacks,
       {},
       'should no feedbacks because it will updated only all members have replied',
     )
@@ -239,7 +238,7 @@ test('Brainstorming actor smoke testing', async t => {
       .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
     t.same(
-      targetContext().feedbacks,
+      actorContext().feedbacks,
       {
         [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
         [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
@@ -250,19 +249,31 @@ test('Brainstorming actor smoke testing', async t => {
     t.same(actorStateList, [
       duckula.State.Feedbacking,
       duckula.State.Feedbacking,
-      duckula.State.Reporting,
-      duckula.State.Reporting,
+      duckula.State.Feedbacking,
+      duckula.State.Feedbacked,
+      duckula.State.Feedbacked,
+      duckula.State.Completing,
+      duckula.State.Completed,
+      duckula.State.Completed,
       duckula.State.Idle,
-    ], 'should in state.Feedbacking,reporting,idle')
+    ], 'should transition through Feedbacking,Feedbacked, Completing, Completed, Idle states')
     t.same(actorEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
       duckula.Type.MESSAGE,
       duckula.Type.FEEDBACKS,
+      duckula.Type.NEXT,
       duckula.Type.NOTICE,
-      duckula.Type.IDLE,
-    ], 'should have MESSAGE,CONTACTS,NOTICE event')
+      duckula.Type.NEXT,
+      duckula.Type.COMPLETE,
+      duckula.Type.NOTICE,
+      duckula.Type.FEEDBACKS,
+    ], 'should have MESSAGE, FEEDBACKS, NEXT, NOTICE, COMPLETE events')
+    // testEventList
+    //   .filter(e => e.type === duckula.Type.FEEDBACKS)
+    //   .forEach(e => console.info(e))
     t.same(
-      actorEventList.filter(e => e.type === duckula.Type.FEEDBACKS),
+      testEventList
+        .filter(e => e.type === duckula.Type.FEEDBACKS),
       [
         duckula.Event.FEEDBACKS({
           [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
@@ -273,19 +284,19 @@ test('Brainstorming actor smoke testing', async t => {
       'should have FEEDBACKS event with feedbacks',
     )
 
-    // console.info('Room message log:')
-    // for (const msg of messageList) {
-    //   const mentionText = (await msg.mentionList())
-    //     .map(c => '@' + c.name()).join(' ')
+    // // console.info('Room message log:')
+    // // for (const msg of messageList) {
+    // //   const mentionText = (await msg.mentionList())
+    // //     .map(c => '@' + c.name()).join(' ')
 
-    //   console.info(
-    //     '-------\n',
-    //     msg.talker().name(),
-    //     ':',
-    //     mentionText,
-    //     msg.text(),
-    //   )
-    // }
+    // //   console.info(
+    // //     '-------\n',
+    // //     msg.talker().name(),
+    // //     ':',
+    // //     mentionText,
+    // //     msg.text(),
+    // //   )
+    // // }
 
     await sandbox.clock.runAllAsync()
     sandbox.restore()
