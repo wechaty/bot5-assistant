@@ -29,16 +29,17 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'CONTACTS',
+    'GERROR',
     /**
      * Internal
      */
-    'GERROR',
     'IDLE',
     'INTRODUCE',
     'MENTION',
     'NEXT',
     'BATCH_RESPONSE',
     'BATCH_EXECUTE',
+    'NOTICE',
   ] ],
   states: [ duck.State, [
     'Confirming',

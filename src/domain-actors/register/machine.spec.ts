@@ -60,6 +60,7 @@ test('registerMachine smoke testing', async t => {
           ...duckula.initialContext(),
           address: {
             wechaty: String(wechatyMailbox.address),
+            noticing: String(Mailbox.nil.address),
           },
         }),
       },
@@ -121,8 +122,9 @@ test('registerMachine smoke testing', async t => {
       duckula.Type.MENTION,
       duckula.Type.NEXT,
       duckula.Type.INTRODUCE,
-      CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
-    ], 'should be BATCH_RESPONSE, INTRODUCE, IDLE, RESPONSE events')
+      duckula.Type.NEXT,
+      duckula.Type.NOTICE,
+    ], 'should be BATCH_RESPONSE, MENTION, NEXT, INTRODUCE, NOTICE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
@@ -164,7 +166,6 @@ test('registerMachine smoke testing', async t => {
       consumerEventList,
       [
         Mailbox.Event.ACTOR_IDLE('idle'),
-        Mailbox.Event.ACTOR_IDLE('idle'),
         Mailbox.Event.ACTOR_REPLY(
           duckula.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
         ),
@@ -176,9 +177,9 @@ test('registerMachine smoke testing', async t => {
       WechatyActor.Type.BATCH_RESPONSE,
       duckula.Type.MENTION,
       duckula.Type.NEXT,
+      duckula.Type.NOTICE,
       duckula.Type.REPORT,
       duckula.Type.CONTACTS,
-      CQRS.duck.types.SEND_MESSAGE_COMMAND_RESPONSE,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, SEND_MESSAGE_COMMAND_RESPONSE event')
     t.same(
       Object.values(registerContext().contacts).map(c => c.id),
@@ -190,10 +191,6 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-/**
- * Huan(202204) FIXME: this test is not working sometimes with race condition
- *  Fixed by https://github.com/huan/mailbox/issues/5
- */
 test('registerActor smoke testing', async t => {
   let interpreter: AnyInterpreter
 
@@ -207,6 +204,7 @@ test('registerActor smoke testing', async t => {
       ...duckula.initialContext(),
       address: {
         wechaty: String(wechatyMailbox.address),
+        noticing: String(Mailbox.nil.address),
       },
     }))
     registerMailbox.open()
