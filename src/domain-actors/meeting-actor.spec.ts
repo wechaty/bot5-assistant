@@ -6,7 +6,7 @@ import { interpret }  from 'xstate'
 import * as duck    from '../duck/mod.js'
 
 import { bot5Fixtures }   from '../fixtures/bot5-fixture.js'
-import * as MeetingActor  from './meeting-actor.js'
+import * as MeetingActor  from './meeting/machine.js'
 
 test('MeetingActor smoke testing', async t => {
   for await (const {
