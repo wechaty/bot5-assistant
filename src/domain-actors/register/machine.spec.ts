@@ -121,9 +121,10 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), duckula.State.Messaging, 'should be in messaging state')
+    t.equal(registerState(), duckula.State.Loading, 'should be in Loading state')
     t.same(registerEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
+      duckula.Type.NEXT,
     ], 'should be MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
@@ -164,9 +165,10 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), duckula.State.Messaging, 'should be in messaging state')
+    t.equal(registerState(), duckula.State.Loading, 'should be in Loading state')
     t.same(registerEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
+      duckula.Type.NEXT,
     ], 'should got MESSAGE event')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 

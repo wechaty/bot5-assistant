@@ -82,7 +82,7 @@ const machine = createMachine<
      *
      * Idle
      *
-     * 1. received MESSAGE  -> transition to Messaging
+     * 1. received MESSAGE  -> transition to Loading
      * 2. received REPORT   -> transition to Reporting
      * 3. received RESET    -> transition to Resetting
      *
@@ -95,26 +95,26 @@ const machine = createMachine<
         [duckula.Type.MESSAGE]: {
           actions: [
             actions.log('states.Idle.on.MESSAGE', duckula.id),
-            actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom }),
-            actions.send((_, e) => e),
+            actions.assign({ message: (_, e) => e.payload.message as PUPPET.payloads.MessageRoom & PUPPET.payloads.MessageBase }),
+            actions.send(duckula.Event.NEXT()),
           ],
         },
-        [duckula.Type.REPORT]  : duckula.State.Reporting,
-        [duckula.Type.RESET]   : duckula.State.Resetting,
-        [duckula.Type.MESSAGE] : duckula.State.Messaging,
-        '*'                    : duckula.State.Idle,
+        [duckula.Type.REPORT] : duckula.State.Reporting,
+        [duckula.Type.RESET]  : duckula.State.Resetting,
+        [duckula.Type.NEXT]   : duckula.State.Loading,
+        '*'                   : duckula.State.Idle,
       },
     },
 
-    [duckula.State.Messaging]: {
+    [duckula.State.Loading]: {
       entry: [
-        actions.log<Context, Events['MESSAGE']>((_, e) => [
-          'states.Messaging.entry message mentionIdList: ',
-          `[${(e.payload.message as PUPPET.payloads.MessageRoom).mentionIdList}]`,
+        actions.log<Context, any>(ctx => [
+          'states.Loading.entry mentionIdList: ',
+          `[${ctx.message?.mentionIdList}]`,
         ].join(''), duckula.id),
         actions.send<Context, Events['MESSAGE']>(
-          (_, e) => {
-            const mentionIdList = (e.payload.message as PUPPET.payloads.MessageRoom).mentionIdList || []
+          ctx => {
+            const mentionIdList = ctx.message?.mentionIdList || []
 
             return WechatyActor.Event.BATCH_EXECUTE(
               mentionIdList.map(id => CQRS.queries.GetContactPayloadQuery(
@@ -130,7 +130,7 @@ const machine = createMachine<
         [WechatyActor.Type.BATCH_RESPONSE]: {
           actions: [
             actions.log((_, e) => [
-              'states.Messaging.on.BATCH_RESPONSE [',
+              'states.Loading.on.BATCH_RESPONSE [',
               [
                 ...new Set(
                   e.payload

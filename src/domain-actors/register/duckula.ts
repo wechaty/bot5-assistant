@@ -25,7 +25,7 @@ import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import * as duck            from '../../duck/mod.js'
 
 export interface Context {
-  message?: PUPPET.payloads.MessageRoom
+  message?: PUPPET.payloads.MessageRoom & PUPPET.payloads.MessageBase
   contacts: { [id: string]: PUPPET.payloads.Contact },
   chairs:   { [id: string]: PUPPET.payloads.Contact },
   gerror?:  string
@@ -69,8 +69,8 @@ const duckula = Mailbox.duckularize({
     'Idle',
     'Initializing',
     'Introducing',
+    'Loading',
     'Mentioning',
-    'Messaging',
     'Reporting',
     'Resetting',
     'Responding',
