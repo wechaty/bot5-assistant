@@ -83,7 +83,7 @@ const machine = createMachine<Context, Event>({
     [duckula.State.Idle]: {
       entry: [
         actions.log('states.Idle.entry', duckula.id),
-        Mailbox.actions.idle(duckula.id)('idle'),
+        Mailbox.actions.idle(duckula.id),
       ],
       on: {
         '*': duckula.State.Idle,  // enforce external transition for Mailbox actor protocol

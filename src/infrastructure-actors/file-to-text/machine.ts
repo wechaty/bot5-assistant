@@ -35,7 +35,7 @@ const machine = createMachine<
   states: {
     [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(duckula.id)('idle'),
+        Mailbox.actions.idle(duckula.id),
       ],
       on: {
         [duckula.Type.FILE_BOX]: duckula.State.Recognizing,

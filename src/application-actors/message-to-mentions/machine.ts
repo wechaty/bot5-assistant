@@ -46,7 +46,7 @@ const machine = createMachine<
      */
     [duckula.State.Idle]: {
       entry: [
-        Mailbox.actions.idle(duckula.id)('idle'),
+        Mailbox.actions.idle(duckula.id),
       ],
       on: {
         [duckula.Type.MESSAGE]: {
