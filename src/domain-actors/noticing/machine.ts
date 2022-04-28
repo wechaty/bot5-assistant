@@ -26,15 +26,16 @@ import { createMachine, actions }   from 'xstate'
 import * as CQRS                    from 'wechaty-cqrs'
 import * as Mailbox                 from 'mailbox'
 
-import duckula    from './duckula.js'
+import duckula, { Context, Event, Events }    from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
-  initial: duckula.State.Initializing,
   context: duckula.initialContext,
+
+  initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
       always: duckula.State.Idle,
@@ -51,7 +52,7 @@ const machine = createMachine<
         [duckula.Type.NOTICE]: duckula.State.Noticing,
         [duckula.Type.CONVERSATION]: {
           actions: [
-            actions.log((_, e) => `duckula.State.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.id),
+            actions.log((_, e) => `states.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.id),
             actions.assign({
               conversationId: (_, e) => e.payload.conversationId,
             }),
@@ -63,8 +64,8 @@ const machine = createMachine<
 
     [duckula.State.Noticing]: {
       entry: [
-        actions.log('duckula.State.Noticing.entry', duckula.id),
-        actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event.NOTICE>>([
+        actions.log('states.Noticing.entry', duckula.id),
+        actions.choose<Context, Events['NOTICE']>([
           {
             cond: ctx => !!ctx.conversationId,
             actions: [
@@ -82,7 +83,7 @@ const machine = createMachine<
             ],
           },
           {
-            actions: actions.log('duckula.State.Noticing.entry no conversationId', duckula.id),
+            actions: actions.log('states.Noticing.entry no conversationId', duckula.id),
           },
         ]),
       ],
