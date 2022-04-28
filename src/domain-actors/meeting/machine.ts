@@ -1,3 +1,22 @@
+/**
+ *   Wechaty Open Source Software - https://github.com/wechaty
+ *
+ *   @copyright 2022 Huan LI (李卓桓) <https://github.com/huan>, and
+ *                   Wechaty Contributors <https://github.com/wechaty>.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ */
 /* eslint-disable sort-keys */
 /**
  * Finite State Machine for BOT Friday Club Meeting
@@ -6,21 +25,18 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import { InjectionToken }   from '../../ioc/tokens.js'
 import * as duck            from '../../duck/mod.js'
 
 import * as NoticingDuckula         from '../noticing/mod.js'
 import * as RegisterDuckula         from '../register/mod.js'
 import * as BrainstormingDuckula    from '../brainstorming/mod.js'
 
+import * as selectors                       from './selectors.js'
 import duckula, { Context, Event, Events }  from './duckula.js'
-
-const ctxChair      = (ctx: Context) => ctx.chairs[0]
-const ctxViceChairs = (ctx: Context) => ctx.chairs.slice(1)
 
 const chairMessageToIntent = actions.choose<Context, Events['MESSAGE']>([
   {
-    cond: (ctx, e) => e.payload.message.talkerId === ctxChair(ctx),
+    cond: (ctx, e) => e.payload.message.talkerId === selectors.chair(ctx)?.id,
     actions: intentAddress.send((_, e) => e),
   },
 ])
@@ -89,7 +105,7 @@ const machine = createMachine<
         [duckula.Type.CHAIRS]: {
           actions: [
             actions.assign({
-              chairs: (_, e) => e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+              chairs: (_, e) => e.payload.contacts,
             }),
           ],
         },

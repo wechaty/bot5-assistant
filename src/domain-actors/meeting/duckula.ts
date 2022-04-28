@@ -10,8 +10,8 @@ import * as NoticingDuckula from '../noticing/mod.js'
 export interface Context {
   minutes?    : string
   room?       : PUPPET.payloads.Room
+  chairs      : PUPPET.payloads.Contact[]
   attendees   : { [id: string]: PUPPET.payloads.Contact }
-  chairs      : { [id: string]: PUPPET.payloads.Contact }
   brainstorms : { [key: string]: string }
   address: {
     noticing      : string,

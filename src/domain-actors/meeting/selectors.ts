@@ -17,7 +17,7 @@
  *   limitations under the License.
  *
  */
-export * as messageToFeedback   from './message-to-feedback/mod.js'
-export * as messageToFile       from './message-to-file/mod.js'
-export * as messageToMentions   from './message-to-mentions/mod.js'
-export * as messageToText       from './message-to-text/mod.js'
+import type { Context } from './duckula.js'
+
+export const chair      = (ctx: Context) => ctx.chairs[0]
+export const viceChairs = (ctx: Context) => ctx.chairs.slice(1)
