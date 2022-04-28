@@ -24,7 +24,7 @@ import * as duck    from '../../duck/mod.js'
 
 import duckula, { Context, Events }   from './duckula.js'
 
-export const messageToIntents = actions.send<Context, Events['MESSAGE']>((_, e) => e, { to: ctx => ctx.address.intent })
+export const messageToIntents = actions.send<Context, Events['MESSAGE']>((_, e) => e, { to: ctx => ctx.actors.intent })
 
 export const chairMessageToIntents = actions.choose<Context, Events['MESSAGE']>([
   {

@@ -58,8 +58,8 @@ const createBot5Injector = (options: IocOptions) => createInjector()
   //
   .provideFactory(InjectionToken.WechatyMailbox,  actors.wechaty.mailboxFactory)
   .provideFactory(InjectionToken.IntentMailbox,   actors.intent.mailboxFactory)
-  .provideFactory(InjectionToken.RegisterMailbox, actors.register.mailboxFactory)
-  .provideFactory(InjectionToken.FeedbackMailbox, actors.feedback.mailboxFactory)
+  .provideFactory(InjectionToken.RegisterMailbox, actors.Register.mailboxFactory)
+  .provideFactory(InjectionToken.FeedbackMailbox, actors.Feedback.mailboxFactory)
 
 export {
   createBot5Injector,

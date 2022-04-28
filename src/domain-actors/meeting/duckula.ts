@@ -32,7 +32,7 @@ export interface Context {
   chairs      : PUPPET.payloads.Contact[]
   attendees   : { [id: string]: PUPPET.payloads.Contact }
   brainstorms : { [key: string]: string }
-  address: {
+  actors: {
     noticing      : string,
     register      : string,
     feedback      : string,
