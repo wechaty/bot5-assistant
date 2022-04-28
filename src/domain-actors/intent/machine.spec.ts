@@ -129,7 +129,14 @@ test('intent actor smoke testing', async t => {
       //   .forEach(e => console.info(e))
 
       t.same(eventList.filter(isActionOf(duckula.Event.INTENTS)), [
-        duckula.Event.INTENTS(intents),
+        duckula.Event.INTENTS(
+          intents,
+          eventList
+            .filter(isActionOf(duckula.Event.MESSAGE))
+            .at(-1)!
+            .payload
+            .message,
+        ),
       ], `should get Intents [${intents}] for ${text}`)
     }
   }

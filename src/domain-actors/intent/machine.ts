@@ -50,6 +50,7 @@ const machine = createMachine<
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id),
+        actions.assign({ message: undefined }),
       ],
       on: {
         [duckula.Type.MESSAGE]: duckula.State.Busy,
@@ -59,6 +60,7 @@ const machine = createMachine<
 
     [duckula.State.Busy]: {
       entry: [
+        actions.assign<Context, Events['MESSAGE']>({ message: (_, e) => e.payload.message }),
         actions.log<Context, Events['MESSAGE']>((_, e) => `states.Busy.entry MESSAGE type: ${PUPPET.types.Message[e.payload.message.type]}`, duckula.id),
         actions.send<Context, Events['MESSAGE']>((_, e) => e, { to: ctx => ctx.actors.messageToText }),
       ],
@@ -83,7 +85,12 @@ const machine = createMachine<
     [duckula.State.Responding]: {
       entry: [
         actions.log<Context, AnyEventObject>((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
+        Mailbox.actions.reply<Context, Events['INTENTS']>(
+          (ctx, e) => duckula.Event.INTENTS(
+            e.payload.intents,
+            ctx.message,
+          ),
+        ),
       ],
       always: duckula.State.Idle,
     },

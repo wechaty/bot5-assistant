@@ -18,11 +18,13 @@
  *
  */
 /* eslint-disable sort-keys */
-import * as Mailbox   from 'mailbox'
+import * as Mailbox       from 'mailbox'
+import type * as PUPPET   from 'wechaty-puppet'
 
 import * as duck            from '../../duck/mod.js'
 
 export interface Context {
+  message?: PUPPET.payloads.Message
   actors: {
     messageToText: string
     textToIntents: string
