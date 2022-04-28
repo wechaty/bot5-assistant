@@ -24,7 +24,7 @@ import * as CQRS      from 'wechaty-cqrs'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  address: {
+  actors: {
     wechaty: string,
   }
 }

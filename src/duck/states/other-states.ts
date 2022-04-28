@@ -1,24 +1,4 @@
 /**
- *   Wechaty Open Source Software - https://github.com/wechaty
- *
- *   @copyright 2022 Huan LI (李卓桓) <https://github.com/huan>, and
- *                   Wechaty Contributors <https://github.com/wechaty>.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
- *
- */
-
-/**
  * Idle Time – Definition, Causes, And How To Reduce It
  *  @see https://limblecmms.com/blog/idle-time/
  */
@@ -68,7 +48,6 @@ export const Errored  = 'bot5-assistant/Errored'
 export const Erroring = 'bot5-assistant/Erroring'
 export const Failed   = 'bot5-assistant/Failed'
 
-export const Starting  = 'bot5-assistant/Starting'
 export const Stopping  = 'bot5-assistant/Stopping'
 
 export const Resetting = 'bot5-assistant/Resetting'
@@ -109,32 +88,4 @@ export const Filing       = 'bot5-assistant/Filing'
 export const Textualizing = 'bot5-assistant/Textualizing'
 export const Nexting      = 'bot5-assistant/Nexting'
 
-/**
- * 吐槽：https://www.sohu.com/a/222322905_509197
- */
-export const Brainstorming = 'bot5-assistant/Brainstorming'
-export const Roasting = 'bot5-assistant/Roasting'
-
-/**
- * retrospect means: a review of the past
- * @link https://wikidiff.com/reminisce/retrospect
- */
-export const Retrospecting = 'bot5-assistant/Retrospecting'
-
-/**
- * Meeting related
- */
-export const Joining      = 'bot5-assistant/Joining'
-export const Presenting   = 'bot5-assistant/Presenting'
-export const Upgrading    = 'bot5-assistant/Upgrading'
-export const Electing     = 'bot5-assistant/Electing'
-export const Elected      = 'bot5-assistant/Elected'
-export const Photoing     = 'bot5-assistant/Photoing'
-export const Housekeeping = 'bot5-assistant/Housekeeping'
-export const Summarizing  = 'bot5-assistant/Summarizing'
-export const Summarized   = 'bot5-assistant/Summarized'
-export const Chatting     = 'bot5-assistant/Chatting'
-export const Drinking     = 'bot5-assistant/Drinking'
-export const Pledging     = 'bot5-assistant/Pledging'
-export const Announcing   = 'bot5-assistant/Announcing'
 export const Responding   = 'bot5-assistant/Responding'

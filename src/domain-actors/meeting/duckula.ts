@@ -89,7 +89,12 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'Initializing',
+    'Checkining',
     'Mentioning',
+    /**
+     * Meeting steps
+     */
+    'Starting',
     'Upgrading',
     'Brainstorming',
     'Resetting',
@@ -104,7 +109,9 @@ const duckula = Mailbox.duckularize({
     'Introducing',
     'Summarizing',
     'Pledging',
-    'Photoing',
+    'ShootingChairs',
+    'ShootingAll',
+    'ShootingDrinkers',
     'Housekeeping',
     'Chatting',
     'Retrospecting',
@@ -112,6 +119,7 @@ const duckula = Mailbox.duckularize({
     'Roasting',
     'Summarized',
     'Drinking',
+    'Paying',
     'Finishing',
     'Finished',
   ] ],

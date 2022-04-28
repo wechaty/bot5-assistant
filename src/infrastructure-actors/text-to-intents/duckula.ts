@@ -25,7 +25,7 @@ import * as duck    from '../../duck/mod.js'
 export interface Context {}
 
 const duckula = Mailbox.duckularize({
-  id: 'Intent',
+  id: 'TextToIntents',
   events: [ duck.Event, [
     /**
      * Request

@@ -17,19 +17,5 @@
  *   limitations under the License.
  *
  */
-import duckula from './duckula.js'
-import machine from './machine.js'
-
-export { FIXTURES } from './fixtures.js'
-
-export const {
-  id,
-  Event,
-  State,
-  Type,
-  initialContext,
-} = duckula
-
-export {
-  machine,
-}
+export * from './bot5-meeting-steps.js'
+export * from './other-states.js'

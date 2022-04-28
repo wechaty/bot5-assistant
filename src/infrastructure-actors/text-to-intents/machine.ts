@@ -72,7 +72,7 @@ const machine = createMachine<
      */
     [duckula.State.Understanding]: {
       entry: [
-        actions.log<Context, Events['TEXT']>((_, e) => `states.understanding.entry TEXT: "${e.payload.text}"`, duckula.id),
+        actions.log<Context, Events['TEXT']>((_, e) => `states.Understanding.entry TEXT: "${e.payload.text}"`, duckula.id),
       ],
       invoke: {
         src: (_, e) => isActionOf(duckula.Event.TEXT, e)
@@ -93,7 +93,7 @@ const machine = createMachine<
 
     [duckula.State.Responding]: {
       entry: [
-        actions.log<Context, Events['INTENTS']>((_, e) => `states.Responding.entry [${e.type}](${e.payload.intents})`, duckula.id),
+        actions.log<Context, Events['INTENTS']>((_, e) => `states.Responding.entry [${e.type}]: ${e.payload.intents}`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,

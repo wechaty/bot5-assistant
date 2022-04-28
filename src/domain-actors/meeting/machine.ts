@@ -49,6 +49,11 @@ const machine = createMachine<
     [NoticingActor.Type.NOTICE]: {
       actions: actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
     },
+    [duckula.Type.MESSAGE]: {
+      actions: [
+        actions.send((_, e) => e, { to: ctx => ctx.actors.intent }),
+      ],
+    },
   },
 
   initial: duckula.State.Initializing,
@@ -147,15 +152,19 @@ const machine = createMachine<
       },
     },
 
-    [duckula.State.Processing]: {
-    },
-
     /**
      *
      * BOT Friday Club - Chair Manual
      *  @link http://bot5.ml/manuals/chair/
      *
-    */
+     * Main loop of the meeting bot
+     */
+    [duckula.State.Processing]: {
+    },
+
+    /**
+     * 0.
+     */
     [duckula.State.Announcing]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -186,10 +195,18 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Retrospecting,
     },
+
+    [duckula.State.Checkining]: {
+
+    },
+
+    [duckula.State.Starting]: {
+
+    },
+
     [duckula.State.Retrospecting]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
-          '【会议系统】',
           '进入新环节：由轮值主席做最后一次活动回顾',
           '下一个环节：新人自我介绍',
         ].join(''))),
@@ -206,6 +223,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Joining,
       },
     },
+
     [duckula.State.Joining]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -239,6 +257,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Introducing,
       },
     },
+
     [duckula.State.Introducing]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -272,6 +291,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Registering,
       },
     },
+
     [duckula.State.Registering]: {
       entry: [
         actions.send(RegisterActor.Event.REPORT(), { to: ctx => ctx.actors.register }),
@@ -307,6 +327,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Presenting,
       },
     },
+
     [duckula.State.Presenting]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -333,6 +354,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Registering,
       },
     },
+
     [duckula.State.Upgrading]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -345,6 +367,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Brainstorming,
     },
+
     [duckula.State.Brainstorming]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -380,6 +403,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         [duckula.Type.NEXT]: duckula.State.Electing,
       },
     },
+
     [duckula.State.Electing]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -391,6 +415,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Upgrading,
     },
+
     [duckula.State.Elected]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -399,6 +424,17 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Roasting,
     },
+
+    [duckula.State.ShootingChairs]: {
+      entry: [
+        actions.send(NoticingActor.Event.NOTICE([
+          '【会议系统】合影',
+          '轮值主席，轮值副主席，和下期轮值副主席合影（原图经过脸盲助手发到会员群，并将带名字的照片，发布在活动纪要中）',
+        ].join(''))),
+      ],
+      always: duckula.State.Housekeeping,
+    },
+
     [duckula.State.Roasting]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -410,6 +446,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Summarizing,
     },
+
     [duckula.State.Summarizing]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE(
@@ -418,6 +455,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Summarized,
     },
+
     [duckula.State.Pledging]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE(
@@ -426,7 +464,8 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Photoing,
     },
-    [duckula.State.Photoing]: {
+
+    [duckula.State.ShootingAll]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
           '【会议系统】合影',
@@ -435,6 +474,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Housekeeping,
     },
+
     [duckula.State.Housekeeping]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -444,6 +484,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Chatting,
     },
+
     [duckula.State.Chatting]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -454,6 +495,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Drinking,
     },
+
     [duckula.State.Drinking]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE(
@@ -462,6 +504,26 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       always: duckula.State.Finishing,
     },
+
+    [duckula.State.ShootingDrinkers]: {
+      entry: [
+        actions.send(NoticingActor.Event.NOTICE([
+          'After Party 合影',
+          '酒菜上齐之后第一时间合影啦！',
+        ].join(''))),
+      ],
+      always: duckula.State.Housekeeping,
+    },
+
+    [duckula.State.Paying]: {
+      entry: [
+        actions.send(NoticingActor.Event.NOTICE([
+          'After Party AA 付款',
+        ].join(''))),
+      ],
+      always: duckula.State.Housekeeping,
+    },
+
     [duckula.State.Finishing]: {
       entry: [
         actions.send(NoticingActor.Event.NOTICE([

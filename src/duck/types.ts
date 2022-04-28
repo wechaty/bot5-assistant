@@ -91,3 +91,5 @@ export const LOAD = 'bot5-assisstant/LOAD'
 
 export const REGISTER = 'bot5-assistant/REGISTER'
 export const HELP = 'bot5-assistant/HELP'
+
+export const CHECKIN = 'bot5-assistant/CHECKIN'
