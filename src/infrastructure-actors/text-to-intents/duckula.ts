@@ -35,16 +35,15 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'INTENTS',
+    'GERROR',
     /**
      * Internal
      */
-    'GERROR',
-    'IDLE',
   ] ],
   states: [ duck.State, [
     'Idle',
     'Understanding',
-    'Understood',
+    'Responding',
     'Erroring',
   ] ],
   initialContext: {} as Context,

@@ -22,7 +22,7 @@
 
 import { test }   from 'tstest'
 
-import * as duck from '../duck/mod.js'
+import * as duck from '../../duck/mod.js'
 
 import { textToIntents }  from './text-to-intents.js'
 

@@ -23,19 +23,29 @@ import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
 import { GError }                   from 'gerror'
 
-import * as duck            from '../../duck/mod.js'
-import { textToIntents }    from '../../services/text-to-intents.js'
+import * as duck    from '../../duck/mod.js'
 
-import duckula    from './duckula.js'
+import { textToIntents }    from './text-to-intents.js'
+
+import duckula, { Context, Event, Events }    from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
-  initial: duckula.State.Idle,
   context: duckula.initialContext,
+
+  initial: duckula.State.Idle,
   states: {
+
+    /**
+     *
+     * Idle
+     *
+     * 1. received TEXT -> transition to Understanding
+     *
+     */
 
     [duckula.State.Idle]: {
       entry: [
@@ -48,9 +58,21 @@ const machine = createMachine<
       },
     },
 
+    /**
+     *
+     * Understanding
+     *
+     * 1. received TEXT         -> invoke textToIntents
+     * 2. received invoke.done  -> emit INTENTS
+     * 3. received invoke.error -> emit GERROR
+     *
+     * 4. received INTENTS  -> transition to Responding
+     * 5. received GERROR   -> transition to Erroring
+     *
+     */
     [duckula.State.Understanding]: {
       entry: [
-        actions.log((_, e) => `states.understanding.entry TEXT: "${(e as ReturnType<typeof duckula.Event['TEXT']>).payload.text}"`, duckula.id),
+        actions.log<Context, Events['TEXT']>((_, e) => `states.understanding.entry TEXT: "${e.payload.text}"`, duckula.id),
       ],
       invoke: {
         src: (_, e) => isActionOf(duckula.Event.TEXT, e)
@@ -64,29 +86,25 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.INTENTS]: duckula.State.Understood,
+        [duckula.Type.INTENTS] : duckula.State.Responding,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
+    },
+
+    [duckula.State.Responding]: {
+      entry: [
+        actions.log<Context, Events['INTENTS']>((_, e) => `states.Responding.entry [${e.type}](${e.payload.intents})`, duckula.id),
+        Mailbox.actions.reply((_, e) => e),
+      ],
+      always: duckula.State.Idle,
     },
 
     [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `states.Erroring.entry ${(e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror}`, duckula.id),
-        actions.send(duckula.Event.INTENTS([ duck.Intent.Unknown ])),
+        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry [${e.type}] ${e.payload.gerror}`, duckula.id),
+        Mailbox.actions.reply((_, e) => isActionOf(duckula.Event.GERROR, e) ? e : duckula.Event.GERROR(GError.stringify(e))),
       ],
-      on: {
-        [duckula.Type.INTENTS]: duckula.State.Understood,
-      },
-    },
-
-    [duckula.State.Understood]: {
-      entry: [
-        actions.log((_, e) => `states.responding.entry [${e.type}](${(e as ReturnType<typeof duckula.Event['INTENTS']>).payload.intents})`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-        actions.send(duckula.Event.IDLE()),
-      ],
-      on: {
-        [duckula.Type.IDLE]: duckula.State.Idle,
-      },
+      always: duckula.State.Idle,
     },
 
   },

@@ -17,7 +17,7 @@
  *   limitations under the License.
  *
  */
-import { Intent } from '../duck/mod.js'
+import { Intent } from '../../duck/mod.js'
 
 const INTENT_PATTERNS = [
   [
