@@ -43,26 +43,27 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'Meeting',
-  events: [ { ...duck.Event, ...CQRS.duck.actions, ...Mailbox.Event, ...NoticingDuckula.Event }, [
+  events: [ { ...NoticingDuckula.Event, ...duck.Event, ...CQRS.duck.actions, ...Mailbox.Event }, [
     /**
      * Config
      */
+    'ROOM',
+    'CHAIRS',
+    'ATTENDEES',
+    'RESET',
     /**
      * Requests
      */
+    'REPORT',
     /**
      * Responses
      */
+
     /**
      * Internal
      */
     'MINUTE',
     'IDLE',
-    'RESET',
-    'REPORT',
-    'ROOM',
-    'ATTENDEES',
-    'CHAIRS',
     'PROCESS',
     'MESSAGE',
     'FEEDBACKS',
@@ -99,8 +100,9 @@ const duckula = Mailbox.duckularize({
     'Joining',
     'Roasting',
     'Summarized',
-    'Finishing',
     'Drinking',
+    'Finishing',
+    'Finished',
   ] ],
   initialContext: ({
     minutes    : undefined,
