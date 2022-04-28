@@ -19,12 +19,11 @@
  */
 /* eslint-disable sort-keys */
 import type * as PUPPET   from 'wechaty-puppet'
-import * as CQRS          from 'wechaty-cqrs'
 import * as Mailbox       from 'mailbox'
 
-import * as duck            from '../../duck/mod.js'
+import * as duck    from '../../duck/mod.js'
 
-import * as NoticingDuckula from '../noticing/mod.js'
+import * as NoticingActor   from '../noticing/mod.js'
 
 export interface Context {
   minutes?    : string
@@ -43,7 +42,7 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'Meeting',
-  events: [ { ...NoticingDuckula.Event, ...duck.Event, ...CQRS.duck.actions, ...Mailbox.Event }, [
+  events: [ { ...NoticingActor.Event, ...duck.Event }, [
     /**
      * Config
      */
@@ -58,31 +57,43 @@ const duckula = Mailbox.duckularize({
     /**
      * Responses
      */
-
+    'MINUTES',
+    'GERROR',
     /**
      * Internal
      */
-    'MINUTE',
-    'IDLE',
-    'PROCESS',
-    'MESSAGE',
-    'FEEDBACKS',
     'BACK',
-    'NEXT',
-    'INTENTS',
     'CONTACTS',
+    'FEEDBACKS',
+    'HELP',
+    'INTENTS',
+    'MESSAGE',
+    'NEXT',
+    'PROCESS',
     /**
-     * NoticingDuckula
+     * NoticingActor
      */
     'NOTICE',
   ] ],
   states: [ duck.State, [
-    'Initializing',
+    /**
+     * Config & Request
+     */
     'Idle',
+    /**
+     * Response
+     */
+    'Responding',
+    'Erroring',
+    /**
+     * Internal
+     */
+    'Initializing',
     'Mentioning',
     'Upgrading',
     'Brainstorming',
     'Resetting',
+    'Resetted',
     'Registering',
     'Electing',
     'Elected',

@@ -35,8 +35,6 @@ const payloadData      = (data?: string) => ({ data })
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 const payloadFeedback  = (contactId: string, feedback: string) => ({ contactId, feedback })
 
-const payloadMinute = (minutes: string) => ({ minutes })
-
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 export const MENTION    = createAction(Type.MENTION,   payloadContacts)()
 export const CONTACTS   = createAction(Type.CONTACTS,  payloadContacts)()
@@ -99,7 +97,12 @@ export const PARSE = createAction(Type.PARSE)()
 const payloadNotice = (text: string, mentions: string[] = []) => ({ mentions, text })
 export const NOTICE = createAction(Type.NOTICE, payloadNotice)()
 
-export const MINUTE = createAction(Type.MINUTE, payloadMinute)()
+/**
+ * Minutes of Meeting (MoM)
+ *  @link https://en.wikipedia.org/wiki/Minutes
+ */
+const payloadMinute = (minutes: string) => ({ minutes })
+export const MINUTES = createAction(Type.MINUTES, payloadMinute)()
 
 const payloadConversation = (conversationId: string) => ({ conversationId })
 export const CONVERSATION = createAction(Type.CONVERSATION, payloadConversation)()
@@ -113,3 +116,5 @@ const payloadLoad = (id: string) => ({ id })
 export const LOAD = createAction(Type.LOAD, payloadLoad)()
 
 export const REGISTER = createAction(Type.REGISTER)()
+
+export const HELP = createAction(Type.HELP)()

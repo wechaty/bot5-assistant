@@ -72,6 +72,7 @@ export const Starting  = 'bot5-assistant/Starting'
 export const Stopping  = 'bot5-assistant/Stopping'
 
 export const Resetting = 'bot5-assistant/Resetting'
+export const Resetted  = 'bot5-assistant/Resetted'
 
 export const Active = 'bot5-assistant/Active'
 export const Inactive = 'bot5-assistant/Inactive'

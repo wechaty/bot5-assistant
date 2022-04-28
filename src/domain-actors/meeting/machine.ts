@@ -39,62 +39,68 @@ const machine = createMachine<
   id: duckula.id,
   context: duckula.initialContext,
 
+  /**
+   * Huan(202204): global events must be private / internal
+   *  or it will block the Mailbox actor queue
+   *
+   * IMPORTANT: Put all Actor Request events inside the State.Idle.
+   */
   on: {
-    [duckula.Type.RESET]: {
-      target: duckula.State.Resetting,
-    },
     [NoticingActor.Type.NOTICE]: {
-      actions: actions.send((_, e) => e, { to: ctx => ctx.address.noticing }),
+      actions: actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
     },
   },
 
   initial: duckula.State.Initializing,
   states: {
-    [duckula.State.Resetting]: {
-      entry: [
-        actions.log('duckula.State.Resetting.entry', duckula.id),
-        actions.assign(_ => duckula.initialContext()),
-        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.address.register }),
-        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.address.feedback }),
-        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.address.brainstorming }),
-        actions.send(NoticingActor.Event.NOTICE('【会议系统】重置中...')),
-      ],
-      always: duckula.State.Initializing,
-    },
     [duckula.State.Initializing]: {
       always: duckula.State.Idle,
+    },
+    [duckula.State.Resetting]: {
+      entry: [
+        actions.log('states.Resetting.entry', duckula.id),
+        actions.send(NoticingActor.Event.NOTICE('【会议系统】重置中...')),
+        actions.assign(_ => duckula.initialContext()),
+        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.register }),
+        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.feedback }),
+        actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.brainstorming }),
+      ],
+      always: duckula.State.Resetted,
+    },
+    [duckula.State.Resetted]: {
+      entry: actions.send(NoticingActor.Event.NOTICE('【会议系统】重置DONE. Jump to Initializing ...')),
+      always: duckula.State.Initializing,
     },
 
     /**
      *
      * Idle
      *
-     * 1. received REPORT -> transition to Reporting
-     * 2. received ROOM   -> emit CONVERSATION
-     * 3. ...
+     * Config:
+     *  1. received ROOM       -> send CONVERSATION to NoticingActor
+     *  2. received CHAIRS     -> assign context.chairs
+     *  3. received ATTENDEES  -> assign context.attendees
+     *  4. received RESET      -> transition to Resetting
+     *
+     * Requests:
+     *  1. received REPORT -> transition to Reporting
      *
      */
     [duckula.State.Idle]: {
       entry: [
-        actions.log('duckula.State.Idle.entry', duckula.id),
-        Mailbox.actions.idle(duckula.id)('idle'),
+        actions.log('states.Idle.entry', duckula.id),
+        Mailbox.actions.idle(duckula.id),
       ],
       on: {
         '*': duckula.State.Idle, // enforce external transision
-        [duckula.Type.REPORT]: duckula.State.Reporting,
+        /**
+         * Config
+         */
         [duckula.Type.ROOM]: {
           actions: [
             actions.send((_, e) => NoticingActor.Event.CONVERSATION(e.payload.room.id)),
             actions.assign({
               room: (_, e) => e.payload.room,
-            }),
-          ],
-        },
-        [duckula.Type.ATTENDEES]: {
-          actions: [
-            actions.send((_, e) => RegisterActor.Event.CONTACTS(e.payload.contacts), { to: ctx => ctx.address.register }),
-            actions.assign({
-              attendees: (_, e) => e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
             }),
           ],
         },
@@ -105,6 +111,21 @@ const machine = createMachine<
             }),
           ],
         },
+        [duckula.Type.ATTENDEES]: {
+          actions: [
+            actions.send((_, e) => RegisterActor.Event.CONTACTS(e.payload.contacts), { to: ctx => ctx.actors.register }),
+            actions.assign({
+              attendees: (_, e) => e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+            }),
+          ],
+        },
+        [duckula.Type.RESET]: {
+          target: duckula.State.Resetting,
+        },
+        /**
+         * Request
+         */
+        [duckula.Type.REPORT]: duckula.State.Reporting,
       },
     },
 
@@ -113,27 +134,22 @@ const machine = createMachine<
         actions.choose<Context, Events['REPORT']>([
           {
             cond: ctx => !!ctx.minutes,
-            actions: [
-              Mailbox.actions.reply(ctx =>
-                duckula.Event.MINUTE(ctx.minutes!),
-              ),
-              actions.send(duckula.Event.NEXT()),
-            ],
+            actions: actions.send(ctx => duckula.Event.MINUTES(ctx.minutes!)),
           },
           {
-            actions: [
-              actions.send(duckula.Event.PROCESS()),
-            ],
+            actions: actions.send(duckula.Event.NEXT()),
           },
         ]),
       ],
       on: {
-        [duckula.Type.NEXT]:     duckula.State.Idle,
-        [duckula.Type.PROCESS]:  duckula.State.Processing,
+        [duckula.Type.MINUTES] : duckula.State.Responding,
+        [duckula.Type.NEXT]    : duckula.State.Processing,
       },
     },
+
     [duckula.State.Processing]: {
     },
+
     /**
      *
      * BOT Friday Club - Chair Manual
@@ -233,7 +249,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
           '环节说明：通过微信语音发布在微信群中，1 MIN',
           '环节结束标志：所有新人完成自我介绍语音发送',
           '人工反馈：请主席确认所有新人已经介绍完成后，输入“/next”，进入下一个环节。',
-        ].join(''))),
+        ].join('\n'))),
       ],
       exit: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -258,7 +274,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
     },
     [duckula.State.Registering]: {
       entry: [
-        actions.send(RegisterActor.Event.REPORT(), { to: ctx => ctx.address.register }),
+        actions.send(RegisterActor.Event.REPORT(), { to: ctx => ctx.actors.register }),
         actions.send(NoticingActor.Event.NOTICE([
           '【会议系统】',
           '当前模块：活动成员注册',
@@ -276,7 +292,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       on: {
         [duckula.Type.MESSAGE]: {
-          actions: actions.send((_, e) => e, { to: ctx => ctx.address.register }),
+          actions: actions.send((_, e) => e, { to: ctx => ctx.actors.register }),
         },
         [duckula.Type.CONTACTS]: {
           actions: [
@@ -338,7 +354,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
           '分享自己在本次活动上想到的新的好点子(1 MIN per person)',
           '不讨论（讨论留到After Party）',
         ].join(''))),
-        actions.send(BrainstormingActor.Event.REPORT(), { to: ctx => ctx.address.brainstorming }),
+        actions.send(BrainstormingActor.Event.REPORT(), { to: ctx => ctx.actors.brainstorming }),
       ],
       exit: [
         actions.send(NoticingActor.Event.NOTICE([
@@ -349,7 +365,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
       ],
       on: {
         [duckula.Type.MESSAGE]: {
-          actions: actions.send((_, e) => e, { to: ctx => ctx.address.brainstorming }),
+          actions: actions.send((_, e) => e, { to: ctx => ctx.actors.brainstorming }),
         },
         [duckula.Type.FEEDBACKS]: {
           actions: [

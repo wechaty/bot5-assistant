@@ -44,13 +44,13 @@ import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 import duckula, { Context }     from './duckula.js'
 import machine                  from './machine.js'
 
-const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => any) => {
-  const future = new Promise<WECHATY.Message>(resolve => wechaty.once('message', resolve))
+const awaitMessageWechaty = (wechaty: WECHATY.Wechaty) => (sayFn: () => void) => {
+  const future = new Promise(resolve => wechaty.once('message', resolve))
   sayFn()
   return future
 }
 
-test('feedback machine smoke testing', async t => {
+test('meeting machine smoke testing', async t => {
   for await (const {
     mocker: mockerFixtures,
     wechaty: wechatyFixtures,
@@ -63,55 +63,42 @@ test('feedback machine smoke testing', async t => {
     const bus$ = CQRS.from(wechatyFixtures.wechaty)
     const wechatyActor = WechatyActor.from(bus$, wechatyFixtures.wechaty.puppet.id)
 
-    ;(wechatyActor as Mailbox.impls.Mailbox).internal.interpreter.subscribe(s => {
-      console.info('>>> wechaty mailbox:', [
-        `(${s.history?.value || ''})`.padEnd(30, ' '),
-        ' + ',
-        `[${s.event.type}]`.padEnd(30, ' '),
-        ' = ',
-        `(${s.value})`.padEnd(30, ' '),
-      ].join(''))
-    })
-
-    ;(wechatyActor as Mailbox.impls.Mailbox).internal.actor.interpreter?.subscribe(s => {
-      console.info('>>> wechaty actor:', [
-        `(${s.history?.value || ''})`.padEnd(30, ' '),
-        ' + ',
-        `[${s.event.type}]`.padEnd(30, ' '),
-        ' = ',
-        `(${s.value})`.padEnd(30, ' '),
-      ].join(''))
-    })
-
-    const CHILD_ID = 'testing-child-id'
-    const consumerMachine = createMachine({
+    const TEST_ID = 'test-id'
+    const testMachine = createMachine({
+      id: TEST_ID,
       invoke: {
-        id: CHILD_ID,
+        id: duckula.id,
         src: machine.withContext({
           ...duckula.initialContext(),
-          address: {
+          actors: {
             wechaty: String(wechatyActor.address),
             noticing: String(Mailbox.nil.address),
             register: String(Mailbox.nil.address),
           },
         }),
       },
+
+      on: {
+        '*': {
+          actions: Mailbox.actions.proxy(TEST_ID)(duckula.id),
+        },
+      },
     })
 
-    const consumerEventList: AnyEventObject[] = []
-    const consumerInterpreter = interpret(consumerMachine)
-      .onEvent(e => consumerEventList.push(e))
+    const testEventList: AnyEventObject[] = []
+    const testInterpreter = interpret(testMachine)
+      .onEvent(e => testEventList.push(e))
       .start()
 
-    const feedbackInterpreter = consumerInterpreter.children.get(CHILD_ID) as Interpreter<any>
-    const feedbackState = () => feedbackInterpreter.getSnapshot().value
-    const feedbackContext = () => feedbackInterpreter.getSnapshot().context as Context
+    const meetingInterpreter = testInterpreter.children.get(duckula.id) as Interpreter<any>
+    const meetingState    = () => meetingInterpreter.getSnapshot().value
+    const meetingContext  = () => meetingInterpreter.getSnapshot().context as Context
 
-    const feedbackEventList: AnyEventObject[] = []
+    const meetingEventList: AnyEventObject[] = []
 
-    feedbackInterpreter.subscribe(s => {
-      feedbackEventList.push(s.event)
-      console.info('>>> feedback:', [
+    meetingInterpreter.subscribe(s => {
+      meetingEventList.push(s.event)
+      console.info('>>> meeting:', [
         `(${s.history?.value || ''})`.padEnd(30, ' '),
         ' + ',
         `[${s.event.type}]`.padEnd(30, ' '),
@@ -120,8 +107,8 @@ test('feedback machine smoke testing', async t => {
       ].join(''))
     })
 
-    t.equal(feedbackState(), duckula.State.Idle, 'should be idle state after initial')
-    t.same(feedbackContext().contacts, [], 'should be empty attendee list')
+    t.equal(meetingState(), duckula.State.Idle, 'should be idle state after initial')
+    t.same(meetingContext().attendees, [], 'should be empty attendee list')
 
     bus$.pipe(
       // tap(e => console.info('### bus$', e)),
@@ -133,7 +120,7 @@ test('feedback machine smoke testing', async t => {
       map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
     ).subscribe(e => {
       // console.info('### duckula.Event.MESSAGE', e)
-      feedbackInterpreter.send(e)
+      meetingInterpreter.send(e)
     })
 
     const listenMessage = awaitMessageWechaty(wechatyFixtures.wechaty)
@@ -142,26 +129,30 @@ test('feedback machine smoke testing', async t => {
 
     const FIXTURES = {
       room: wechatyFixtures.groupRoom,
+      chairs: [
+        wechatyFixtures.player,
+        wechatyFixtures.mike,
+      ],
       members: [
         wechatyFixtures.mary,
         wechatyFixtures.mike,
         wechatyFixtures.player,
         wechatyFixtures.bot,
       ],
-      feedbacks: {
-        mary   : [ 'im mary',     'im mary' ],
-        mike   : [ 'im mike',     'im mike' ],
-        player : [ SILK.fileBox,  SILK.text ],
-        bot    : [ 'im bot',      'im bot' ],
+      brainstorming: {
+        mary   : [ "mary's brainstorming",  "mary's brainstorming" ],
+        mike   : [ 'im mike',               'im mike' ],
+        player : [ SILK.fileBox,            SILK.text ],
+        bot    : [ 'im bot',                'im bot' ],
       },
     } as const
 
     /**
      * Send CONTACTS event
      */
-    consumerEventList.length = 0
-    feedbackEventList.length = 0
-    feedbackInterpreter.send(
+    testEventList.length = 0
+    meetingEventList.length = 0
+    meetingInterpreter.send(
       duckula.Event.CONTACTS(
         FIXTURES.members
           .map(c => c.payload)
@@ -169,81 +160,81 @@ test('feedback machine smoke testing', async t => {
       ),
     )
     // console.info(snapshot.history)
-    t.same(feedbackEventList.map(e => e.type), [
+    t.same(meetingEventList.map(e => e.type), [
       duckula.Type.CONTACTS,
     ], 'should get CONTACTS event')
-    t.equal(feedbackState(), duckula.State.Idle, 'should be state idle')
-    t.same(Object.values(feedbackContext().contacts).map(c => c.id), FIXTURES.members.map(c => c.id), 'should get context contacts list')
+    t.equal(meetingState(), duckula.State.Idle, 'should be state idle')
+    t.same(Object.values(meetingContext().attendees).map(c => c.id), FIXTURES.members.map(c => c.id), 'should get context contacts list')
 
     /**
      * Send MESSAGE event: Mary
      */
-    feedbackEventList.length = 0
+    meetingEventList.length = 0
     await listenMessage(() =>
-      mockerFixtures.mary.say(FIXTURES.feedbacks.mary[0]).to(mockerFixtures.groupRoom),
+      mockerFixtures.mary.say(FIXTURES.brainstorming.mary[0]).to(mockerFixtures.groupRoom),
     )
     t.same(
-      feedbackEventList
+      meetingEventList
         .map(e => e.type)
         .filter(e => e !== Mailbox.Type.ACTOR_IDLE),
       [ duckula.Type.MESSAGE ],
       'should get MESSAGE event',
     )
-    t.same(feedbackState(), duckula.State.Textualizing, 'should be back to state Textualizing after received a text message')
+    t.same(meetingState(), duckula.State.Textualizing, 'should be back to state Textualizing after received a text message')
     await sandbox.clock.runAllAsync()
-    t.same(feedbackContext().feedbacks, {
-      [wechatyFixtures.mary.id]: FIXTURES.feedbacks.mary[1],
+    t.same(meetingContext().feedbacks, {
+      [wechatyFixtures.mary.id]: FIXTURES.brainstorming.mary[1],
     }, 'should have feedback from mary')
-    t.equal(Object.keys(feedbackContext().feedbacks).length, 1, 'should have 1 feedback so far')
+    t.equal(Object.keys(meetingContext().feedbacks).length, 1, 'should have 1 feedback so far')
 
     /**
      * Mike
      */
-    await listenMessage(() => mockerFixtures.mike.say(FIXTURES.feedbacks.mike[0]).to(mockerFixtures.groupRoom))
+    await listenMessage(() => mockerFixtures.mike.say(FIXTURES.brainstorming.mike[0]).to(mockerFixtures.groupRoom))
     await sandbox.clock.runAllAsync()
     // console.info((snapshot.event.payload as any).message)
     t.same(
-      feedbackState(),
+      meetingState(),
       duckula.State.Idle,
       'should be back to state active.idle after received a text message',
     )
-    t.same(feedbackContext().feedbacks, {
-      [wechatyFixtures.mary.id]: FIXTURES.feedbacks.mary[1],
-      [wechatyFixtures.mike.id]: FIXTURES.feedbacks.mike[1],
+    t.same(meetingContext().feedbacks, {
+      [wechatyFixtures.mary.id]: FIXTURES.brainstorming.mary[1],
+      [wechatyFixtures.mike.id]: FIXTURES.brainstorming.mike[1],
     }, 'should have feedback from 2 users')
-    t.equal(Object.keys(feedbackContext().feedbacks).length, 2, 'should have 2 feedback so far')
+    t.equal(Object.keys(meetingContext().feedbacks).length, 2, 'should have 2 feedback so far')
 
     /**
      * Bot
      */
-    await listenMessage(() => mockerFixtures.bot.say(FIXTURES.feedbacks.bot[0]).to(mockerFixtures.groupRoom))
+    await listenMessage(() => mockerFixtures.bot.say(FIXTURES.brainstorming.bot[0]).to(mockerFixtures.groupRoom))
     await sandbox.clock.runAllAsync()
-    t.same(feedbackContext().feedbacks, {
-      [wechatyFixtures.mary.id]: FIXTURES.feedbacks.mary[1],
-      [wechatyFixtures.mike.id]: FIXTURES.feedbacks.mike[1],
-      [wechatyFixtures.bot.id]: FIXTURES.feedbacks.bot[1],
+    t.same(meetingContext().feedbacks, {
+      [wechatyFixtures.mary.id]: FIXTURES.brainstorming.mary[1],
+      [wechatyFixtures.mike.id]: FIXTURES.brainstorming.mike[1],
+      [wechatyFixtures.bot.id]: FIXTURES.brainstorming.bot[1],
     }, 'should have feedback from 3 users including bot')
-    t.equal(Object.keys(feedbackContext().feedbacks).length, 3, 'should have 3 feedback so far')
+    t.equal(Object.keys(meetingContext().feedbacks).length, 3, 'should have 3 feedback so far')
 
     /**
      * Player
      */
-    feedbackEventList.length = 0
-    await listenMessage(() => mockerFixtures.player.say(FIXTURES.feedbacks.player[0]).to(mockerFixtures.groupRoom))
+    meetingEventList.length = 0
+    await listenMessage(() => mockerFixtures.player.say(FIXTURES.brainstorming.player[0]).to(mockerFixtures.groupRoom))
     t.same(
-      feedbackEventList
+      meetingEventList
         .map(e => e.type)
         .filter(e => e !== Mailbox.Type.ACTOR_IDLE),
       [ duckula.Type.MESSAGE ],
       'should get MESSAGE event',
     )
-    t.equal(feedbackState(), duckula.State.Textualizing, 'should in state Textualizing after received audio message')
+    t.equal(meetingState(), duckula.State.Textualizing, 'should in state Textualizing after received audio message')
 
     /**
      * Wait for State.Idle of feedback
      */
     const future = firstValueFrom(
-      from(feedbackInterpreter as any).pipe(
+      from(meetingInterpreter as any).pipe(
         // tap((x: any) => console.info('> feedback:', [
         //   `(${x.history?.value || ''})`,
         //   ' + ',
@@ -264,14 +255,14 @@ test('feedback machine smoke testing', async t => {
     await sandbox.clock.runAllAsync()
     await future
 
-    t.equal(feedbackState(), duckula.State.Idle, 'should in state idle after resolve stt message')
-    t.same(feedbackContext().feedbacks, {
-      [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary[1],
-      [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot[1],
-      [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike[1],
-      [wechatyFixtures.player.id] : FIXTURES.feedbacks.player[1],
+    t.equal(meetingState(), duckula.State.Idle, 'should in state idle after resolve stt message')
+    t.same(meetingContext().feedbacks, {
+      [wechatyFixtures.mary.id]   : FIXTURES.brainstorming.mary[1],
+      [wechatyFixtures.bot.id]    : FIXTURES.brainstorming.bot[1],
+      [wechatyFixtures.mike.id]   : FIXTURES.brainstorming.mike[1],
+      [wechatyFixtures.player.id] : FIXTURES.brainstorming.player[1],
     }, 'should have feedback from all users in feedback context')
-    t.equal(Object.keys(feedbackContext().feedbacks).length, 4, 'should have all 4 feedbacks in feedback context')
+    t.equal(Object.keys(meetingContext().feedbacks).length, 4, 'should have all 4 feedbacks in feedback context')
 
     /**
      * Huan(202201): must use setTimeout instead of setImmediate to make sure the following test pass
@@ -287,21 +278,21 @@ test('feedback machine smoke testing', async t => {
     // await new Promise(setImmediate)
 
     t.same(
-      consumerEventList
+      testEventList
         .filter(isActionOf(Mailbox.Event.ACTOR_REPLY))
         .map(e => e.payload.message),
       [
         duckula.Event.FEEDBACKS({
-          [wechatyFixtures.mary.id]   : FIXTURES.feedbacks.mary[1],
-          [wechatyFixtures.bot.id]    : FIXTURES.feedbacks.bot[1],
-          [wechatyFixtures.mike.id]   : FIXTURES.feedbacks.mike[1],
-          [wechatyFixtures.player.id] : FIXTURES.feedbacks.player[1],
+          [wechatyFixtures.mary.id]   : FIXTURES.brainstorming.mary[1],
+          [wechatyFixtures.bot.id]    : FIXTURES.brainstorming.bot[1],
+          [wechatyFixtures.mike.id]   : FIXTURES.brainstorming.mike[1],
+          [wechatyFixtures.player.id] : FIXTURES.brainstorming.player[1],
         }),
       ],
       'should get feedback EVENT from consumer machine',
     )
 
-    consumerInterpreter.stop()
+    testInterpreter.stop()
   }
 })
 
@@ -317,7 +308,7 @@ test('feedback actor smoke testing', async t => {
 
     const feedbackMachine = machine.withContext({
       ...duckula.initialContext(),
-      address: {
+      actors: {
         noticing : String(Mailbox.nil.address),
         register : String(Mailbox.nil.address),
         wechaty  : String(wechatyActor.address),

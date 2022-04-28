@@ -76,7 +76,13 @@ export const CHECK = 'bot5-assistant/CHECK'
 export const PROCESS = 'bot5-assistant/PROCESS'
 export const PARSE = 'bot5-assistant/PARSE'
 export const NOTICE = 'bot5-assistant/NOTICE'
-export const MINUTE = 'bot5-assistant/MINUTE'
+
+/**
+ * Minutes of Meeting (MoM)
+ *  @link https://en.wikipedia.org/wiki/Minutes
+ */
+export const MINUTES = 'bot5-assistant/MINUTES'
+
 export const CONVERSATION = 'bot5-assistant/CONVERSATION'
 export const NOP = 'bot5-assistant/NOP'
 
@@ -84,3 +90,4 @@ export const FILE_BOX = 'bot5-assistant/FILE_BOX'
 export const LOAD = 'bot5-assisstant/LOAD'
 
 export const REGISTER = 'bot5-assistant/REGISTER'
+export const HELP = 'bot5-assistant/HELP'
