@@ -102,7 +102,7 @@ const machine = createMachine<
             CQRS.uuid.NIL,
             e.payload.message.id,
           ),
-          { to: ctx => ctx.address.wechaty },
+          { to: ctx => ctx.actors.wechaty },
         ),
       ],
       on: {

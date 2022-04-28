@@ -103,7 +103,7 @@ const machine = createMachine<
         id: messageToFileActor.id,
         src: ctx => messageToFileActor.machine.withContext({
           ...messageToFileActor.initialContext(),
-          address: ctx.actors,
+          actors: ctx.actors,
         }),
         onDone: { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
         onError: { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
