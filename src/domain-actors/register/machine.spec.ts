@@ -121,7 +121,7 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), duckula.State.Parsing, 'should be in parsing state')
+    t.equal(registerState(), duckula.State.Messaging, 'should be in messaging state')
     t.same(registerEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
     ], 'should be MESSAGE event')
@@ -164,7 +164,7 @@ test('registerMachine smoke testing', async t => {
     )
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
-    t.equal(registerState(), duckula.State.Parsing, 'should be in parsing state')
+    t.equal(registerState(), duckula.State.Messaging, 'should be in messaging state')
     t.same(registerEventList.map(e => e.type), [
       duckula.Type.MESSAGE,
     ], 'should got MESSAGE event')
