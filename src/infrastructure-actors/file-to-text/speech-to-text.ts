@@ -17,7 +17,6 @@
  *   limitations under the License.
  *
  */
-
 import * as uuid                    from 'uuid'
 import type { FileBoxInterface }    from 'file-box'
 
