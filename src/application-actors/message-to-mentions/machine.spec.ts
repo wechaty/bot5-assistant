@@ -42,7 +42,7 @@ test('MessageToMentions actor smoke testing', async t => {
     const wechatyActor = WechatyActor.from(bus$, fixtures.wechaty.wechaty.puppet.id)
 
     const mailbox = Mailbox.from(machine.withContext({
-      address: {
+      actors: {
         wechaty: String(wechatyActor.address),
       },
     }))

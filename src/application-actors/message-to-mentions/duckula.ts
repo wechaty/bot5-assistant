@@ -25,7 +25,7 @@ import * as ACTOR   from '../../wechaty-actor/mod.js'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  address?: {
+  actors: {
     wechaty: string,
   }
 }

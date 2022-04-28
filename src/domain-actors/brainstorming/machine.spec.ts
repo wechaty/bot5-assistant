@@ -76,7 +76,7 @@ test('Brainstorming actor smoke testing', async t => {
 
     const registerActor = Mailbox.from(RegisterDuckula.machine.withContext({
       ...RegisterDuckula.initialContext(),
-      address: {
+      actors: {
         wechaty: String(wechatyActor.address),
         noticing: String(Mailbox.nil.address),
       },
@@ -85,7 +85,7 @@ test('Brainstorming actor smoke testing', async t => {
 
     const feedbackActor = Mailbox.from(FeedbackDuckula.machine.withContext({
       ...FeedbackDuckula.initialContext(),
-      address: {
+      actors: {
         wechaty: String(wechatyActor.address),
         noticing: String(Mailbox.nil.address),
         register: String(registerActor.address),
@@ -95,7 +95,7 @@ test('Brainstorming actor smoke testing', async t => {
 
     const mailbox = Mailbox.from(machine.withContext({
       ...duckula.initialContext(),
-      address: {
+      actors: {
         wechaty  : String(wechatyActor.address),
         feedback : String(feedbackActor.address),
         register : String(registerActor.address),

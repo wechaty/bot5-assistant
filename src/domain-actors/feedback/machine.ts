@@ -124,7 +124,7 @@ const machine = createMachine<
         id: messageToText.id,
         src: ctx => messageToText.machine.withContext({
           ...messageToText.initialContext(),
-          address: ctx.address,
+          address: ctx.actors,
         }),
         onDone:   { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
         onError:  { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
@@ -171,7 +171,7 @@ const machine = createMachine<
               `“${e.payload.feedback}”`,
             ].join(''),
           ),
-          { to: ctx => ctx.address.noticing },
+          { to: ctx => ctx.actors.noticing },
         ),
         actions.send(duckula.Event.NEXT()),
       ],
@@ -220,7 +220,7 @@ const machine = createMachine<
         actions.log('state.registering.entry', duckula.id),
         actions.send(
           duckula.Event.REPORT(),
-          { to: ctx => ctx.address.register },
+          { to: ctx => ctx.actors.register },
         ),
       ],
       on: {
@@ -231,7 +231,7 @@ const machine = createMachine<
           actions: [
             actions.send(
               (_, e) => e,
-              { to: ctx => ctx.address.register },
+              { to: ctx => ctx.actors.register },
             ),
           ],
         },

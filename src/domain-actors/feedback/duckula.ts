@@ -29,7 +29,7 @@ export interface Context {
   contacts  : { [id: string]: PUPPET.payloads.Contact }
   feedbacks : { [id: string]: string }
   message?: PUPPET.payloads.Message
-  address: {
+  actors: {
     noticing: string,
     register: string,
     wechaty: string,

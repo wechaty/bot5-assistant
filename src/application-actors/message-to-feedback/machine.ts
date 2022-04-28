@@ -62,7 +62,7 @@ const machine = createMachine<
         src: ctx => messageToTextActor.machine.withContext({
           ...messageToTextActor.initialContext(),
           actors: {
-            wechaty: ctx.address.wechaty,
+            wechaty: ctx.actors.wechaty,
           },
         }),
       },

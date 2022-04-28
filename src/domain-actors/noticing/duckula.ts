@@ -24,7 +24,7 @@ import * as duck    from '../../duck/mod.js'
 
 export interface Context {
   conversationId?: string,
-  address: {
+  actors: {
     wechaty: string,
   },
 }

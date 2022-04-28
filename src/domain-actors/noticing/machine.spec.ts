@@ -59,7 +59,7 @@ test('noticeActor smoke testing', async t => {
 
     const noticeMachine = machine.withContext({
       ...duckula.initialContext(),
-      address: {
+      actors: {
         wechaty: String(wechatyMailbox.address),
       },
     })

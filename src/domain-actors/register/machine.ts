@@ -46,7 +46,7 @@ const machine = createMachine<
    */
   on: {
     [duckula.Type.NOTICE]: {
-      actions: actions.send((_, e) => e, { to: ctx => ctx.address.noticing }),
+      actions: actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
     },
     [duckula.Type.INTRODUCE]: {
       actions: actions.send(
@@ -123,7 +123,7 @@ const machine = createMachine<
               )),
             )
           },
-          { to: ctx => ctx.address!.wechaty },
+          { to: ctx => ctx.actors!.wechaty },
         ),
       ],
       on: {

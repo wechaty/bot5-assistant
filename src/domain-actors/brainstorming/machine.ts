@@ -36,7 +36,7 @@ const machine = createMachine<Context, Event>({
     [duckula.Type.NOTICE]: {
       actions: [
         actions.log((_, e) => `on.NOTICE ${e.payload.text}`, duckula.id),
-        actions.send((_, e) => e, { to: ctx => ctx.address.noticing }),
+        actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
       ],
     },
     [duckula.Type.INTRODUCE]: {
@@ -190,7 +190,7 @@ const machine = createMachine<Context, Event>({
         actions.log('states.Registering.entry', duckula.id),
         actions.send(
           RegisterActor.Event.REPORT(),
-          { to: ctx => ctx.address.register },
+          { to: ctx => ctx.actors.register },
         ),
       ],
       on: {
@@ -201,7 +201,7 @@ const machine = createMachine<Context, Event>({
           actions: [
             actions.send(
               (_, e) => e,
-              { to: ctx => ctx.address.register },
+              { to: ctx => ctx.actors.register },
             ),
             actions.log('states.Registering.on.MESSAGE forwarding to register ...', duckula.id),
           ],
@@ -249,7 +249,7 @@ const machine = createMachine<Context, Event>({
         actions.log('states.Feedbacking.entry', duckula.id),
         actions.send(
           RegisterActor.Event.REPORT(),
-          { to: ctx => ctx.address.feedback },
+          { to: ctx => ctx.actors.feedback },
         ),
       ],
       on: {
@@ -257,7 +257,7 @@ const machine = createMachine<Context, Event>({
          * 1. Forward [MESSAGE] to FeedbackActor
          */
         [duckula.Type.MESSAGE]: {
-          actions: actions.send((_, e) => e, { to: ctx => ctx.address.feedback }),
+          actions: actions.send((_, e) => e, { to: ctx => ctx.actors.feedback }),
         },
         /**
          * 2. Expect [FEEDBACKS] from FeedbackActor

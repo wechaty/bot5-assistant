@@ -77,7 +77,7 @@ test('registerMachine smoke testing', async t => {
         id: REGISTER_MACHINE_ID,
         src: machine.withContext({
           ...duckula.initialContext(),
-          address: {
+          actors: {
             wechaty: String(wechatyMailbox.address),
             noticing: String(Mailbox.nil.address),
           },
@@ -223,7 +223,7 @@ test('registerActor smoke testing', async t => {
 
     const registerMailbox = Mailbox.from(machine.withContext({
       ...duckula.initialContext(),
-      address: {
+      actors: {
         wechaty: String(wechatyMailbox.address),
         noticing: String(Mailbox.nil.address),
       },

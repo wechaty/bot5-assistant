@@ -29,7 +29,7 @@ export interface Context {
   contacts: { [id: string]: PUPPET.payloads.Contact },
   chairs:   { [id: string]: PUPPET.payloads.Contact },
   gerror?:  string
-  address: {
+  actors: {
     wechaty: string,
     noticing: string,
   },

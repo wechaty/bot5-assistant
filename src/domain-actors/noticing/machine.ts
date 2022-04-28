@@ -78,7 +78,7 @@ const machine = createMachine<
                     e.payload.mentions,
                   ),
                 ),
-                { to: ctx => ctx.address.wechaty },
+                { to: ctx => ctx.actors.wechaty },
               ),
             ],
           },

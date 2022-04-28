@@ -80,7 +80,7 @@ const machine = createMachine<
                   contactId,
                 )),
               ),
-              { to: ctx => ctx.address!.wechaty },
+              { to: ctx => ctx.actors!.wechaty },
             ),
           },
           {
