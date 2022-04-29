@@ -22,6 +22,8 @@ import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
 
+import { responseStates }     from '../../actor-utils/response-states.js'
+
 import { speechToText }   from './speech-to-text.js'
 import duckula            from './duckula.js'
 
@@ -63,26 +65,12 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.TEXT]   : duckula.State.Responding,
-        [duckula.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.TEXT]   : duckula.State.Responded,
+        [duckula.Type.GERROR] : duckula.State.Errored,
       },
     },
 
-    [duckula.State.Responding]: {
-      entry: [
-        actions.log((_, e) => `states.Responding.entry "${JSON.stringify(e)}"`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
-    [duckula.State.Erroring]: {
-      entry: [
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
+    ...responseStates(duckula.id),
   },
 })
 
