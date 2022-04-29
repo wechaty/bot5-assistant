@@ -25,12 +25,12 @@ import * as Mailbox                 from 'mailbox'
 
 import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
+import { responseStates }     from '../../actor-utils/response-states.js'
 
-import duckula, { Context, Event, Events } from './duckula.js'
-import { responseStates } from '../../actor-utils/response-states.js'
+import * as NoticeActor   from '../notice/mod.js'
 
-// const ctxRoomId     = (ctx: ReturnType<typeof duckula.initialContext>) => ctx.message!.roomId!
-const ctxContactNum = (ctx: ReturnType<typeof duckula.initialContext>) => Object.keys(ctx.contacts).length
+import duckula, { Context, Event, Events }    from './duckula.js'
+import * as selectors                         from './selectors.js'
 
 const machine = createMachine<
   Context,
@@ -40,12 +40,27 @@ const machine = createMachine<
   preserveActionOrder: true,  // <- https://github.com/statelyai/xstate/issues/2891
 
   /**
+   * Spawn a local Feedback Actor
+   */
+  invoke: [
+    {
+      id: NoticeActor.id,
+      src: ctx => NoticeActor.machine.withContext({
+        ...NoticeActor.initialContext(),
+        actors: {
+          wechaty: ctx.actors.wechaty,
+        },
+      }),
+    },
+  ],
+
+  /**
    * Huan(202204): Global events must be internal / private
    *  or the Mailbox actor will be blocked.
    */
   on: {
     [duckula.Type.NOTICE]: {
-      actions: actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
+      actions: actions.send((_, e) => e, { to: NoticeActor.id }),
     },
     [duckula.Type.INTRODUCE]: {
       actions: actions.send(
@@ -78,13 +93,11 @@ const machine = createMachine<
     },
 
     /**
-     *
      * Idle
      *
      * 1. received MESSAGE  -> transition to Loading
      * 2. received REPORT   -> transition to Reporting
      * 3. received RESET    -> transition to Resetting
-     *
      */
     [duckula.State.Idle]: {
       entry: [
@@ -172,10 +185,10 @@ const machine = createMachine<
     },
     [duckula.State.Confirming]: {
       entry: [
-        actions.log(ctx => `states.Confirming.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
+        actions.log(ctx => `states.Confirming.entry contacts/${selectors.contactNum(ctx)}`, duckula.id),
         actions.choose<Context, any>([
           {
-            cond: ctx => ctxContactNum(ctx) > 0,
+            cond: ctx => selectors.contactNum(ctx) > 0,
             actions: [
               actions.send(
                 ctx => duckula.Event.NOTICE(
@@ -214,10 +227,10 @@ const machine = createMachine<
      */
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `states.Reporting.entry contacts/${ctxContactNum(ctx)}`, duckula.id),
+        actions.log(ctx => `states.Reporting.entry contacts/${selectors.contactNum(ctx)}`, duckula.id),
         actions.choose<Context, any>([
           {
-            cond: ctx => ctxContactNum(ctx) > 0,
+            cond: ctx => selectors.contactNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.Reporting.entry -> [CONTACTS]', duckula.id),
               actions.send(ctx => duckula.Event.MENTIONS(

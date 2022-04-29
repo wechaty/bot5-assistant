@@ -25,14 +25,16 @@ import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import * as duck            from '../../duck/mod.js'
 
 export interface Context {
+  /**
+   * Required
+   */
+  actors: { wechaty: string }
+  chairs: { [id: string]: PUPPET.payloads.Contact }
+  /**
+   * To-be-filled
+   */
   message?: PUPPET.payloads.MessageRoom & PUPPET.payloads.MessageBase
-  contacts: { [id: string]: PUPPET.payloads.Contact },
-  chairs:   { [id: string]: PUPPET.payloads.Contact },
-  gerror?:  string
-  actors: {
-    wechaty: string,
-    noticing: string,
-  },
+  contacts: { [id: string]: PUPPET.payloads.Contact }
 }
 
 const duckula = Mailbox.duckularize({
@@ -79,9 +81,7 @@ const duckula = Mailbox.duckularize({
   initialContext: {
     message  : undefined,
     contacts : {},
-    chairs   : {},
-    gerror   : undefined,
-  } as Context,
+  },
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
