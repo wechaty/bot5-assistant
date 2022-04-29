@@ -26,23 +26,13 @@ import * as Mailbox                                   from 'mailbox'
 import { MessageToText }    from '../../application-actors/mod.js'
 import { responseStates }   from '../../actor-utils/mod.js'
 
-import * as noticing    from '../notice/mod.js'
+import * as Notice    from '../notice/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import * as selectors                         from './selectors.js'
 
-const machine = createMachine<
-  Context,
-  Event
->({
+const machine = createMachine<Context, Event>({
   id: duckula.id,
-  /**
-   * Issue statelyai/xstate#2891:
-   *  The context provided to the expr inside a State
-   *  should be exactly the **context in this state**
-   * @see https://github.com/statelyai/xstate/issues/2891
-   */
-  preserveActionOrder: true,
   context: duckula.initialContext,
   initial: duckula.State.Initializing,
   states: {
@@ -158,7 +148,7 @@ const machine = createMachine<
           }),
         }),
         actions.send<Context, Events['TEXT']>(
-          (ctx, e) => noticing.Event.NOTICE(
+          (ctx, e) => Notice.Event.NOTICE(
             [
               '【反馈系统】',
               `收到${(e.payload.message && ctx.contacts[e.payload.message.talkerId])?.name}的反馈：`,
@@ -180,7 +170,7 @@ const machine = createMachine<
           {
             cond: ctx => !!selectors.nextContact(ctx),
             actions: [
-              actions.send(ctx => noticing.Event.NOTICE(
+              actions.send(ctx => Notice.Event.NOTICE(
                 [
                   '【反馈系统】',
                   `下一位：@${selectors.nextContact(ctx)?.name}`,
@@ -194,7 +184,7 @@ const machine = createMachine<
           },
           {
             actions: [
-              actions.send(ctx => noticing.Event.NOTICE([
+              actions.send(ctx => Notice.Event.NOTICE([
                 '【反馈系统】：已完成收集所有人反馈：',
                 Object.values(ctx.contacts).map(contact => contact.name).join('，'),
                 `共 ${Object.keys(ctx.contacts).length} 人。`,
