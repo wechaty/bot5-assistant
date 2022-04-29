@@ -30,10 +30,10 @@ export interface Context {
   feedbacks : { [id: string]: string }
   message?: PUPPET.payloads.Message
   actors: {
-    notice: string,
-    register: string,
-    wechaty: string,
-  },
+    notice: string
+    register: string
+    wechaty: string
+  }
 }
 
 const duckula = Mailbox.duckularize({

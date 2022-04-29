@@ -25,7 +25,9 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import * as NoticingActor         from '../noticing/mod.js'
+import * as duck    from '../../duck/mod.js'
+
+import * as NoticeActor           from '../notice/mod.js'
 import * as RegisterActor         from '../register/mod.js'
 import * as BrainstormingActor    from '../brainstorming/mod.js'
 
@@ -46,35 +48,35 @@ const machine = createMachine<
    * IMPORTANT: Put all Actor Request events inside the State.Idle.
    */
   on: {
-    [NoticingActor.Type.NOTICE]: {
-      actions: actions.send((_, e) => e, { to: ctx => ctx.actors.noticing }),
-    },
-    [duckula.Type.MESSAGE]: {
-      actions: [
-        actions.send((_, e) => e, { to: ctx => ctx.actors.intent }),
-      ],
+    [NoticeActor.Type.NOTICE]: {
+      actions: actions.forwardTo(ctx => ctx.actors.noticing),
     },
   },
 
   initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
-      always: duckula.State.Idle,
+      entry: actions.send(NoticeActor.Event.NOTICE('初始化中……')),
+      after: { 500: duckula.State.Initialized },
+    },
+    [duckula.State.Initialized]: {
+      entry: actions.send(NoticeActor.Event.NOTICE('初始化完成。')),
+      after: { 500: duckula.State.Idle },
     },
     [duckula.State.Resetting]: {
       entry: [
         actions.log('states.Resetting.entry', duckula.id),
-        actions.send(NoticingActor.Event.NOTICE('【会议系统】重置中...')),
+        actions.send(NoticeActor.Event.NOTICE('重置中……')),
         actions.assign(_ => duckula.initialContext()),
         actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.register }),
         actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.feedback }),
         actions.send(duckula.Event.RESET(duckula.id), { to: ctx => ctx.actors.brainstorming }),
       ],
-      always: duckula.State.Resetted,
+      after: { 500: duckula.State.Resetted },
     },
     [duckula.State.Resetted]: {
-      entry: actions.send(NoticingActor.Event.NOTICE('【会议系统】重置DONE. Jump to Initializing ...')),
-      always: duckula.State.Initializing,
+      entry: actions.send(NoticeActor.Event.NOTICE('重置完成。')),
+      after: { 500: duckula.State.Initializing },
     },
 
     /**
@@ -88,7 +90,7 @@ const machine = createMachine<
      *  4. received RESET      -> transition to Resetting
      *
      * Requests:
-     *  1. received REPORT -> transition to Reporting
+     *  1. received START -> transition to Meeting
      *
      */
     [duckula.State.Idle]: {
@@ -103,7 +105,7 @@ const machine = createMachine<
          */
         [duckula.Type.ROOM]: {
           actions: [
-            actions.send((_, e) => NoticingActor.Event.CONVERSATION(e.payload.room.id)),
+            actions.send((_, e) => NoticeActor.Event.CONVERSATION(e.payload.room.id)),
             actions.assign({
               room: (_, e) => e.payload.room,
             }),
@@ -130,8 +132,92 @@ const machine = createMachine<
         /**
          * Request
          */
-        [duckula.Type.REPORT]: duckula.State.Reporting,
+        [duckula.Type.START]: duckula.State.Starting,
       },
+    },
+
+    [duckula.State.Starting]: {
+
+    },
+
+    [duckula.State.Started]: {
+
+    },
+
+    /**
+     * Main meeting loop
+     */
+    [duckula.State.Meeting]: {
+
+    },
+
+    [duckula.State.ConfiguringAttendees]: {
+      entry: [
+        actions.send(NoticeActor.Event.NOTICE('开始设置沙龙人员名单……')),
+        actions.choose<Context, any>([
+          {
+            cond: ctx => Object.keys(ctx.attendees).length > 0,
+            actions: [
+              actions.send(ctx => NoticeActor.Event.NOTICE(
+                '已有沙龙人员名单。重新设置请输入 "/reset"',
+                Object.keys(ctx.attendees),
+              )),
+            ],
+          },
+          {
+            actions: [
+              actions.send(NoticeActor.Event.NOTICE(
+                [
+                  '目前没有设置参加沙龙人员名单。',
+                  '添加：/add @群成员1 @群成员2',
+                ].join('\n'),
+              )),
+            ],
+          },
+        ]),
+        actions.send(NoticeActor.Event.NOTICE('设置沙龙人员名单完成后，请发送 /next 或 “下一步”、“继续” 指令。')),
+      ],
+      on: {
+        [duckula.Type.MESSAGE]: {
+          actions: [
+            actions.send((_, e) => e, { to: ctx => ctx.actors.intent }),
+          ],
+        },
+        [duckula.Type.INTENTS]: {
+          actions: [
+            actions.choose<Context, Events['INTENTS']>([
+              {
+                cond: (_, e) => e.payload.intents.includes(duck.Intent.Next),
+                actions: actions.send(duckula.Event.NEXT()),
+              },
+              {
+                cond: (_, e) => e.payload.intents.includes(duck.Intent.Add),
+                actions: actions.send((_, e) => duckula.Event.ADD_CONTACT(
+                  e.payload.message
+                )),
+              }
+            ]),
+          ],
+        },
+      },
+    },
+
+    [duckula.State.ConfiguringRoom]: {
+      entry: [
+        actions.send(NoticeActor.Event.NOTICE('开始设置沙龙微信群……')),
+      ],
+    },
+
+    [duckula.State.ConfiguringChairs]: {
+      entry: [
+        actions.send(NoticeActor.Event.NOTICE('开始设置沙龙主席名单……')),
+      ],
+    },
+
+    [duckula.State.ConfiguringTalks]: {
+      entry: [
+        actions.send(NoticeActor.Event.NOTICE('开始设置沙龙分享主题……')),
+      ],
     },
 
     [duckula.State.Reporting]: {
@@ -167,7 +253,7 @@ const machine = createMachine<
      */
     [duckula.State.Announcing]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           `
 Bot Friday (as known as BOT5) is a CLUB for chatbot builders and entrepreneurs with all the topics about the chatbot.
 BOT Friday Club 是一个技术极客讨论聊天机器人行业落地和商业应用的创业论坛。
@@ -206,7 +292,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Retrospecting]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '进入新环节：由轮值主席做最后一次活动回顾',
           '下一个环节：新人自我介绍',
         ].join(''))),
@@ -226,7 +312,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Joining]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '正在进行：新人入群',
           '即将进行：新人自我介绍',
@@ -237,7 +323,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         ].join(''))),
       ],
       exit: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '已经完成：新人入群',
           '即将开始：新人自我介绍',
@@ -260,7 +346,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Introducing]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '当前环节：新人自我介绍',
           '即将进行：活动成员注册',
@@ -271,7 +357,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         ].join('\n'))),
       ],
       exit: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '已经完成：新人自我介绍',
           '即将开始：活动成员注册',
@@ -295,7 +381,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
     [duckula.State.Registering]: {
       entry: [
         actions.send(RegisterActor.Event.REPORT(), { to: ctx => ctx.actors.register }),
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '当前模块：活动成员注册',
           '下一模块：主题分享',
@@ -304,7 +390,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         ].join(''))),
       ],
       exit: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '已完成当前模块：活动成员注册',
           '准备进入下一模块：主题分享',
@@ -330,7 +416,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Presenting]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '当前模块：主题分享',
           '后续模块：会员升级',
@@ -357,7 +443,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Upgrading]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '新人 -> 实习会员：第一次完成分享的新人，将升级为实习会员。由其邀请人负责将其加入 “Bot Friday Club - BOT5” 会员群。（如果邀请人不在，则由当期主席负责）；',
           '实习会员 -> 正式会员：参加了三次活动的实习会员（含三次），将有资格转为正式会员。转正要求：发送个人 Profile 页面的 Pull Request 至 https://bot5.ml/people/GITHUB_USERNAME/ 下。PR Merge 后正式成为 BOT5 会员；',
@@ -370,7 +456,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Brainstorming]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】脑洞拓展：',
           '正在进行：头脑风暴',
           '准备进行：主席任命',
@@ -380,7 +466,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
         actions.send(BrainstormingActor.Event.REPORT(), { to: ctx => ctx.actors.brainstorming }),
       ],
       exit: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】',
           '已经完成：头脑风暴',
           '即将开始：主席任命',
@@ -406,7 +492,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Electing]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】选举主席：',
           '选出下下任轮值主席、副主席人选，并举行“受蛋仪式”（主席和副主席不允许挂靠，副主席需要参加主席场次的活动）',
           '将金色计时器移交给下任主席，并由下任主席负责妥善保管',
@@ -418,7 +504,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Elected]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】本次活动轮值主席、下次轮值主席、下次轮值副主席合影',
         ].join(''))),
       ],
@@ -427,7 +513,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.ShootingChairs]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】合影',
           '轮值主席，轮值副主席，和下期轮值副主席合影（原图经过脸盲助手发到会员群，并将带名字的照片，发布在活动纪要中）',
         ].join(''))),
@@ -437,7 +523,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Roasting]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】吐槽环节尚未支持，请下次活动再试。（自动跳转到下一步）',
           '参会人员每人至少指出一条如何在未来可以将活动办的更好的意见建议（1 MIN per person）',
           '不讨论（讨论留到After Party）',
@@ -449,7 +535,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Summarizing]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE(
+        actions.send(NoticeActor.Event.NOTICE(
           '【会议系统】summarizing 轮值主席发言，做活动总结',
         )),
       ],
@@ -458,16 +544,16 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Pledging]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE(
+        actions.send(NoticeActor.Event.NOTICE(
           '【会议系统】轮值副主席述职报告：陈述自己下周作为主席的主要工作内容',
         )),
       ],
-      always: duckula.State.Photoing,
+      always: duckula.State.ShootingChairs,
     },
 
     [duckula.State.ShootingAll]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】合影',
           'photoing 所有参会人员合影（原图经过脸盲助手发到会员群，并将带名字的照片，发布在活动纪要中）',
         ].join(''))),
@@ -477,7 +563,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Housekeeping]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】场地复原',
           '轮值主席组织大家将场地复原（桌椅、白板、设备等）',
         ].join(''))),
@@ -487,7 +573,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Chatting]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】活动结束，自由交流',
           '下一环节：After Party',
           '(Drinking, AA)',
@@ -498,7 +584,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Drinking]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE(
+        actions.send(NoticeActor.Event.NOTICE(
           '【会议系统】活动结束，自由交流',
         )),
       ],
@@ -507,7 +593,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.ShootingDrinkers]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           'After Party 合影',
           '酒菜上齐之后第一时间合影啦！',
         ].join(''))),
@@ -517,7 +603,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Paying]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           'After Party AA 付款',
         ].join(''))),
       ],
@@ -526,7 +612,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Finishing]: {
       entry: [
-        actions.send(NoticingActor.Event.NOTICE([
+        actions.send(NoticeActor.Event.NOTICE([
           '【会议系统】After Party结束，请美食主席把账单发到群里大家AA',
           '感谢各位参与BOT Friday Club沙龙活动，大家下次再见！',
         ].join(''))),
@@ -536,7 +622,7 @@ Learn more about BOT Friday Club: https://bot5.ml/
 
     [duckula.State.Finished]: {
       type: 'final',
-      entry: actions.send(ctx => NoticingActor.Event.NOTICE(
+      entry: actions.send(ctx => NoticeActor.Event.NOTICE(
         '【会议系统】Huiyi Jieshu',
         [
           ...Object.keys(ctx.attendees),

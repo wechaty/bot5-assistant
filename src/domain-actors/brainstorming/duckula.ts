@@ -24,16 +24,15 @@ import * as Mailbox       from 'mailbox'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  chairs   : { [id: string]: PUPPET.payloads.Contact },
-  room?    : PUPPET.payloads.Room,
-  contacts : { [id: string]: PUPPET.payloads.Contact },
-  gerror?   : string,
-  feedbacks: { [id: string]: string },
+  chairs   : { [id: string]: PUPPET.payloads.Contact }
+  room?    : PUPPET.payloads.Room
+  contacts : { [id: string]: PUPPET.payloads.Contact }
+  gerror?   : string
+  feedbacks: { [id: string]: string }
   actors: {
-    feedback : string,
-    noticing : string,
-    register : string,
-    wechaty  : string,
+    notice : string
+    register : string
+    wechaty  : string
   }
 }
 

@@ -87,7 +87,7 @@ test('Brainstorming actor smoke testing', async t => {
       ...FeedbackDuckula.initialContext(),
       actors: {
         wechaty: String(wechatyActor.address),
-        noticing: String(Mailbox.nil.address),
+        notice: String(Mailbox.nil.address),
         register: String(registerActor.address),
       },
     }))
@@ -97,9 +97,8 @@ test('Brainstorming actor smoke testing', async t => {
       ...duckula.initialContext(),
       actors: {
         wechaty  : String(wechatyActor.address),
-        feedback : String(feedbackActor.address),
         register : String(registerActor.address),
-        noticing : String(Mailbox.nil.address),
+        notice : String(Mailbox.nil.address),
       },
     }))
     mailbox.open()

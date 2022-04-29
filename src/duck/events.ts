@@ -27,7 +27,6 @@ import type { FileBoxInterface } from 'file-box'
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
 
 const payloadAbort     = (reason: string) => ({ reason })
-const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadData      = (data?: string) => ({ data })
 
@@ -77,6 +76,7 @@ export const ABORT  = createAction(Type.ABORT, payloadAbort)()
 const payloadGerror = (gerror: string) => ({ gerror })
 export const GERROR = createAction(Type.GERROR, payloadGerror)()
 
+const payloadReset  = (data?: string) => ({ data })
 export const RESET  = createAction(Type.RESET, payloadReset)()
 
 const payloadIntents = (intents: readonly Intent[], message?: PUPPET.payloads.Message) => ({ intents, message })

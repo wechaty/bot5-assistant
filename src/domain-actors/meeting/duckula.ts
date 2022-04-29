@@ -23,7 +23,7 @@ import * as Mailbox       from 'mailbox'
 
 import * as duck    from '../../duck/mod.js'
 
-import * as NoticingActor   from '../noticing/mod.js'
+import * as NoticeActor   from '../notice/mod.js'
 
 export interface Context {
   minutes?    : string
@@ -43,7 +43,7 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'Meeting',
-  events: [ { ...NoticingActor.Event, ...duck.Event }, [
+  events: [ { ...NoticeActor.Event, ...duck.Event }, [
     /**
      * Config
      */
@@ -54,7 +54,7 @@ const duckula = Mailbox.duckularize({
     /**
      * Requests
      */
-    'REPORT',
+    'START',
     /**
      * Responses
      */
@@ -97,6 +97,9 @@ const duckula = Mailbox.duckularize({
     /**
      * Meeting steps
      */
+    'Starting',
+    'Started',
+    'Meeting',
     'ConfiguringChairs',
     'ConfiguringAttendees',
     'ConfiguringTalks',
