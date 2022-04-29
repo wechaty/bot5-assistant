@@ -24,6 +24,8 @@ import { FileBox }                  from 'file-box'
 import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
+import { responseStates }   from '../../actor-utils/mod.js'
+
 import duckula, { Context, Event, Events }    from './duckula.js'
 import { fileMessageTypes }                   from './file-message-types.js'
 
@@ -80,7 +82,7 @@ const machine = createMachine<
       ],
       on: {
         [duckula.Type.MESSAGE] : duckula.State.Loading,
-        [duckula.Type.GERROR]  : duckula.State.Erroring,
+        [duckula.Type.GERROR]  : duckula.State.Errored,
       },
     },
 
@@ -117,30 +119,25 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.FILE_BOX] : duckula.State.Responding,
-        [duckula.Type.GERROR]   : duckula.State.Erroring,
+        [duckula.Type.GERROR]   : duckula.State.Errored,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
         actions.log((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply<Context, Events['FILE_BOX']>(
+        actions.send<Context, Events['FILE_BOX']>(
           (ctx, e) => duckula.Event.FILE_BOX(
             e.payload.fileBox,
             ctx.message,
           )),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.FILE_BOX] : duckula.State.Responded,
+      },
     },
 
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry [${e.type}(${e.payload.gerror}]`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
+    ...responseStates(duckula.id),
   },
 })
 

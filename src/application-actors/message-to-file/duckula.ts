@@ -50,10 +50,12 @@ const duckula = Mailbox.duckularize({
   ] ],
   states: [ duck.State, [
     'Erroring',
+    'Errored',
     'Idle',
     'Loading',
     'Classifying',
     'Responding',
+    'Responded',
   ] ],
   initialContext: {} as Context,
 })
