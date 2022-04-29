@@ -67,8 +67,8 @@ export const SAY         = createAction(Type.SAY, payloadSay)()
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 export const FEEDBACKS    = createAction(Type.FEEDBACKS, payloadFeedbacks)()
 
-const payloadFeedback = (feedback: string, message: PUPPET.payloads.Message) => ({ feedback, message })
-export const FEEDBACK = createAction(Type.FEEDBACK, payloadFeedback)()
+// const payloadFeedback = (feedback: string, message: PUPPET.payloads.Message) => ({ feedback, message })
+// export const FEEDBACK = createAction(Type.FEEDBACK, payloadFeedback)()
 
 export const CANCEL  = createAction(Type.CANCEL, payloadCancel)()
 export const ABORT  = createAction(Type.ABORT, payloadAbort)()

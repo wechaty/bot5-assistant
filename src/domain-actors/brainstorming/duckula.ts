@@ -24,28 +24,30 @@ import * as Mailbox       from 'mailbox'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  chairs   : { [id: string]: PUPPET.payloads.Contact }
-  room?    : PUPPET.payloads.Room
-  contacts : { [id: string]: PUPPET.payloads.Contact }
-  gerror?   : string
-  feedbacks: { [id: string]: string }
+  /**
+   * Required
+   */
   actors: {
     register : string
     wechaty  : string
   }
+  room     : PUPPET.payloads.Room
+  chairs   : { [id: string]: PUPPET.payloads.Contact }
+  contacts : { [id: string]: PUPPET.payloads.Contact }
+  /**
+   * To-be-filled
+   */
+  feedbacks: { [id: string]: string }
 }
 
 const duckula = Mailbox.duckularize({
   id: 'Brainstorming',
   events: [ { ...duck.Event }, [
     /**
-     * Config
-     */
-    'CONTACTS',
-    /**
      * Requests
      */
     'REPORT',
+    'MESSAGE',
     /**
      * Responses
      */
@@ -54,19 +56,12 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
-    'ADMINS',
-    'COMPLETE',
-    'CONTACTS',
-    'FEEDBACK',
     'IDLE',
-    'INTRODUCE',
-    'MESSAGE',
     'NEXT',
-    'NO_CONTACT',
-    'NOTICE',
-    'REPORT',
+    'INTRODUCE',
     'RESET',
-    'ROOM',
+    // NoticeActor
+    'NOTICE',
   ] ],
   states: [ duck.State, [
     /**
@@ -86,24 +81,15 @@ const duckula = Mailbox.duckularize({
     'Resetting',
     'Reporting',
     'Initializing',
-    'Completing',
-    'Completed',
-    'Nexting',
     /**
-     * Interact with Actors
+     * FeedbackActor
      */
-    'Registering',
-    'Registered',
     'Feedbacking',
     'Feedbacked',
   ] ],
   initialContext: ({
-    chairs    : {},
-    room      : undefined,
-    contacts : {},
-    gerror: undefined,
     feedbacks: {},
-  }) as Context,
+  }),
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
