@@ -155,7 +155,7 @@ const machine = createMachine<Context, Event>({
               `“${e.payload.text}”`,
             ].join(''),
           ),
-          { to: ctx => ctx.actors.noticing },
+          { to: ctx => ctx.actors.notice },
         ),
         actions.send(duckula.Event.NEXT()),
       ],

@@ -91,7 +91,7 @@ test('feedback machine smoke testing', async t => {
           ...duckula.initialContext(),
           actors: {
             wechaty: String(wechatyActor.address),
-            noticing: String(Mailbox.nil.address),
+            notice: String(Mailbox.nil.address),
             register: String(Mailbox.nil.address),
           },
         }),
@@ -318,7 +318,7 @@ test('feedback actor smoke testing', async t => {
     const feedbackMachine = machine.withContext({
       ...duckula.initialContext(),
       actors: {
-        noticing : String(Mailbox.nil.address),
+        notice : String(Mailbox.nil.address),
         register : String(Mailbox.nil.address),
         wechaty  : String(wechatyActor.address),
       },

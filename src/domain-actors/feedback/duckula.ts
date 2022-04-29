@@ -30,7 +30,7 @@ export interface Context {
   feedbacks : { [id: string]: string }
   message?: PUPPET.payloads.Message
   actors: {
-    noticing: string,
+    notice: string,
     register: string,
     wechaty: string,
   },
