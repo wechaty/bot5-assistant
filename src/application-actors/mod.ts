@@ -17,7 +17,6 @@
  *   limitations under the License.
  *
  */
-export * as MessageToFeedback   from './message-to-feedback/mod.js'
 export * as MessageToFile       from './message-to-file/mod.js'
 export * as MessageToMentions   from './message-to-mentions/mod.js'
 export * as MessageToText       from './message-to-text/mod.js'

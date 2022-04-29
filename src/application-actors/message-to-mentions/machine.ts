@@ -23,14 +23,14 @@ import * as Mailbox                 from 'mailbox'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import * as ACTOR                   from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import { removeUndefined }  from '../../pure-functions/remove-undefined.js'
 
-import duckula    from './duckula.js'
-import { removeUndefined } from '../../pure-functions/remove-undefined.js'
+import duckula, { Context, Event, Events }    from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
@@ -47,10 +47,12 @@ const machine = createMachine<
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id),
+        actions.assign({ message: undefined }),
       ],
       on: {
         [duckula.Type.MESSAGE]: {
           target: duckula.State.Loading,
+          actions: actions.assign({ message: (_, e) => e.payload.message }),
         },
       },
     },
@@ -67,11 +69,11 @@ const machine = createMachine<
 
     [duckula.State.Loading]: {
       entry: [
-        actions.choose<ReturnType<typeof duckula.initialContext>, ReturnType<typeof duckula.Event['MESSAGE']>>([
+        actions.choose<Context, Events['MESSAGE']>([
           {
             cond: (_, e) => ((e.payload.message as PUPPET.payloads.MessageRoom).mentionIdList ?? []).length > 0,
             actions: actions.send(
-              (_, e) => ACTOR.Event.BATCH_EXECUTE(
+              (_, e) => WechatyActor.Event.BATCH_EXECUTE(
                 (
                   (e.payload.message as PUPPET.payloads.MessageRoom)
                     .mentionIdList ?? []
@@ -89,9 +91,7 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [ACTOR.Type.GERROR]         : duckula.State.Erroring,
-        [duckula.Type.CONTACTS]     : duckula.State.Responding,
-        [ACTOR.Type.BATCH_RESPONSE] : {
+        [WechatyActor.Type.BATCH_RESPONSE] : {
           actions: [
             actions.send((_, e) => duckula.Event.CONTACTS(
               e.payload.responseList
@@ -104,12 +104,19 @@ const machine = createMachine<
             )),
           ],
         },
+        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.CONTACTS]    : duckula.State.Responding,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
-        Mailbox.actions.reply((_, e) => e),
+        Mailbox.actions.reply<Context, Events['CONTACTS']>(
+          (ctx, e) => duckula.Event.MENTIONS(
+            e.payload.contacts,
+            ctx.message,
+          ),
+        ),
       ],
       always: duckula.State.Idle,
     },

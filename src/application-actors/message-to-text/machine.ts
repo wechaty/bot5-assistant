@@ -27,11 +27,11 @@ import * as fileToTextActor    from '../../infrastructure-actors/file-to-text/mo
 
 import * as messageToFileActor    from '../message-to-file/mod.js'
 
-import duckula, { Context } from './duckula.js'
+import duckula, { Context, Event, Events }  from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
@@ -48,10 +48,12 @@ const machine = createMachine<
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id),
+        actions.assign({ message: undefined }),
       ],
       on: {
         [duckula.Type.MESSAGE]: {
           target: duckula.State.Classifying,
+          actions: actions.assign({ message: (_, e) => e.payload.message }),
         },
       },
     },
@@ -67,11 +69,11 @@ const machine = createMachine<
      */
     [duckula.State.Classifying]: {
       entry: [
-        actions.log<Context, ReturnType<typeof duckula.Event.MESSAGE>>(
+        actions.log<Context, Events['MESSAGE']>(
           (_, e) => `state.Classifying.entry MessageType: ${PUPPET.types.Message[e.payload.message.type]}`,
           duckula.id,
         ),
-        actions.choose<Context, ReturnType<typeof duckula.Event.MESSAGE>>([
+        actions.choose<Context, Events['MESSAGE']>([
           {
             cond: (_, e) => e.payload.message.type === PUPPET.types.Message.Text,
             actions: [
@@ -159,7 +161,10 @@ const machine = createMachine<
 
     [duckula.State.Responding]: {
       entry: [
-        Mailbox.actions.reply((_, e) => e),
+        Mailbox.actions.reply<Context, Events['TEXT']>((ctx, e) => duckula.Event.TEXT(
+          e.payload.text,
+          ctx.message,
+        )),
       ],
       always: duckula.State.Idle,
     },

@@ -18,13 +18,15 @@
  *
  */
 /* eslint-disable sort-keys */
-import * as Mailbox   from 'mailbox'
-import * as CQRS      from 'wechaty-cqrs'
+import * as Mailbox       from 'mailbox'
+import * as CQRS          from 'wechaty-cqrs'
+import type * as PUPPET   from 'wechaty-puppet'
 
 import * as ACTOR   from '../../wechaty-actor/mod.js'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
+  message?: PUPPET.payloads.Message
   actors: {
     wechaty: string,
   }
@@ -40,11 +42,12 @@ const duckula = Mailbox.duckularize({
     /**
      * Response
      */
-    'CONTACTS',
+    'MENTIONS',
+    'GERROR',
     /**
      * Internal
      */
-    'GERROR',
+    'CONTACTS',
     'LOAD',
     'GET_CONTACT_PAYLOAD_QUERY_RESPONSE',
     'BATCH_RESPONSE',

@@ -44,7 +44,7 @@ const machine = createMachine<
      *
      * Idle
      *
-     * 1. received MESSAGE  -> transition to Busy
+     * 1. received MESSAGE  -> transition to Loading
      *
      */
     [duckula.State.Idle]: {
@@ -53,27 +53,27 @@ const machine = createMachine<
         actions.assign({ message: undefined }),
       ],
       on: {
-        [duckula.Type.MESSAGE]: duckula.State.Busy,
+        [duckula.Type.MESSAGE]: duckula.State.Loading,
         '*'                   : duckula.State.Idle,
       },
     },
 
-    [duckula.State.Busy]: {
+    [duckula.State.Loading]: {
       entry: [
         actions.assign<Context, Events['MESSAGE']>({ message: (_, e) => e.payload.message }),
-        actions.log<Context, Events['MESSAGE']>((_, e) => `states.Busy.entry MESSAGE type: ${PUPPET.types.Message[e.payload.message.type]}`, duckula.id),
+        actions.log<Context, Events['MESSAGE']>((_, e) => `states.Loading.entry MESSAGE type: ${PUPPET.types.Message[e.payload.message.type]}`, duckula.id),
         actions.send<Context, Events['MESSAGE']>((_, e) => e, { to: ctx => ctx.actors.messageToText }),
       ],
       on: {
         [MessageToText.Type.TEXT]: {
           actions: [
-            actions.log((_, e) => `states.Busy.on.TEXT ${e.payload.text}`, duckula.id),
+            actions.log((_, e) => `states.Loading.on.TEXT ${e.payload.text}`, duckula.id),
             actions.send((_, e) => e, { to: ctx => ctx.actors.textToIntents }),
           ],
         },
         [TextToIntents.Type.INTENTS] : {
           actions: [
-            actions.log((_, e) => `states.Busy.on.INTENTS ${e.payload.intents}`, duckula.id),
+            actions.log((_, e) => `states.Loading.on.INTENTS ${e.payload.intents}`, duckula.id),
           ],
           target: duckula.State.Responding,
         },

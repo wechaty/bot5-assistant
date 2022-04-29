@@ -122,7 +122,18 @@ test('MessageToFile actor smoke testing', async t => {
           .filter(isActionOf([ duckula.Event.FILE_BOX, duckula.Event.GERROR ]))
           .map(e => JSON.parse(JSON.stringify(e))),
         [
-          JSON.parse(JSON.stringify(expected)),
+          JSON.parse(JSON.stringify(
+            isActionOf(duckula.Event.GERROR, expected)
+              ? expected
+              : duckula.Event.FILE_BOX(
+                expected.payload.fileBox,
+                eventList
+                  .filter(isActionOf(duckula.Event.MESSAGE))
+                  .at(-1)!
+                  .payload
+                  .message,
+              ),
+          )),
         ],
         `should get expected "${expected}" for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )

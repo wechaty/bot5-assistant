@@ -32,6 +32,7 @@ import * as CQRS                        from 'wechaty-cqrs'
 
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
+import { removeUndefined }  from '../../pure-functions/remove-undefined.js'
 
 import machine    from './machine.js'
 import duckula    from './duckula.js'
@@ -97,7 +98,7 @@ test('MessageToMentions actor smoke testing', async t => {
 
       const future = new Promise(resolve =>
         interpreter.onEvent(e =>
-          isActionOf(duckula.Event.CONTACTS, e) && resolve(e),
+          isActionOf(duckula.Event.MENTIONS, e) && resolve(e),
         ),
       )
 
@@ -107,9 +108,18 @@ test('MessageToMentions actor smoke testing', async t => {
       // eventList.forEach(e => console.info(e))
       t.same(
         eventList
-          .filter(isActionOf(duckula.Event.CONTACTS)),
+          .filter(isActionOf(duckula.Event.MENTIONS)),
         [
-          duckula.Event.CONTACTS(expectedList as any),
+          duckula.Event.MENTIONS(
+            expectedList
+              .filter(removeUndefined)
+              .filter(removeUndefined),
+            eventList
+              .filter(isActionOf(duckula.Event.MESSAGE))
+              .at(-1)!
+              .payload
+              .message,
+          ),
         ],
         `should get expected [CONTACTS] for "${mentionList}"`,
       )

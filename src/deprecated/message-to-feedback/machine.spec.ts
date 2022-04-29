@@ -101,7 +101,7 @@ test('MessageToFeedback actor smoke testing', async t => {
 
       const future = new Promise(resolve =>
         interpreter.onEvent(e =>
-          isActionOf(duckula.Event.FEEDBACK, e) && resolve(e),
+          isActionOf(duckula.Event.TEXT, e) && resolve(e),
         ),
       )
 
@@ -110,11 +110,18 @@ test('MessageToFeedback actor smoke testing', async t => {
 
       // eventList.forEach(e => console.info(e))
       t.same(
-        eventList.filter(isActionOf(duckula.Event.FEEDBACK)),
+        eventList.filter(isActionOf(duckula.Event.TEXT)),
         [
-          duckula.Event.FEEDBACK(fixtures.mocker.player.id, expectedText),
+          duckula.Event.TEXT(
+            expectedText,
+            eventList
+              .filter(isActionOf(duckula.Event.MESSAGE))
+              .at(-1)!
+              .payload
+              .message,
+          ),
         ],
-        `should get expected [FEEDBACK(${fixtures.mocker.player.id}, "${expectedText}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
+        `should get expected [TEXT("${expectedText}", ${fixtures.mocker.player.id},)] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )
     }
 

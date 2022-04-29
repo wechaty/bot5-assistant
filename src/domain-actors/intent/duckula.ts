@@ -51,7 +51,7 @@ const duckula = Mailbox.duckularize({
   states: [ duck.State, [
     'Initializing',
     'Idle',
-    'Busy',
+    'Loading',
     'Responding',
     'Erroring',
   ] ],

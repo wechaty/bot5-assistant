@@ -14,6 +14,7 @@ export const meeting = 'bot5-assistant/Meeting'
  *    - *: idle (make sure it's an external transition)
  */
 export const Initializing  = 'bot5-assistant/Initializing'
+export const Initialized   = 'bot5-assistant/Initialized'
 
 export const Unknown = 'bot5-assistant/Unknown'
 

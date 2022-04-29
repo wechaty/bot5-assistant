@@ -31,7 +31,7 @@ export const NO_CONTACT = 'bot5-assistant/NO_CONTACT'
 export const NO_TEXT  = 'bot5-assistant/NO_TEXT'
 export const TEXT     = 'bot5-assistant/TEXT'
 
-export const MENTION = 'bot5-assistant/MENTION'
+export const MENTIONS = 'bot5-assistant/MENTIONS'
 export const NO_MENTION = 'bot5-assistant/NO_MENTION'
 
 export const BACK = 'bot5-assistant/BACK'
@@ -93,3 +93,6 @@ export const REGISTER = 'bot5-assistant/REGISTER'
 export const HELP = 'bot5-assistant/HELP'
 
 export const CHECKIN = 'bot5-assistant/CHECKIN'
+export const TALK = 'bot5-assistant/TALK'
+
+export const ADD_CONTACT = 'bot5-assistant/ADD_CONTACT'

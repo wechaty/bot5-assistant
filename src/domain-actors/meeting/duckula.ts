@@ -28,6 +28,7 @@ import * as NoticingActor   from '../noticing/mod.js'
 export interface Context {
   minutes?    : string
   room?       : PUPPET.payloads.Room
+  admins      : string[]
   chairs      : PUPPET.payloads.Contact[]
   attendees   : { [id: string]: PUPPET.payloads.Contact }
   brainstorms : { [key: string]: string }
@@ -89,11 +90,18 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'Initializing',
+    'Initialized',
+
     'Checkining',
     'Mentioning',
     /**
      * Meeting steps
      */
+    'ConfiguringChairs',
+    'ConfiguringAttendees',
+    'ConfiguringTalks',
+    'ConfiguringRoom',
+
     'Starting',
     'Upgrading',
     'Brainstorming',
@@ -126,6 +134,7 @@ const duckula = Mailbox.duckularize({
   initialContext: ({
     minutes    : undefined,
     room       : undefined,
+    admins     : [ 'lizhuohuan' ],
     attendees   : {},
     chairs      : {},
     brainstorms : {},

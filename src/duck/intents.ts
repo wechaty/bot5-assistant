@@ -33,3 +33,5 @@ export const Affirm = 'Affirm'
 export const Deny   = 'Deny'
 
 export const Cancel = 'Cancel'
+
+export const Add = 'Add'

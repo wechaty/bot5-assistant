@@ -21,7 +21,7 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import * as messageToTextActor from '../message-to-text/mod.js'
+import { MessageToText } from '../../application-actors/mod.js'
 
 import duckula, { Context, Event, Events } from './duckula.js'
 
@@ -43,14 +43,12 @@ const machine = createMachine<
      */
     [duckula.State.Idle]: {
       entry: [
-        actions.assign({ talkerId: undefined }),
+        actions.assign({ message: undefined }),
         Mailbox.actions.idle(duckula.id),
       ],
       on: {
         [duckula.Type.MESSAGE]: {
-          actions: actions.assign({
-            talkerId: (_, e) => e.payload.message.talkerId,
-          }),
+          actions: actions.assign({ message: (_, e) => e.payload.message }),
           target: duckula.State.Textualizing,
         },
       },
@@ -58,16 +56,16 @@ const machine = createMachine<
 
     [duckula.State.Textualizing]: {
       invoke: {
-        id: messageToTextActor.id,
-        src: ctx => messageToTextActor.machine.withContext({
-          ...messageToTextActor.initialContext(),
+        id: MessageToText.id,
+        src: ctx => MessageToText.machine.withContext({
+          ...MessageToText.initialContext(),
           actors: {
             wechaty: ctx.actors.wechaty,
           },
         }),
       },
       entry: [
-        actions.send((_, e) => e, { to: messageToTextActor.id }),
+        actions.send((_, e) => e, { to: MessageToText.id }),
       ],
       on: {
         [duckula.Type.ACTOR_REPLY]: {
@@ -76,24 +74,24 @@ const machine = createMachine<
             actions.send((_, e) => e.payload.message),
           ],
         },
-        [duckula.Type.TEXT]: {
-          actions: [
-            actions.log((_, e) => `state.Textualizing.on.TEXT [${e.payload.text}]`, duckula.id),
-            actions.send((ctx, e) => duckula.Event.FEEDBACK(
-              ctx.talkerId!,
-              e.payload.text,
-            )),
-          ],
-        },
-        [duckula.Type.FEEDBACK] : duckula.State.Responding,
-        [duckula.Type.GERROR]   : duckula.State.Erroring,
+        // [duckula.Type.TEXT]: {
+        //   actions: [
+        //     actions.log((_, e) => `state.Textualizing.on.TEXT [${e.payload.text}]`, duckula.id),
+        //     actions.send((ctx, e) => duckula.Event.FEEDBACK(
+        //       ctx.message!.talkerId,
+        //       e.payload.text,
+        //     )),
+        //   ],
+        // },
+        [duckula.Type.TEXT]   : duckula.State.Responding,
+        [duckula.Type.GERROR] : duckula.State.Erroring,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
-        actions.log<Context, Events['FEEDBACK']>((_, e) => `states.Responding.entry ${e.payload.feedback}`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
+        actions.log<Context, Events['TEXT']>((_, e) => `states.Responding.entry ${e.payload.text}`, duckula.id),
+        Mailbox.actions.reply<Context, Events['TEXT']>((ctx, e) => duckula.Event.TEXT(e.payload.text, ctx.message)),
       ],
       always: duckula.State.Idle,
     },

@@ -24,12 +24,12 @@ import { FileBox }                  from 'file-box'
 import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import duckula, { Context }   from './duckula.js'
-import { fileMessageTypes }   from './file-message-types.js'
+import duckula, { Context, Event, Events }    from './duckula.js'
+import { fileMessageTypes }                   from './file-message-types.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
@@ -46,12 +46,11 @@ const machine = createMachine<
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id),
+        actions.assign({ message: undefined }),
       ],
       on: {
         [duckula.Type.MESSAGE]: {
-          actions: [
-            actions.log('state.Idle.on.MESSAGE', duckula.id),
-          ],
+          actions: actions.assign({ message: (_, e) => e.payload.message }),
           target: duckula.State.Classifying,
         },
       },
@@ -65,10 +64,10 @@ const machine = createMachine<
 
     [duckula.State.Classifying]: {
       entry: [
-        actions.log('state.Classifying.entry', duckula.id),
+        actions.log('states.Classifying.entry', duckula.id),
         actions.choose<
           Context,
-          ReturnType<typeof duckula.Event['MESSAGE']>
+          Events['MESSAGE']
         >([
           {
             cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
@@ -96,8 +95,8 @@ const machine = createMachine<
      */
     [duckula.State.Loading]: {
       entry: [
-        actions.log('state.Loading.entry', duckula.id),
-        actions.send<Context, ReturnType<typeof duckula.Event['MESSAGE']>>(
+        actions.log('states.Loading.entry', duckula.id),
+        actions.send<Context, Events['MESSAGE']>(
           (_, e) => CQRS.duck.actions.GET_MESSAGE_FILE_QUERY(
             CQRS.uuid.NIL,
             e.payload.message.id,
@@ -108,12 +107,12 @@ const machine = createMachine<
       on: {
         '*': {
           actions: [
-            actions.log((_, e) => `state.Loading.on.* ${JSON.stringify(e)}`, duckula.id),
+            actions.log((_, e) => `states.Loading.on.* ${JSON.stringify(e)}`, duckula.id),
           ],
         },
         [duckula.Type.GET_MESSAGE_FILE_QUERY_RESPONSE]: {
           actions: [
-            actions.log('state.Loading.on.GET_MESSAGE_FILE_QUERY_RESPONSE', duckula.id),
+            actions.log('states.Loading.on.GET_MESSAGE_FILE_QUERY_RESPONSE', duckula.id),
             actions.send((_, e) => duckula.Event.FILE_BOX(FileBox.fromJSON(e.payload.file!))),
           ],
         },
@@ -124,15 +123,19 @@ const machine = createMachine<
 
     [duckula.State.Responding]: {
       entry: [
-        actions.log((_, e) => `state.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
+        actions.log((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
+        Mailbox.actions.reply<Context, Events['FILE_BOX']>(
+          (ctx, e) => duckula.Event.FILE_BOX(
+            e.payload.fileBox,
+            ctx.message,
+          )),
       ],
       always: duckula.State.Idle,
     },
 
     [duckula.State.Erroring]: {
       entry: [
-        actions.log((_, e) => `state.Erroring.entry [${e.type}(${e.payload.gerror}]`, duckula.id),
+        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry [${e.type}(${e.payload.gerror}]`, duckula.id),
         Mailbox.actions.reply((_, e) => e),
       ],
       always: duckula.State.Idle,
