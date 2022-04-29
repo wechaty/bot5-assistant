@@ -74,9 +74,11 @@ const duckula = Mailbox.duckularize({
     'Processing',
     'Registering',
     'Reporting',
-    'Erroring',
     'Nexting',
+    'Erroring',
+    'Errored',
     'Responding',
+    'Responded',
   ] ],
   initialContext: ({
     contacts: {},

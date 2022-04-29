@@ -19,13 +19,14 @@
  */
 /* eslint-disable no-redeclare */
 /* eslint-disable sort-keys */
-import { actions, AnyEventObject, createMachine }   from 'xstate'
-import { GError }                   from 'gerror'
-import * as Mailbox                 from 'mailbox'
+import { actions, AnyEventObject, createMachine }     from 'xstate'
+import { GError }                                     from 'gerror'
+import * as Mailbox                                   from 'mailbox'
 
 import { MessageToText }    from '../../application-actors/mod.js'
+import { responseStates }   from '../../actor-utils/mod.js'
 
-import * as noticing    from '../noticing/mod.js'
+import * as noticing    from '../notice/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import * as selectors                         from './selectors.js'
@@ -74,7 +75,7 @@ const machine = createMachine<
         '*': duckula.State.Idle,
         [duckula.Type.MESSAGE]: {
           actions: [
-            actions.log('state.Idle.on.MESSAGE', duckula.id),
+            actions.log('states.Idle.on.MESSAGE', duckula.id),
             actions.assign({ message: (_, e) => e.payload.message }),
           ],
           target: duckula.State.Textualizing,
@@ -82,7 +83,7 @@ const machine = createMachine<
 
         [duckula.Type.RESET]: {
           actions: [
-            actions.log('state.Idle.on.RESET', duckula.id),
+            actions.log('states.Idle.on.RESET', duckula.id),
             actions.assign(ctx => ({
               ...ctx,
               ...duckula.initialContext(),
@@ -105,7 +106,7 @@ const machine = createMachine<
 
         [duckula.Type.REPORT]: {
           actions: [
-            actions.log('state.Idle.on.REPORT', duckula.id),
+            actions.log('states.Idle.on.REPORT', duckula.id),
           ],
           target: duckula.State.Processing,
         },
@@ -117,7 +118,7 @@ const machine = createMachine<
      * 2. received TEXT     -> FEEDBACK
      *
      * 3. received FEEDBACK -> transition to Feedbacking
-     * 4. received GERROR   -> transition to Erroring
+     * 4. received GERROR   -> transition to Errored
      */
     [duckula.State.Textualizing]: {
       invoke: {
@@ -132,18 +133,18 @@ const machine = createMachine<
         onError:  { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
       },
       entry: [
-        actions.log('state.Textualizing.entry', duckula.id),
+        actions.log('states.Textualizing.entry', duckula.id),
         actions.send((_, e) => e, { to: MessageToText.id }),
       ],
       on: {
         [duckula.Type.ACTOR_REPLY]: {
           actions: [
-            actions.log((_, e) => `state.Textualizing.on.ACTOR_REPLY [${e.payload.message.type}]`, duckula.id),
+            actions.log((_, e) => `states.Textualizing.on.ACTOR_REPLY [${e.payload.message.type}]`, duckula.id),
             actions.send((_, e) => e.payload.message),
           ],
         },
         [duckula.Type.TEXT]   : duckula.State.Feedbacking,
-        [duckula.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.GERROR] : duckula.State.Errored,
       },
     },
 
@@ -210,7 +211,7 @@ const machine = createMachine<
 
     [duckula.State.Registering]: {
       entry: [
-        actions.log('state.registering.entry', duckula.id),
+        actions.log('states.Registering.entry', duckula.id),
         actions.send(
           duckula.Event.REPORT(),
           { to: ctx => ctx.actors.register },
@@ -251,18 +252,18 @@ const machine = createMachine<
 
     [duckula.State.Processing]: {
       entry: [
-        actions.log('state.processing.entry', duckula.id),
+        actions.log('states.processing.entry', duckula.id),
         actions.choose<Context, AnyEventObject>([
           {
             cond: ctx => selectors.contactNum(ctx) <= 0,
             actions:[
-              actions.log('state.processing.entry no contacts', duckula.id),
+              actions.log('states.processing.entry no contacts', duckula.id),
               actions.send(duckula.Event.NO_CONTACT()),
             ],
           },
           {
             actions: [
-              actions.log('state.processing.entry transition to NEXT', duckula.id),
+              actions.log('states.processing.entry transition to NEXT', duckula.id),
               actions.send(duckula.Event.NEXT()),
             ],
           },
@@ -276,7 +277,7 @@ const machine = createMachine<
 
     [duckula.State.Reporting]: {
       entry: [
-        actions.log(ctx => `state.reporting.entry feedbacks/contacts(${selectors.feedbackNum(ctx)}/${selectors.contactNum(ctx)})`, duckula.id),
+        actions.log(ctx => `states.Reporting.entry feedbacks/contacts(${selectors.feedbackNum(ctx)}/${selectors.contactNum(ctx)})`, duckula.id),
         actions.choose<Context, any>([
           {
             cond: ctx => selectors.contactNum(ctx) <= 0,
@@ -287,12 +288,12 @@ const machine = createMachine<
           {
             cond: ctx => selectors.feedbackNum(ctx) < selectors.contactNum(ctx),
             actions: [
-              actions.log('state.reporting.entry feedbacks is not enough', duckula.id),
+              actions.log('states.Reporting.entry feedbacks is not enough', duckula.id),
             ],
           },
           {
             actions: [
-              actions.log('state.reporting.entry replying [FEEDBACKS]', duckula.id),
+              actions.log('states.Reporting.entry replying [FEEDBACKS]', duckula.id),
               Mailbox.actions.reply(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
             ],
           },
@@ -304,23 +305,7 @@ const machine = createMachine<
       },
     },
 
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log<Context, Events['GERROR']>((_, e) => `state.Erroring.entry [GERROR("${e.payload.gerror}")]`, duckula.id),
-        actions.send((_, e) => e),
-      ],
-      on: {
-        [duckula.Type.GERROR]: duckula.State.Responding,
-      },
-    },
-
-    [duckula.State.Responding]: {
-      entry: [
-        actions.log((_, e) => `state.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
+    ...responseStates(duckula.id),
   },
 })
 
