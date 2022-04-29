@@ -26,7 +26,7 @@ import * as Mailbox                                   from 'mailbox'
 import { MessageToText }    from '../../application-actors/mod.js'
 import { responseStates }   from '../../actor-utils/mod.js'
 
-import * as Notice    from '../notice/mod.js'
+import * as NoticeActor    from '../notice/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import * as selectors                         from './selectors.js'
@@ -34,6 +34,28 @@ import * as selectors                         from './selectors.js'
 const machine = createMachine<Context, Event>({
   id: duckula.id,
   context: duckula.initialContext,
+
+  invoke: [
+    {
+      id: NoticeActor.id,
+      src: ctx => NoticeActor.machine.withContext({
+        ...NoticeActor.initialContext(),
+        actors: {
+          wechaty: ctx.actors.wechaty,
+        },
+      }),
+    },
+  ],
+
+  /**
+   * Internal events only
+   */
+  on: {
+    [NoticeActor.Type.NOTICE]: {
+      actions: actions.forwardTo(NoticeActor.id),
+    },
+  },
+
   initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
@@ -148,14 +170,13 @@ const machine = createMachine<Context, Event>({
           }),
         }),
         actions.send<Context, Events['TEXT']>(
-          (ctx, e) => Notice.Event.NOTICE(
+          (ctx, e) => NoticeActor.Event.NOTICE(
             [
               '【反馈系统】',
               `收到${(e.payload.message && ctx.contacts[e.payload.message.talkerId])?.name}的反馈：`,
               `“${e.payload.text}”`,
             ].join(''),
           ),
-          { to: ctx => ctx.actors.notice },
         ),
         actions.send(duckula.Event.NEXT()),
       ],
@@ -170,7 +191,7 @@ const machine = createMachine<Context, Event>({
           {
             cond: ctx => !!selectors.nextContact(ctx),
             actions: [
-              actions.send(ctx => Notice.Event.NOTICE(
+              actions.send(ctx => NoticeActor.Event.NOTICE(
                 [
                   '【反馈系统】',
                   `下一位：@${selectors.nextContact(ctx)?.name}`,
@@ -184,7 +205,7 @@ const machine = createMachine<Context, Event>({
           },
           {
             actions: [
-              actions.send(ctx => Notice.Event.NOTICE([
+              actions.send(ctx => NoticeActor.Event.NOTICE([
                 '【反馈系统】：已完成收集所有人反馈：',
                 Object.values(ctx.contacts).map(contact => contact.name).join('，'),
                 `共 ${Object.keys(ctx.contacts).length} 人。`,
