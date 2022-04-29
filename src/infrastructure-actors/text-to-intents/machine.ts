@@ -23,7 +23,8 @@ import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
 import { GError }                   from 'gerror'
 
-import * as duck    from '../../duck/mod.js'
+import * as duck            from '../../duck/mod.js'
+import { responseStates }   from '../../actor-utils/response-states.js'
 
 import { textToIntents }    from './text-to-intents.js'
 
@@ -66,8 +67,8 @@ const machine = createMachine<
      * 2. received invoke.done  -> emit INTENTS
      * 3. received invoke.error -> emit GERROR
      *
-     * 4. received INTENTS  -> transition to Responding
-     * 5. received GERROR   -> transition to Erroring
+     * 4. received INTENTS  -> transition to Responded
+     * 5. received GERROR   -> transition to Errored
      *
      */
     [duckula.State.Understanding]: {
@@ -86,27 +87,12 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.INTENTS] : duckula.State.Responding,
-        [duckula.Type.GERROR]  : duckula.State.Erroring,
+        [duckula.Type.INTENTS] : duckula.State.Responded,
+        [duckula.Type.GERROR]  : duckula.State.Errored,
       },
     },
 
-    [duckula.State.Responding]: {
-      entry: [
-        actions.log<Context, Events['INTENTS']>((_, e) => `states.Responding.entry [${e.type}]: ${e.payload.intents}`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry [${e.type}] ${e.payload.gerror}`, duckula.id),
-        Mailbox.actions.reply((_, e) => isActionOf(duckula.Event.GERROR, e) ? e : duckula.Event.GERROR(GError.stringify(e))),
-      ],
-      always: duckula.State.Idle,
-    },
-
+    ...responseStates(duckula.id),
   },
 })
 
