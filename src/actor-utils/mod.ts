@@ -1,1 +1,1 @@
-export { statesResponse } from './states-response.js'
+export { responseStates } from './response-states.js'
