@@ -4,7 +4,7 @@ import * as Mailbox     from 'mailbox'
 import { isActionOf }   from 'typesafe-actions'
 import { GError }       from 'gerror'
 
-import * as duck from '../duck/mod.js'
+import * as duck    from '../duck/mod.js'
 
 /**
  * Extend the machine states to support `Responded` and `Errored` states.
