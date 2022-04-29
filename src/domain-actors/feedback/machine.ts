@@ -23,16 +23,16 @@ import { actions, AnyEventObject, createMachine }   from 'xstate'
 import { GError }                   from 'gerror'
 import * as Mailbox                 from 'mailbox'
 
-import { messageToText }    from '../../application-actors/mod.js'
+import { MessageToText }    from '../../application-actors/mod.js'
 
 import * as noticing    from '../noticing/mod.js'
 
-import duckula, { Context }   from './duckula.js'
-import * as selectors         from './selectors.js'
+import duckula, { Context, Event, Events }    from './duckula.js'
+import * as selectors                         from './selectors.js'
 
 const machine = createMachine<
   Context,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Event
 >({
   id: duckula.id,
   /**
@@ -121,17 +121,19 @@ const machine = createMachine<
      */
     [duckula.State.Textualizing]: {
       invoke: {
-        id: messageToText.id,
-        src: ctx => messageToText.machine.withContext({
-          ...messageToText.initialContext(),
-          address: ctx.actors,
+        id: MessageToText.id,
+        src: ctx => MessageToText.machine.withContext({
+          ...MessageToText.initialContext(),
+          actors: {
+            wechaty: ctx.actors.wechaty,
+          },
         }),
         onDone:   { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
         onError:  { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
       },
       entry: [
         actions.log('state.Textualizing.entry', duckula.id),
-        actions.send((_, e) => e, { to: messageToText.id }),
+        actions.send((_, e) => e, { to: MessageToText.id }),
       ],
       on: {
         [duckula.Type.ACTOR_REPLY]: {
@@ -140,35 +142,26 @@ const machine = createMachine<
             actions.send((_, e) => e.payload.message),
           ],
         },
-        [duckula.Type.TEXT]: {
-          actions: [
-            actions.log((_, e) => `state.Textualizing.on.TEXT [${e.payload.text}]`, duckula.id),
-            actions.send((ctx, e) => duckula.Event.FEEDBACK(
-              ctx.message!.talkerId,
-              e.payload.text,
-            )),
-          ],
-        },
-        [duckula.Type.FEEDBACK] : duckula.State.Feedbacking,
-        [duckula.Type.GERROR]   : duckula.State.Erroring,
+        [duckula.Type.TEXT]   : duckula.State.Feedbacking,
+        [duckula.Type.GERROR] : duckula.State.Erroring,
       },
     },
 
     [duckula.State.Feedbacking]: {
       entry: [
-        actions.log<Context, ReturnType<typeof duckula.Event.FEEDBACK>>((_, e) => `states.Feedbacking.entry ${e.payload.contactId}: "${e.payload.feedback}"`, duckula.id),
-        actions.assign<Context, ReturnType<typeof duckula.Event.FEEDBACK>>({
+        actions.log<Context, Events['TEXT']>((_, e) => `states.Feedbacking.entry ${e.payload.message?.talkerId}: "${e.payload.text}"`, duckula.id),
+        actions.assign<Context, Events['TEXT']>({
           feedbacks: (ctx, e) => ({
             ...ctx.feedbacks,
-            [e.payload.contactId]: e.payload.feedback,
+            ...e.payload.message && { [e.payload.message.talkerId]: e.payload.text },
           }),
         }),
-        actions.send<Context, ReturnType<typeof duckula.Event.FEEDBACK>>(
+        actions.send<Context, Events['TEXT']>(
           (ctx, e) => noticing.Event.NOTICE(
             [
               '【反馈系统】',
-              `收到${ctx.contacts[e.payload.contactId]?.name}的反馈：`,
-              `“${e.payload.feedback}”`,
+              `收到${(e.payload.message && ctx.contacts[e.payload.message.talkerId])?.name}的反馈：`,
+              `“${e.payload.text}”`,
             ].join(''),
           ),
           { to: ctx => ctx.actors.noticing },
@@ -313,7 +306,7 @@ const machine = createMachine<
 
     [duckula.State.Erroring]: {
       entry: [
-        actions.log<Context, ReturnType<typeof duckula.Event.GERROR>>((_, e) => `state.Erroring.entry [GERROR("${e.payload.gerror}")]`, duckula.id),
+        actions.log<Context, Events['GERROR']>((_, e) => `state.Erroring.entry [GERROR("${e.payload.gerror}")]`, duckula.id),
         actions.send((_, e) => e),
       ],
       on: {

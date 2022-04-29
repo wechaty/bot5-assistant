@@ -57,7 +57,6 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
-    'FEEDBACK',
     'TEXT',
     'NO_CONTACT',
     'GERROR',
