@@ -39,10 +39,6 @@ const duckula = Mailbox.duckularize({
   id: 'Register',
   events: [ { ...duck.Event, ...WechatyActor.Event }, [
     /**
-     * Config
-     */
-    'RESET',
-    /**
      * Request
      */
     'REPORT',
@@ -50,13 +46,16 @@ const duckula = Mailbox.duckularize({
     /**
      * Response
      */
-    'CONTACTS',
+    'MENTIONS',
     'GERROR',
+    /**
+     * Config
+     */
+    'RESET',
     /**
      * Internal
      */
     'INTRODUCE',
-    'MENTION',
     'PARSE',
     'NEXT',
     'NOTICE',
@@ -66,6 +65,7 @@ const duckula = Mailbox.duckularize({
   states: [ duck.State, [
     'Confirming',
     'Erroring',
+    'Errored',
     'Idle',
     'Initializing',
     'Introducing',
@@ -74,6 +74,7 @@ const duckula = Mailbox.duckularize({
     'Reporting',
     'Resetting',
     'Responding',
+    'Responded',
   ] ],
   initialContext: {
     message  : undefined,

@@ -25,45 +25,49 @@ import {
   createMachine,
   Interpreter,
   AnyInterpreter,
-}                         from 'xstate'
-import { test, sinon }    from 'tstest'
-import type * as WECHATY  from 'wechaty'
-import { createFixture }  from 'wechaty-mocker'
-import type { mock }      from 'wechaty-puppet-mock'
-import * as Mailbox       from 'mailbox'
-import * as CQRS          from 'wechaty-cqrs'
+}                                   from 'xstate'
+import { map, mergeMap, filter }    from 'rxjs/operators'
+import { test, sinon }              from 'tstest'
+import type * as WECHATY            from 'wechaty'
+import { createFixture }            from 'wechaty-mocker'
+import type { mock }                from 'wechaty-puppet-mock'
+import * as Mailbox                 from 'mailbox'
+import * as CQRS                    from 'wechaty-cqrs'
+import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import { removeUndefined } from '../../pure-functions/remove-undefined.js'
 
-import duckula    from './duckula.js'
-import machine    from './machine.js'
+import duckula, { Events }    from './duckula.js'
+import machine                from './machine.js'
+import { bot5Fixtures } from '../../fixtures/bot5-fixture.js'
 
-test('registerMachine smoke testing', async t => {
+test('register machine smoke testing', async t => {
   for await (const fixtures of createFixture()) {
     const {
-      mocker,
-      wechaty,
+      mocker: mockerFixture,
+      wechaty: wechatyFixture,
     }           = fixtures
 
     const sandbox = sinon.createSandbox({
       useFakeTimers: true,
     })
 
-    const bus$ = CQRS.from(wechaty.wechaty)
-    const wechatyMailbox = WechatyActor.from(bus$, wechaty.wechaty.puppet.id)
+    const bus$ = CQRS.from(wechatyFixture.wechaty)
+    const wechatyMailbox = WechatyActor.from(bus$, wechatyFixture.wechaty.puppet.id)
     wechatyMailbox.open()
 
-    const [ mary, mike ] = mocker.mocker.createContacts(2) as [ mock.ContactMock, mock.ContactMock ]
+    const [ mary, mike ] = mockerFixture.mocker.createContacts(2) as [ mock.ContactMock, mock.ContactMock ]
 
     const MEMBER_ID_LIST = [
       mary.id,
       mike.id,
-      mocker.bot.id,
-      mocker.player.id,
+      mockerFixture.bot.id,
+      mockerFixture.player.id,
     ]
 
     //   Events.MESSAGE(mention
-    const meetingRoom = mocker.mocker.createRoom({
+    const meetingRoom = mockerFixture.mocker.createRoom({
       memberIdList: MEMBER_ID_LIST,
     })
 
@@ -96,13 +100,28 @@ test('registerMachine smoke testing', async t => {
       .onEvent(e => consumerEventList.push(e))
       .start()
 
-    const registerInterpreter = () => consumerInterpreter.children.get(REGISTER_MACHINE_ID) as Interpreter<any>
-    const registerSnapshot    = () => registerInterpreter().getSnapshot()
+    const registerInterpreter = consumerInterpreter.children.get(REGISTER_MACHINE_ID) as Interpreter<any>
+    const registerSnapshot    = () => registerInterpreter.getSnapshot()
     const registerContext     = () => registerSnapshot().context as ReturnType<typeof duckula.initialContext>
     const registerState       = () => registerSnapshot().value   as typeof duckula.State
 
+    const messageEventList: Events['MESSAGE'][] = []
+    bus$.pipe(
+      // tap(e => console.info('### bus$', e)),
+      filter(CQRS.is(CQRS.events.MessageReceivedEvent)),
+      map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixture.wechaty.puppet.id, e.payload.messageId)),
+      mergeMap(CQRS.execute$(bus$)),
+      map(response => response.payload.message),
+      filter(removeUndefined),
+      map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
+    ).subscribe(e => {
+      // console.info('### duckula.Event.MESSAGE', e)
+      messageEventList.push(e)
+      registerInterpreter.send(e)
+    })
+
     const registerEventList: AnyEventObject[] = []
-    registerInterpreter().onEvent(e => registerEventList.push(e))
+    registerInterpreter.onEvent(e => registerEventList.push(e))
 
     t.equal(registerState(), duckula.State.Idle, 'should be idle state')
     t.same(registerContext().contacts, [], 'should be empty mention list')
@@ -111,14 +130,10 @@ test('registerMachine smoke testing', async t => {
      * Process a message without mention
      */
     consumerEventList.length = 0
-    const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
+    const messageFutureNoMention = new Promise(resolve => wechatyFixture.wechaty.once('message', resolve))
 
     mary.say('register without mentions').to(meetingRoom)
-    const noMentionMessage = await messageFutureNoMention
-
-    registerInterpreter().send(
-      duckula.Event.MESSAGE(noMentionMessage.payload!),
-    )
+    await messageFutureNoMention
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
     t.equal(registerState(), duckula.State.Loading, 'should be in Loading state')
@@ -133,13 +148,13 @@ test('registerMachine smoke testing', async t => {
     // consumerEventList.forEach(e => console.info('consumer:', e))
     // registerEventList.forEach(e => console.info('register:', e))
     t.same(consumerEventList, [
-      Mailbox.Event.ACTOR_IDLE('idle'),
-      Mailbox.Event.ACTOR_IDLE('idle'),
+      Mailbox.Event.ACTOR_IDLE(),
+      Mailbox.Event.ACTOR_IDLE(),
     ], 'should have 2 idle event after one message, with empty contacts list for non-mention message')
     t.equal(registerState(), duckula.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      duckula.Type.MENTION,
+      duckula.Type.MENTIONS,
       duckula.Type.NEXT,
       duckula.Type.INTRODUCE,
       duckula.Type.NEXT,
@@ -150,19 +165,15 @@ test('registerMachine smoke testing', async t => {
     /**
      * Process a message with mention
      */
-    const messageFutureMentions = new Promise<WECHATY.Message>(resolve => wechaty.wechaty.once('message', resolve))
-
-    const MENTION_LIST = [ mike, mary, mocker.player ]
-    mary.say('register with mentions', MENTION_LIST).to(meetingRoom)
-
-    const mentionMessage = await messageFutureMentions
-    // console.info('mentionMessage:', mentionMessage.text())
-
     consumerEventList.length = 0
     registerEventList.length = 0
-    registerInterpreter().send(
-      duckula.Event.MESSAGE(mentionMessage.payload!),
-    )
+    const MENTION_LIST = [ mike, mary, mockerFixture.player ]
+
+    const messageFutureMentions = new Promise(resolve => wechatyFixture.wechaty.once('message', resolve))
+    mary.say('register with mentions', MENTION_LIST).to(meetingRoom)
+    await messageFutureMentions
+    // console.info('mentionMessage:', mentionMessage.text())
+
     t.equal(consumerEventList.length, 0, 'should has no message sent to parent right after message')
 
     t.equal(registerState(), duckula.State.Loading, 'should be in Loading state')
@@ -174,7 +185,7 @@ test('registerMachine smoke testing', async t => {
 
     const CONTACT_MENTION_LIST = await Promise.all(
       MENTION_LIST
-        .map(c => wechaty.wechaty.Contact.find({ id: c.id })),
+        .map(c => wechatyFixture.wechaty.Contact.find({ id: c.id })),
     ) as WECHATY.Contact[]
 
     // console.info(proxyEventList)
@@ -186,9 +197,16 @@ test('registerMachine smoke testing', async t => {
     t.same(
       consumerEventList,
       [
-        Mailbox.Event.ACTOR_IDLE('idle'),
+        Mailbox.Event.ACTOR_IDLE(),
         Mailbox.Event.ACTOR_REPLY(
-          duckula.Event.CONTACTS(CONTACT_MENTION_LIST.map(c => c.payload!)),
+          duckula.Event.MENTIONS(
+            CONTACT_MENTION_LIST.map(c => c.payload!),
+            messageEventList
+              .filter(isActionOf(duckula.Event.MESSAGE))
+              .at(-1)!
+              .payload
+              .message,
+          ),
         ),
       ],
       'should have 2 events after one message with contacts list for mention message',
@@ -196,11 +214,11 @@ test('registerMachine smoke testing', async t => {
     t.equal(registerState(), duckula.State.Idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      duckula.Type.MENTION,
+      duckula.Type.MENTIONS,
       duckula.Type.NEXT,
       duckula.Type.NOTICE,
       duckula.Type.REPORT,
-      duckula.Type.CONTACTS,
+      duckula.Type.MENTIONS,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, SEND_MESSAGE_COMMAND_RESPONSE event')
     t.same(
       Object.values(registerContext().contacts).map(c => c.id),
@@ -212,10 +230,10 @@ test('registerMachine smoke testing', async t => {
   }
 })
 
-test('registerActor smoke testing', async t => {
+test('register actor smoke testing', async t => {
   let interpreter: AnyInterpreter
 
-  for await (const fixture of createFixture()) {
+  for await (const fixture of bot5Fixtures()) {
 
     const bus$ = CQRS.from(fixture.wechaty.wechaty)
     const wechatyMailbox = WechatyActor.from(bus$, fixture.wechaty.wechaty.puppet.id)
@@ -238,42 +256,32 @@ test('registerActor smoke testing', async t => {
       },
     })
 
-    interpreter = interpret(testMachine)
     const eventList: AnyEventObject[] = []
-
-    interpreter
+    interpreter = interpret(testMachine)
       .onEvent(e => eventList.push(e))
       .start()
 
-    const [ mary, mike ] = fixture.mocker.mocker.createContacts(2) as [mock.ContactMock, mock.ContactMock]
-
-    const MEMBER_ID_LIST = [
-      mary.id,
-      mike.id,
-      fixture.mocker.bot.id,
-      fixture.mocker.player.id,
-    ]
-
-    const meetingRoom = fixture.mocker.mocker.createRoom({
-      memberIdList: MEMBER_ID_LIST,
+    bus$.pipe(
+      // tap(e => console.info('### bus$', e)),
+      filter(CQRS.is(CQRS.events.MessageReceivedEvent)),
+      map(e => CQRS.queries.GetMessagePayloadQuery(fixture.wechaty.wechaty.puppet.id, e.payload.messageId)),
+      mergeMap(CQRS.execute$(bus$)),
+      map(response => response.payload.message),
+      filter(removeUndefined),
+      map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
+    ).subscribe(e => {
+      // console.info('### duckula.Event.MESSAGE', e)
+      interpreter.send(e)
     })
 
     /**
      * 1. test no-mention
      */
     eventList.length = 0
-    const messageFutureNoMention = new Promise<WECHATY.Message>(resolve => fixture.wechaty.wechaty.once('message', resolve))
-
-    mary.say('register').to(meetingRoom)
-
-    const NO_MENTION_MESSAGE = duckula.Event.MESSAGE(
-      (await messageFutureNoMention).payload!,
-    )
-
-    interpreter.send(NO_MENTION_MESSAGE)
-
-    await new Promise(setImmediate)
-    t.same(eventList, [ NO_MENTION_MESSAGE ], 'should no report contact when there is no mention')
+    const messageFutureNoMention = new Promise(resolve => fixture.wechaty.wechaty.once('message', resolve))
+    fixture.mocker.mary.say('register').to(fixture.mocker.groupRoom)
+    await messageFutureNoMention
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     // ;(registerMailbox as Mailbox.impls.Mailbox).internal.actor.interpreter!.onTransition(s => {
     //   console.info('______________________________')
@@ -298,38 +306,40 @@ test('registerActor smoke testing', async t => {
      * 2. test mention
      */
     eventList.length = 0
-    const messageFutureMentions = new Promise<WECHATY.Message>(resolve => fixture.wechaty.wechaty.once('message', resolve))
+    // const messageFutureMentions = new Promise(resolve => fixture.wechaty.wechaty.once('message', resolve))
 
-    const MENTION_LIST = [ mike, mary, fixture.mocker.player ]
-    mary.say('register', MENTION_LIST).to(meetingRoom)
+    const CONTACT_PAYLOAD_LIST = (await fixture.wechaty.groupRoom.memberAll())
+      .map(contact => contact.payload)
+      .filter(removeUndefined)
 
-    const contactsFuture = new Promise(resolve =>
+    fixture.mocker.mary.say(
+      'register',
+      CONTACT_PAYLOAD_LIST.map(
+        p => fixture.mocker.mocker.ContactMock.load(p.id),
+      ),
+    ).to(fixture.mocker.groupRoom)
+
+    const mentionsFuture = new Promise(resolve =>
       interpreter.onEvent(e => {
-        console.info('event:', e)
-        if (e.type === duckula.Type.CONTACTS) {
+        // console.info('event:', e)
+        if (e.type === duckula.Type.MENTIONS) {
           resolve(e)
         }
       }),
     )
 
-    const MESSAGE = duckula.Event.MESSAGE(
-      (await messageFutureMentions).payload!,
-    )
-
-    interpreter.send(MESSAGE)
-
-    const CONTACT_MENTION_LIST = await Promise.all(
-      MENTION_LIST
-        .map(c => fixture.wechaty.wechaty.Contact.find({ id: c.id })),
-    ) as WECHATY.Contact[]
-
-    const CONTACTS = await contactsFuture
+    const mentionsEvent = await mentionsFuture
 
     // console.info(eventList)
     t.same(
-      CONTACTS,
-      duckula.Event.CONTACTS(
-        CONTACT_MENTION_LIST.map(c => c.payload!),
+      mentionsEvent,
+      duckula.Event.MENTIONS(
+        CONTACT_PAYLOAD_LIST,
+        eventList
+          .filter(isActionOf(duckula.Event.MESSAGE))
+          .at(-1)!
+          .payload
+          .message,
       ),
       'should get CONTACT events with mention list',
     )

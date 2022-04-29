@@ -22,13 +22,12 @@ import { createMachine, actions }   from 'xstate'
 import * as CQRS                    from 'wechaty-cqrs'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as Mailbox                 from 'mailbox'
-import { GError }                   from 'gerror'
 
 import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
 
 import duckula, { Context, Event, Events } from './duckula.js'
-import { isActionOf } from 'typesafe-actions'
+import { responseStates } from '../../actor-utils/response-states.js'
 
 // const ctxRoomId     = (ctx: ReturnType<typeof duckula.initialContext>) => ctx.message!.roomId!
 const ctxContactNum = (ctx: ReturnType<typeof duckula.initialContext>) => Object.keys(ctx.contacts).length
@@ -142,7 +141,7 @@ const machine = createMachine<
               e.payload.responseList.length,
             ].join(''), duckula.id),
             actions.send((_, e) =>
-              duckula.Event.MENTION(
+              duckula.Event.MENTIONS(
                 e.payload.responseList
                   .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
                   .map(response => response.payload.contact)
@@ -151,15 +150,15 @@ const machine = createMachine<
             ),
           ],
         },
-        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
-        [duckula.Type.MENTION]     : duckula.State.Mentioning,
+        [WechatyActor.Type.GERROR] : duckula.State.Errored,
+        [duckula.Type.MENTIONS]    : duckula.State.Mentioning,
       },
     },
 
     [duckula.State.Mentioning]: {
       entry: [
-        actions.log<Context, Events['MENTION']>((_, e) => `states.Mentioning.entry ${e.payload.contacts.map(c => c.name).join(',')}`, duckula.id),
-        actions.assign<Context, Events['MENTION']>({
+        actions.log<Context, Events['MENTIONS']>((_, e) => `states.Mentioning.entry ${e.payload.contacts.map(c => c.name).join(',')}`, duckula.id),
+        actions.assign<Context, Events['MENTIONS']>({
           contacts: (ctx, e) => ({
             ...ctx.contacts,
             ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
@@ -221,7 +220,10 @@ const machine = createMachine<
             cond: ctx => ctxContactNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.Reporting.entry -> [CONTACTS]', duckula.id),
-              actions.send(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
+              actions.send(ctx => duckula.Event.MENTIONS(
+                Object.values(ctx.contacts),
+                ctx.message,
+              )),
             ],
           },
           {
@@ -234,25 +236,12 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.CONTACTS] : duckula.State.Responding,
+        [duckula.Type.MENTIONS] : duckula.State.Responded,
         [duckula.Type.NEXT]     : duckula.State.Idle,
       },
     },
 
-    [duckula.State.Responding]: {
-      entry: [
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry GERROR: ${e.payload.gerror}`, duckula.id),
-        Mailbox.actions.reply((_, e) => isActionOf(duckula.Event.GERROR, e) ? e : duckula.Event.GERROR(GError.stringify(e))),
-      ],
-      always: duckula.State.Idle,
-    },
+    ...responseStates(duckula.id),
   },
 })
 
