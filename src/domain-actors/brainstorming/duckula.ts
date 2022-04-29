@@ -30,7 +30,6 @@ export interface Context {
   gerror?   : string
   feedbacks: { [id: string]: string }
   actors: {
-    notice : string
     register : string
     wechaty  : string
   }
