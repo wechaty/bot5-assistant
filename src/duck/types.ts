@@ -96,3 +96,5 @@ export const CHECKIN = 'bot5-assistant/CHECKIN'
 export const TALK = 'bot5-assistant/TALK'
 
 export const ADD_CONTACT = 'bot5-assistant/ADD_CONTACT'
+
+export const TEST = 'bot5-assistant/TEST'

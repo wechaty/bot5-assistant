@@ -17,5 +17,6 @@
  *   limitations under the License.
  *
  */
+export * from './actor-states.js'
 export * from './bot5-meeting-steps.js'
 export * from './other-states.js'

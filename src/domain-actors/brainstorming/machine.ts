@@ -19,10 +19,11 @@
  */
 /* eslint-disable sort-keys */
 import { actions, AnyEventObject, createMachine }   from 'xstate'
-import * as Mailbox                 from 'mailbox'
+import * as Mailbox                                 from 'mailbox'
 
-import * as NoticingActor from '../noticing/mod.js'
+import * as NoticingActor from '../notice/mod.js'
 import * as RegisterActor from '../register/mod.js'
+import { responseStates } from '../../actor-utils/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import * as selectors                         from './selectors.js'
@@ -176,7 +177,7 @@ const machine = createMachine<Context, Event>({
         actions.send(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
       ],
       on: {
-        [duckula.Type.FEEDBACKS]: duckula.State.Responding,
+        [duckula.Type.FEEDBACKS]: duckula.State.Responded,
       },
     },
 
@@ -288,21 +289,7 @@ const machine = createMachine<Context, Event>({
      * Responses
      *
      */
-    [duckula.State.Responding]: {
-      entry: [
-        actions.log((_, e) => `state.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log((_, e) => `state.Erroring.entry GERROR ${(e as Events['GERROR']).payload.gerror}`, duckula.id),
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
+    ...responseStates(duckula.id),
 
   },
 })

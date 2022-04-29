@@ -31,8 +31,8 @@ const payloadReset     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadData      = (data?: string) => ({ data })
 
-const payloadMentions   = (mentions: PUPPET.payloads.Contact[], message?: PUPPET.payloads.Message) => ({ mentions, message })
-export const MENTIONS    = createAction(Type.MENTIONS, payloadMentions)()
+const payloadMentions = (contacts: PUPPET.payloads.Contact[], message?: PUPPET.payloads.Message) => ({ contacts, message })
+export const MENTIONS = createAction(Type.MENTIONS, payloadMentions)()
 
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 export const CONTACTS   = createAction(Type.CONTACTS,  payloadContacts)()
@@ -128,3 +128,4 @@ export const HELP = createAction(Type.HELP)()
 export const payloadTalk = (contact: PUPPET.payloads.Contact, topic: string, outlines: string) => ({ contact, outlines, topic })
 export const TALK = createAction(Type.TALK, payloadTalk)()
 
+export const TEST = createAction(Type.TEST)()
