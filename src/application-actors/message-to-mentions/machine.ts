@@ -23,8 +23,9 @@ import * as Mailbox                 from 'mailbox'
 import type * as PUPPET             from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
-import { removeUndefined }  from '../../pure-functions/remove-undefined.js'
+import * as WechatyActor      from '../../wechaty-actor/mod.js'
+import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
+import { responseStates }     from '../../actor-utils/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 
@@ -64,7 +65,7 @@ const machine = createMachine<
      *  2. received BATCH_RESPONSE(GET_CONTACT_PAYLOAD_QUERY_RESPONSE)  -> emit CONTACTS
      *
      *  3. received CONTACTS -> transition to Responding
-     *  4. received GERROR   -> transition to Erroring
+     *  4. received GERROR   -> transition to Errored
      */
 
     [duckula.State.Loading]: {
@@ -104,30 +105,26 @@ const machine = createMachine<
             )),
           ],
         },
-        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
+        [WechatyActor.Type.GERROR] : duckula.State.Errored,
         [duckula.Type.CONTACTS]    : duckula.State.Responding,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
-        Mailbox.actions.reply<Context, Events['CONTACTS']>(
+        actions.send<Context, Events['CONTACTS']>(
           (ctx, e) => duckula.Event.MENTIONS(
             e.payload.contacts,
             ctx.message,
           ),
         ),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.MENTIONS] : duckula.State.Responded,
+      },
     },
 
-    [duckula.State.Erroring]: {
-      entry: [
-        Mailbox.actions.reply((_, e) => e),
-      ],
-      always: duckula.State.Idle,
-    },
-
+    ...responseStates(duckula.id),
   },
 })
 
