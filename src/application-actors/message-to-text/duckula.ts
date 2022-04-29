@@ -62,7 +62,9 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'Responding',
+    'Responded',
     'Erroring',
+    'Errored',
     /**
      * Internal
      */

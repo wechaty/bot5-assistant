@@ -33,6 +33,7 @@ import path                             from 'path'
 import { fileURLToPath }                from 'url'
 import { FileBox, FileBoxInterface }    from 'file-box'
 
+import * as duck            from '../../duck/mod.js'
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
 
@@ -115,9 +116,18 @@ test('MessageToText actor smoke testing', async t => {
       t.same(
         eventList.filter(isActionOf([ duckula.Event.TEXT, duckula.Event.GERROR ])),
         [
-          duckula.Event.TEXT(expectedText),
+          FileBox.valid(sayable) && sayable.name === 'test.unknown'
+            ? duckula.Event.GERROR(expectedText)
+            : duckula.Event.TEXT(
+              expectedText,
+              eventList
+                .filter(isActionOf(duck.Event.MESSAGE))
+                .at(-1)!
+                .payload
+                .message,
+            ),
         ],
-        `should get expected [FEEDBACK(${fixtures.mocker.player.id}, "${expectedText}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
+        `should get expected [TEXT(${fixtures.mocker.player.id}, "${expectedText}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )
     }
 

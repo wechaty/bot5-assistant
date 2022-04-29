@@ -28,6 +28,7 @@ import * as fileToTextActor    from '../../infrastructure-actors/file-to-text/mo
 import * as messageToFileActor    from '../message-to-file/mod.js'
 
 import duckula, { Context, Event, Events }  from './duckula.js'
+import { responseStates } from '../../actor-utils/response-states.js'
 
 const machine = createMachine<
   Context,
@@ -98,7 +99,7 @@ const machine = createMachine<
      * 2. receive ACTOR_REPLY -> emit unwrapped event FILE_BOX / GERROR
      *
      * 3. received FILE_BOX -> transition to Recognizing
-     * 4. received GERROR   -> transition to Erroring
+     * 4. received GERROR   -> transition to Errored
      */
     [duckula.State.Filing]: {
       invoke: {
@@ -122,7 +123,7 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.FILE_BOX] : duckula.State.Recognizing,
-        [duckula.Type.GERROR]   : duckula.State.Erroring,
+        [duckula.Type.GERROR]   : duckula.State.Errored,
       },
     },
 
@@ -155,32 +156,23 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.TEXT]: duckula.State.Responding,
-        [duckula.Type.GERROR]: duckula.State.Erroring,
+        [duckula.Type.GERROR]: duckula.State.Errored,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
-        Mailbox.actions.reply<Context, Events['TEXT']>((ctx, e) => duckula.Event.TEXT(
+        actions.send<Context, Events['TEXT']>((ctx, e) => duckula.Event.TEXT(
           e.payload.text,
           ctx.message,
         )),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.TEXT]: duckula.State.Responded,
+      },
     },
 
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log((_, e) => `state.Erroring.entry [ERROR(${(e as ReturnType<typeof duckula.Event.GERROR>).payload.gerror})]`, duckula.id),
-        Mailbox.actions.reply((_, e) => duckula.Event.TEXT(
-          (e as ReturnType<typeof duckula.Event.GERROR>)
-            .payload
-            .gerror,
-        )),
-      ],
-      always: duckula.State.Idle,
-    },
-
+    ...responseStates(duckula.id),
   },
 })
 
