@@ -273,25 +273,27 @@ const machine = createMachine<Context, Event>({
             cond: ctx => selectors.contactNum(ctx) <= 0,
             actions: [
               actions.log(_ => 'state.reporting.entry contacts is not set', duckula.id),
+              actions.send(duckula.Event.NEXT()),
             ],
           },
           {
             cond: ctx => selectors.feedbackNum(ctx) < selectors.contactNum(ctx),
             actions: [
               actions.log('states.Reporting.entry feedbacks is not enough', duckula.id),
+              actions.send(duckula.Event.NEXT()),
             ],
           },
           {
             actions: [
               actions.log('states.Reporting.entry replying [FEEDBACKS]', duckula.id),
-              Mailbox.actions.reply(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
+              actions.send(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
             ],
           },
         ]),
-        actions.send(duckula.Event.NEXT()),
       ],
       on: {
-        [duckula.Type.NEXT]: duckula.State.Idle,
+        [duckula.Type.FEEDBACKS] : duckula.State.Responded,
+        [duckula.Type.NEXT]      : duckula.State.Idle,
       },
     },
 
