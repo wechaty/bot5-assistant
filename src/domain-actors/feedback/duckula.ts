@@ -25,7 +25,7 @@ import * as Mailbox       from 'mailbox'
 import * as duck            from '../../duck/mod.js'
 
 export interface Context {
-  admins    : { [id: string]: PUPPET.payloads.Contact }
+  admins    : string[]
   contacts  : { [id: string]: PUPPET.payloads.Contact }
   feedbacks : { [id: string]: string }
   message?: PUPPET.payloads.Message
@@ -81,6 +81,7 @@ const duckula = Mailbox.duckularize({
     'Responded',
   ] ],
   initialContext: ({
+    admins: [ 'lizhuohuan' ],
     contacts: {},
     feedbacks: {},
     message: undefined,
