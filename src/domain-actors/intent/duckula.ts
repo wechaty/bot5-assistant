@@ -53,7 +53,9 @@ const duckula = Mailbox.duckularize({
     'Idle',
     'Loading',
     'Responding',
+    'Responded',
     'Erroring',
+    'Errored',
   ] ],
   initialContext: {} as Context,
 })

@@ -21,13 +21,12 @@
 import { createMachine, actions, AnyEventObject }   from 'xstate'
 import * as PUPPET                                  from 'wechaty-puppet'
 import * as Mailbox                                 from 'mailbox'
-import { GError }                                   from 'gerror'
-import { isActionOf }                               from 'typesafe-actions'
 
 import { MessageToText }    from '../../application-actors/mod.js'
 import { TextToIntents }    from '../../infrastructure-actors/mod.js'
 
 import duckula, { Context, Event, Events } from './duckula.js'
+import { responseStates } from '../../actor-utils/response-states.js'
 
 const machine = createMachine<
   Context,
@@ -77,31 +76,27 @@ const machine = createMachine<
           ],
           target: duckula.State.Responding,
         },
-        [TextToIntents.Type.GERROR] : duckula.State.Erroring,
-        [MessageToText.Type.GERROR] : duckula.State.Erroring,
+        [TextToIntents.Type.GERROR] : duckula.State.Errored,
+        [MessageToText.Type.GERROR] : duckula.State.Errored,
       },
     },
 
     [duckula.State.Responding]: {
       entry: [
         actions.log<Context, AnyEventObject>((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
-        Mailbox.actions.reply<Context, Events['INTENTS']>(
+        actions.send<Context, Events['INTENTS']>(
           (ctx, e) => duckula.Event.INTENTS(
             e.payload.intents,
             ctx.message,
           ),
         ),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.INTENTS]: duckula.State.Responded,
+      },
     },
 
-    [duckula.State.Erroring]: {
-      entry: [
-        actions.log<Context, Events['GERROR']>((_, e) => `states.Erroring.entry GERROR: ${e.payload.gerror}`, duckula.id),
-        Mailbox.actions.reply((_, e) => isActionOf(duckula.Event.GERROR, e) ? e : duckula.Event.GERROR(GError.stringify(e))),
-      ],
-      always: duckula.State.Idle,
-    },
+    ...responseStates(duckula.id),
   },
 })
 
