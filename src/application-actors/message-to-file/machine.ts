@@ -82,7 +82,7 @@ const machine = createMachine<
       ],
       on: {
         [duckula.Type.MESSAGE] : duckula.State.Loading,
-        [duckula.Type.GERROR]  : duckula.State.Errored,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 
@@ -118,12 +118,12 @@ const machine = createMachine<
             actions.send((_, e) => duckula.Event.FILE_BOX(FileBox.fromJSON(e.payload.file!))),
           ],
         },
-        [duckula.Type.FILE_BOX] : duckula.State.Responding,
-        [duckula.Type.GERROR]   : duckula.State.Errored,
+        [duckula.Type.FILE_BOX] : duckula.State.Loaded,
+        [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
 
-    [duckula.State.Responding]: {
+    [duckula.State.Loaded]: {
       entry: [
         actions.log((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
         actions.send<Context, Events['FILE_BOX']>(
@@ -133,7 +133,7 @@ const machine = createMachine<
           )),
       ],
       on: {
-        [duckula.Type.FILE_BOX] : duckula.State.Responded,
+        [duckula.Type.FILE_BOX] : duckula.State.Responding,
       },
     },
 
