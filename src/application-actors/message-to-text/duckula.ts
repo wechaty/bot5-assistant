@@ -42,11 +42,12 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'TEXT',
+    'NO_TEXT',
     'GERROR',
     /**
      * Internal
      */
-    'FILE_BOX',
+    'FILE',
     'LOAD',
     // CQRS.duck.actions
     'GET_MESSAGE_FILE_QUERY_RESPONSE',
@@ -62,9 +63,7 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'Responding',
-    'Responded',
     'Erroring',
-    'Errored',
     /**
      * Internal
      */

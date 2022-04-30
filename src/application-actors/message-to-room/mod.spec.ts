@@ -29,7 +29,6 @@ test('mod is a Duckula', async t => {
   t.ok(duckula, 'should satisfy Duckula Interface for mod export')
 })
 
-
 test('mod.Context', async t => {
   const context: mod.Context = {} as any
   t.ok(context, 'should has Context interface')

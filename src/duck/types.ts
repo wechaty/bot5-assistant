@@ -18,14 +18,17 @@
  *
  */
 export const MESSAGE = 'bot5-assistant/MESSAGE'
-export const ROOM = 'bot5-assistant/ROOM'
 
-export const CONTACTS = 'bot5-assistant/CONTACTS'
+export const ROOM = 'bot5-assistant/ROOM'
+export const NO_ROOM = 'bot5-assistant/NO_ROOM'
+
 export const ADMINS = 'bot5-assistant/ADMINS'
 export const ATTENDEES = 'bot5-assistant/ATTENDEES'
 export const CHAIRS = 'bot5-assistant/CHAIRS'
 
 export const NO_AUDIO   = 'bot5-assistant/NO_AUDIO'
+
+export const CONTACTS = 'bot5-assistant/CONTACTS'
 export const NO_CONTACT = 'bot5-assistant/NO_CONTACT'
 
 export const NO_TEXT  = 'bot5-assistant/NO_TEXT'
@@ -86,7 +89,9 @@ export const MINUTES = 'bot5-assistant/MINUTES'
 export const CONVERSATION = 'bot5-assistant/CONVERSATION'
 export const NOP = 'bot5-assistant/NOP'
 
-export const FILE_BOX = 'bot5-assistant/FILE_BOX'
+export const FILE    = 'bot5-assistant/FILE'
+export const NO_FILE = 'bot5-assistant/NO_FILE'
+
 export const LOAD = 'bot5-assisstant/LOAD'
 
 export const REGISTER = 'bot5-assistant/REGISTER'

@@ -26,8 +26,8 @@ import * as Mailbox                 from 'mailbox'
 
 import * as services    from './services/mod.js'
 
-import type { CommandQuery }    from './dto.js'
-import duckula, { Context }     from './duckula.js'
+import type { CommandQuery }            from './dto.js'
+import duckula, { Context, Events }     from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -87,6 +87,13 @@ const machine = createMachine<
             actions: [
               actions.log('states.Classifying.entry found BATCH', duckula.id),
               actions.send((_, e) => e), // <- duckula.Event.batch / types.BATCH
+            ],
+          },
+          {
+            cond: (_, e) => isActionOf(duckula.Event.EXECUTE, e),
+            actions: [
+              actions.log((_, e) => `states.Classifying.entry received EXECUTE event, this is unnecessary: we should send raw [${(e as Events['EXECUTE']).payload.commandQuery.type}] instead.`, duckula.id),
+              actions.send((_, e) => e),
             ],
           },
           {

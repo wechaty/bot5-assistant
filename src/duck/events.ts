@@ -22,7 +22,6 @@ import type * as PUPPET   from 'wechaty-puppet'
 
 import { Type }         from './type-fancy-enum.js'
 import type { Intent }  from './intent-fancy-enum.js'
-import type { FileBoxInterface } from 'file-box'
 
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
 
@@ -32,9 +31,13 @@ const payloadData      = (data?: string) => ({ data })
 
 const payloadMentions = (contacts: PUPPET.payloads.Contact[], message?: PUPPET.payloads.Message) => ({ contacts, message })
 export const MENTIONS = createAction(Type.MENTIONS, payloadMentions)()
+export const NO_MENTION  = createAction(Type.NO_MENTION)()
 
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 export const CONTACTS   = createAction(Type.CONTACTS,  payloadContacts)()
+export const NO_CONTACT  = createAction(Type.NO_CONTACT)()
+export const ADD_CONTACT = createAction(Type.ADD_CONTACT, payloadContacts)()
+
 export const ATTENDEES  = createAction(Type.ATTENDEES, payloadContacts)()
 export const ADMINS     = createAction(Type.ADMINS,    payloadContacts)()
 export const CHAIRS     = createAction(Type.CHAIRS,    payloadContacts)()
@@ -46,13 +49,12 @@ export const BACK        = createAction(Type.BACK)()
 export const NEXT        = createAction(Type.NEXT)()
 
 export const NO_AUDIO    = createAction(Type.NO_AUDIO)()
-export const NO_MENTION  = createAction(Type.NO_MENTION)()
-export const NO_CONTACT  = createAction(Type.NO_CONTACT)()
 
-export const ADD_CONTACT = createAction(Type.ADD_CONTACT, payloadContacts)()
-
-const payloadRoom = (room: PUPPET.payloads.Room) => ({ room })
+const payloadRoom = (room: PUPPET.payloads.Room, message?: PUPPET.payloads.Message) => ({ message, room })
 export const ROOM = createAction(Type.ROOM, payloadRoom)()
+
+const payloadNoRoom = (message?: PUPPET.payloads.Message) => ({ message })
+export const NO_ROOM = createAction(Type.NO_ROOM, payloadNoRoom)()
 
 export const START       = createAction(Type.START)()
 export const STOP        = createAction(Type.STOP)()
@@ -115,8 +117,11 @@ export const CONVERSATION = createAction(Type.CONVERSATION, payloadConversation)
 
 export const NOP = createAction(Type.NOP)()
 
-const payloadFileBox  = (fileBox: FileBoxInterface, message?: PUPPET.payloads.Message) => ({ fileBox, message })
-export const FILE_BOX = createAction(Type.FILE_BOX, payloadFileBox)()
+const payloadFile  = (box: string, message?: PUPPET.payloads.Message) => ({ box, message })
+export const FILE = createAction(Type.FILE, payloadFile)()
+
+const payloadNoFile  = (message?: PUPPET.payloads.Message) => ({ message })
+export const NO_FILE = createAction(Type.NO_FILE, payloadNoFile)()
 
 const payloadLoad = (id: string) => ({ id })
 export const LOAD = createAction(Type.LOAD, payloadLoad)()

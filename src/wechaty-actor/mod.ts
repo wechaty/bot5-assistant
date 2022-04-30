@@ -17,13 +17,13 @@
  *   limitations under the License.
  *
  */
-import duckula    from './duckula.js'
-import from       from './from.js'
-import machine    from './machine.js'
+import duckula, { type Events }   from './duckula.js'
+import from                       from './from.js'
+import machine                    from './machine.js'
 
+export const Event = duckula.Event as Omit<typeof duckula.Event, 'EXECUTE' | 'RESPONSE' | 'IDLE'>
 export const {
   id,
-  Event,
   State,
   initialContext,
   Type,
@@ -32,4 +32,5 @@ export const {
 export {
   machine,
   from,
+  type Events,
 }

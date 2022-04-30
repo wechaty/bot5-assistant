@@ -17,7 +17,7 @@
  *   limitations under the License.
  *
  */
-import duckula from './duckula.js'
+import duckula, { type Context } from './duckula.js'
 import machine from './machine.js'
 
 export const {
@@ -30,4 +30,5 @@ export const {
 
 export {
   machine,
+  type Context,
 }

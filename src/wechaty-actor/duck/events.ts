@@ -30,7 +30,7 @@ export const IDLE = createAction(types.IDLE)()
  * Error
  */
 const payloadGError = (gerror: string) => ({ gerror })
-export const GERROR = createAction(types.EXECUTE, payloadGError)()
+export const GERROR = createAction(types.GERROR, payloadGError)()
 
 /**
  * Execute

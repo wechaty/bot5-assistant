@@ -27,10 +27,17 @@
  */
 export const Meeting = 'bot5-assistant/Meeting'
 
-export const ConfiguringRoom      = 'bot5-assistant/ConfiguringRoom'
-export const ConfiguringChairs    = 'bot5-assistant/ConfiguringChairs'
-export const ConfiguringAttendees = 'bot5-assistant/ConfiguringAttendees'
-export const ConfiguringTalks     = 'bot5-assistant/ConfiguringTalks'
+export const RegisteringRoom      = 'bot5-assistant/RegisteringRoom'
+export const RegisteredRoom      = 'bot5-assistant/RegisteredRoom'
+
+export const RegisteringChairs    = 'bot5-assistant/RegisteringChairs'
+export const RegisteredChairs    = 'bot5-assistant/Registerinedairs'
+
+export const RegisteringAttendees = 'bot5-assistant/RegisteringAttendees'
+export const RegisteredAttendees = 'bot5-assistant/RegisteringAteddees'
+
+export const RegisteringTalks     = 'bot5-assistant/RegisteringTalks'
+export const RegisteredTalks     = 'bot5-assistant/Registeriedalks'
 
 // Checkining - https://www.online-translator.com/conjugation%20and%20declination/english/checkin
 export const Checkining = 'bot5-assistant/Checkining'

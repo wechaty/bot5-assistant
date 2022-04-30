@@ -7,18 +7,15 @@ import { GError }       from 'gerror'
 import * as duck    from '../duck/mod.js'
 
 /**
- * Extend the machine states to support `Responded` and `Errored` states.
- *
- *  the `Responding` and `Erroring` state can be a pre-process for preparing EVENT payloads,
- *  for example: adding linked `message` to the payload, before sending it back.
+ * Extend the machine states to support `Responding` and `Erroring` states.
  *
  * @param id { string } - duckula.id
- * @returns { states } standard `Responded` & `Errored` states.
+ * @returns { states } standard `Responding` & `Erroring` states.
  */
 export const responseStates = (id: string) => ({
   [duck.State.Responding]: {
     entry: [
-      actions.log((_, e) => `states.Responded.entry [${e.type}]`, id),
+      actions.log((_, e) => `states.Responding.entry [${e.type}]`, id),
       Mailbox.actions.reply((_, e) => e),
     ],
     always: duck.State.Idle,
@@ -27,7 +24,7 @@ export const responseStates = (id: string) => ({
   [duck.State.Erroring]: {
     entry: [
       actions.log<any, ReturnType<typeof duck.Event.GERROR>>(
-        (_, e) => `states.Errored.entry [${e.type}] ${e.payload.gerror}`, id),
+        (_, e) => `states.Erroring.entry [${e.type}] ${e.payload.gerror}`, id),
       Mailbox.actions.reply(
         (_, e) => isActionOf(duck.Event.GERROR, e)
           ? e
