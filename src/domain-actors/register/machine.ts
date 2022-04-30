@@ -163,7 +163,7 @@ const machine = createMachine<
             ),
           ],
         },
-        [WechatyActor.Type.GERROR] : duckula.State.Errored,
+        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
         [duckula.Type.CONTACTS]    : duckula.State.Mentioning,
       },
     },
@@ -247,7 +247,7 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.CONTACTS] : duckula.State.Responded,
+        [duckula.Type.CONTACTS] : duckula.State.Responding,
         [duckula.Type.NEXT]     : duckula.State.Idle,
       },
     },

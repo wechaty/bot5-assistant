@@ -33,7 +33,6 @@ import * as selectors                         from './selectors.js'
 
 const machine = createMachine<Context, Event>({
   id: duckula.id,
-  context: duckula.initialContext,
 
   invoke: [
     {
@@ -156,7 +155,7 @@ const machine = createMachine<Context, Event>({
           ],
         },
         [duckula.Type.TEXT]   : duckula.State.Feedbacking,
-        [duckula.Type.GERROR] : duckula.State.Errored,
+        [duckula.Type.GERROR] : duckula.State.Erroring,
       },
     },
 
@@ -313,7 +312,7 @@ const machine = createMachine<Context, Event>({
         ]),
       ],
       on: {
-        [duckula.Type.FEEDBACKS] : duckula.State.Responded,
+        [duckula.Type.FEEDBACKS] : duckula.State.Responding,
         [duckula.Type.NEXT]      : duckula.State.Idle,
       },
     },

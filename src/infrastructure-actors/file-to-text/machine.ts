@@ -65,8 +65,8 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.TEXT]   : duckula.State.Responded,
-        [duckula.Type.GERROR] : duckula.State.Errored,
+        [duckula.Type.TEXT]   : duckula.State.Responding,
+        [duckula.Type.GERROR] : duckula.State.Erroring,
       },
     },
 

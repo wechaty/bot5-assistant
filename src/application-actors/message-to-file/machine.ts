@@ -92,7 +92,7 @@ const machine = createMachine<
      *  1. received MESSAGE                         -> emit GET_MESSAGE_FILE_QUERY_RESPONSE
      *  2. received GET_MESSAGE_FILE_QUERY_RESPONSE -> emit FILE_BOX / GERROR
      *
-     *  3. received FILE_BOX -> transition to Responding
+     *  3. received FILE_BOX -> transition to Loaded
      *  4. received GERROR   -> transition to Erroring
      */
     [duckula.State.Loading]: {
@@ -125,7 +125,7 @@ const machine = createMachine<
 
     [duckula.State.Loaded]: {
       entry: [
-        actions.log((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
+        actions.log((_, e) => `states.Loaded.entry [${e.type}]`, duckula.id),
         actions.send<Context, Events['FILE_BOX']>(
           (ctx, e) => duckula.Event.FILE_BOX(
             e.payload.fileBox,

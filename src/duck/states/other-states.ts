@@ -55,7 +55,10 @@ export const Scheduling   = 'bot5-assistant/Scheduling'
 export const Noticing     = 'bot5-assistant/Noticing'
 export const Reporting    = 'bot5-assistant/Reporting'
 export const Parsing      = 'bot5-assistant/Parsing'
+
 export const Loading      = 'bot5-assistant/Loading'
+export const Loaded      = 'bot5-assistant/Loaded'
+
 export const Messaging    = 'bot5-assistant/Messaging'
 export const Filing       = 'bot5-assistant/Filing'
 export const Textualizing = 'bot5-assistant/Textualizing'

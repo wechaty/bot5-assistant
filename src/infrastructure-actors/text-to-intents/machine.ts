@@ -87,8 +87,8 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.INTENTS] : duckula.State.Responded,
-        [duckula.Type.GERROR]  : duckula.State.Errored,
+        [duckula.Type.INTENTS] : duckula.State.Responding,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 

@@ -16,7 +16,7 @@ import * as duck    from '../duck/mod.js'
  * @returns { states } standard `Responded` & `Errored` states.
  */
 export const responseStates = (id: string) => ({
-  [duck.State.Responded]: {
+  [duck.State.Responding]: {
     entry: [
       actions.log((_, e) => `states.Responded.entry [${e.type}]`, id),
       Mailbox.actions.reply((_, e) => e),
@@ -24,7 +24,7 @@ export const responseStates = (id: string) => ({
     always: duck.State.Idle,
   },
 
-  [duck.State.Errored]: {
+  [duck.State.Erroring]: {
     entry: [
       actions.log<any, ReturnType<typeof duck.Event.GERROR>>(
         (_, e) => `states.Errored.entry [${e.type}] ${e.payload.gerror}`, id),
