@@ -21,11 +21,12 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import { GError }                   from 'gerror'
+import { FileBox }                  from 'file-box'
 
 import { responseStates }     from '../../actor-utils/response-states.js'
 
-import { speechToText }   from './speech-to-text.js'
-import duckula            from './duckula.js'
+import { speechToText }       from './speech-to-text.js'
+import duckula, { Events }    from './duckula.js'
 
 const machine = createMachine<
   ReturnType<typeof duckula.initialContext>,
@@ -40,21 +41,25 @@ const machine = createMachine<
         Mailbox.actions.idle(duckula.id),
       ],
       on: {
-        [duckula.Type.FILE_BOX]: duckula.State.Recognizing,
+        [duckula.Type.FILE]: duckula.State.Recognizing,
       },
     },
     [duckula.State.Recognizing]: {
       entry: [
-        actions.log((_, e) => `states.Recognizing.entry fileBox: "${(e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox.name}"`, duckula.id),
+        actions.log((_, e) => `states.Recognizing.entry fileBox: "${JSON.parse((e as Events['FILE']).payload.box).name}"`, duckula.id),
       ],
       invoke: {
         src: (_, e) => speechToText(
-          (e as ReturnType<typeof duckula.Event['FILE_BOX']>).payload.fileBox,
+          FileBox.fromJSON((e as Events['FILE']).payload.box),
         ),
         onDone: {
           actions: [
             actions.log((_, e) => `states.recognizing.invoke.onDone "${e.data}"`, duckula.id),
-            actions.send((_, e) => duckula.Event.TEXT(e.data)),
+            actions.send((_, e) => e.data
+              ? duckula.Event.TEXT(e.data)
+              : duckula.Event.NO_TEXT()
+              ,
+            ),
           ],
         },
         onError: {
@@ -65,8 +70,9 @@ const machine = createMachine<
         },
       },
       on: {
-        [duckula.Type.TEXT]   : duckula.State.Responding,
-        [duckula.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.TEXT]    : duckula.State.Responding,
+        [duckula.Type.NO_TEXT] : duckula.State.Responding,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 

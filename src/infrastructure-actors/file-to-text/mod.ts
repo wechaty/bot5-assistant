@@ -20,6 +20,8 @@
 import duckula from './duckula.js'
 import machine from './machine.js'
 
+export { FIXTURES } from './fixtures.js'
+
 export const {
   id,
   Event,

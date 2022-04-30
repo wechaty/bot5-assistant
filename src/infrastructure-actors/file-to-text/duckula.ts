@@ -30,11 +30,12 @@ const duckula = Mailbox.duckularize({
     /**
      * Request
      */
-    'FILE_BOX',
+    'FILE',
     /**
      * Response
      */
     'TEXT',
+    'NO_TEXT',
     'GERROR',
     /**
      * Internal
