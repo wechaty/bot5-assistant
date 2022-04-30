@@ -70,6 +70,7 @@ const duckula = Mailbox.duckularize({
      */
     'Filing',
     'Recognizing',
+    'Recognized',
     'Classifying',
   ] ],
   initialContext: {} as Context,

@@ -65,7 +65,7 @@ const machine = createMachine<
      * 1. receive MESSAGE with MessageType.Text -> emit TEXT
      * 2. receive MESSAGE with MessageType.* -> emit MESSAGE
      *
-     * 3. receive TEXT    -> transition to Responding
+     * 3. receive TEXT    -> transition to Recognized
      * 4. receive MESSAGE -> transition to Filing
      */
     [duckula.State.Classifying]: {
@@ -87,7 +87,7 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.TEXT]: duckula.State.Responding,
+        [duckula.Type.TEXT]: duckula.State.Recognized,
         [duckula.Type.MESSAGE]: duckula.State.Filing,
       },
     },
@@ -123,7 +123,7 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.FILE_BOX] : duckula.State.Recognizing,
-        [duckula.Type.GERROR]   : duckula.State.Errored,
+        [duckula.Type.GERROR]   : duckula.State.Erroring,
       },
     },
 
@@ -155,12 +155,12 @@ const machine = createMachine<
             actions.send((_, e) => e.payload.message),
           ],
         },
-        [duckula.Type.TEXT]: duckula.State.Responding,
-        [duckula.Type.GERROR]: duckula.State.Errored,
+        [duckula.Type.TEXT]: duckula.State.Recognized,
+        [duckula.Type.GERROR]: duckula.State.Erroring,
       },
     },
 
-    [duckula.State.Responding]: {
+    [duckula.State.Recognized]: {
       entry: [
         actions.send<Context, Events['TEXT']>((ctx, e) => duckula.Event.TEXT(
           e.payload.text,
@@ -168,7 +168,7 @@ const machine = createMachine<
         )),
       ],
       on: {
-        [duckula.Type.TEXT]: duckula.State.Responded,
+        [duckula.Type.TEXT]: duckula.State.Responding,
       },
     },
 
