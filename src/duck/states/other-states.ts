@@ -61,5 +61,8 @@ export const Loaded      = 'bot5-assistant/Loaded'
 
 export const Messaging    = 'bot5-assistant/Messaging'
 export const Filing       = 'bot5-assistant/Filing'
+
 export const Textualizing = 'bot5-assistant/Textualizing'
+export const Textualized  = 'bot5-assistant/Textualized'
+
 export const Nexting      = 'bot5-assistant/Nexting'

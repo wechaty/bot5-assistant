@@ -96,7 +96,7 @@ test('MessageToFile actor smoke testing', async t => {
     )
 
     const FIXTURES = [
-      [ 'hello world', duckula.Event.NO_FILE() ],
+      [ 'hello world',    duckula.Event.NO_FILE() ],
       [ FILE_BOX_FIXTURE, duckula.Event.FILE(JSON.stringify(FILE_BOX_FIXTURE)) ],
     ] as const
 

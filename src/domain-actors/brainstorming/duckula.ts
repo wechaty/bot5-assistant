@@ -51,16 +51,18 @@ const duckula = Mailbox.duckularize({
     /**
      * Responses
      */
-    'GERROR',
     'FEEDBACKS',
+    'GERROR',
     /**
      * Internal
      */
+    'CONTACTS',
     'IDLE',
     'NEXT',
-    'INTRODUCE',
+    'HELP',
     'RESET',
-    // NoticeActor
+    'REGISTER',
+    // Notice Actor
     'NOTICE',
   ] ],
   states: [ duck.State, [
@@ -78,11 +80,17 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
-    'Resetting',
-    'Reporting',
     'Initializing',
+    'Resetting',
+    'Completing',
+    'Completed',
     /**
-     * FeedbackActor
+     * Register Actor
+     */
+    'Registering',
+    'Registered',
+    /**
+     * Feedback Actor
      */
     'Feedbacking',
     'Feedbacked',

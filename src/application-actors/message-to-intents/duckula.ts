@@ -18,84 +18,55 @@
  *
  */
 /* eslint-disable sort-keys */
-import type * as PUPPET     from 'wechaty-puppet'
-import * as Mailbox         from 'mailbox'
+import * as Mailbox       from 'mailbox'
+import * as CQRS          from 'wechaty-cqrs'
+import type * as PUPPET   from 'wechaty-puppet'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
-import * as duck            from '../../duck/mod.js'
+import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  /**
-   * Required
-   */
+  message?: PUPPET.payloads.Message
   actors: {
-    wechaty: string
-  }
-  /**
-   * To-be-filled
-   */
-  attendees : { [id: string]: PUPPET.payloads.Contact }
-  chairs    : { [id: string]: PUPPET.payloads.Contact }
-  talks     : string[]
-  message?  : PUPPET.payloads.Message
-  room?     : PUPPET.payloads.Room
+    wechaty: string,
+  },
 }
 
 const duckula = Mailbox.duckularize({
-  id: 'Register',
+  id: 'MessageToIntent',
   events: [ duck.Event, [
     /**
      * Request
      */
-    'REPORT',
     'MESSAGE',
     /**
      * Response
      */
-    'CONTACTS',
+    'INTENTS',
     'GERROR',
-    /**
-     * Config
-     */
-    'RESET',
     /**
      * Internal
      */
-    'HELP',
-    'ROOM',
-    'NO_ROOM',
-    'MENTIONS',
-    'NO_MENTION',
-    'NEXT',
-    'NOTICE',
+    'TEXT',
+    'NO_TEXT',
   ] ],
   states: [ duck.State, [
+    /**
+     * Request
+     */
     'Idle',
-    'Busy',
+    /**
+     * Response
+     */
     'Responding',
     'Erroring',
-    'RegisteringRoom',
-    'RegisteredRoom',
-    'RegisteringChairs',
-    'RegisteredChairs',
-    'RegisteringAttendees',
-    'RegisteredAttendees',
-    'RegisteringTalks',
-    'RegisteredTalks',
-    'Confirming',
-    'Initializing',
-    'Loading',
-    'Mentioning',
-    'Reporting',
-    'Resetting',
+    /**
+     * Internal
+     */
+    'Textualizing',
+    'Understanding',
+    'Understood',
   ] ],
-  initialContext: {
-    attendees : {},
-    chairs    : {},
-    talks     : [],
-    message   : undefined,
-    room      : undefined,
-  },
+  initialContext: {} as Context,
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>

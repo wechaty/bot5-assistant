@@ -33,7 +33,7 @@ export interface Context {
 
 const duckula = Mailbox.duckularize({
   id: 'MessageToText',
-  events: [ { ...duck.Event, ...CQRS.duck.actions, ...Mailbox.Event }, [
+  events: [ { ...duck.Event, ...CQRS.duck.actions }, [
     /**
      * Request
      */
@@ -48,11 +48,10 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'FILE',
+    'NO_FILE',
     'LOAD',
     // CQRS.duck.actions
     'GET_MESSAGE_FILE_QUERY_RESPONSE',
-    // Mailbox.Event
-    'ACTOR_REPLY',
   ] ],
   states: [ duck.State, [
     /**
@@ -67,10 +66,12 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
+    'Messaging',
     'Filing',
     'Recognizing',
     'Recognized',
     'Classifying',
+    'Textualized',
   ] ],
   initialContext: {} as Context,
 })

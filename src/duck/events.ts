@@ -23,6 +23,8 @@ import type * as PUPPET   from 'wechaty-puppet'
 import { Type }         from './type-fancy-enum.js'
 import type { Intent }  from './intent-fancy-enum.js'
 
+const payloadOptionalMessage = (message?: PUPPET.payloads.Message) => ({ message })
+
 const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
 
 const payloadAbort     = (reason: string) => ({ reason })
@@ -59,10 +61,9 @@ export const NO_ROOM = createAction(Type.NO_ROOM, payloadNoRoom)()
 export const START       = createAction(Type.START)()
 export const STOP        = createAction(Type.STOP)()
 
-export const NO_TEXT     = createAction(Type.NO_TEXT)()
-
-const payloadText = (text: string, message?: PUPPET.payloads.Message)     => ({ message, text })
-export const TEXT = createAction(Type.TEXT, payloadText)()
+const  payloadText   = (text: string, message?: PUPPET.payloads.Message) => ({ message, text })
+export const TEXT    = createAction(Type.TEXT,    payloadText)()
+export const NO_TEXT = createAction(Type.NO_TEXT, payloadOptionalMessage)()
 
 export const SAY         = createAction(Type.SAY, payloadSay)()
 
