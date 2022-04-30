@@ -74,16 +74,16 @@ const machine = createMachine<
           actions: [
             actions.log((_, e) => `states.Loading.on.INTENTS ${e.payload.intents}`, duckula.id),
           ],
-          target: duckula.State.Responding,
+          target: duckula.State.Loaded,
         },
-        [TextToIntents.Type.GERROR] : duckula.State.Errored,
-        [MessageToText.Type.GERROR] : duckula.State.Errored,
+        [TextToIntents.Type.GERROR] : duckula.State.Erroring,
+        [MessageToText.Type.GERROR] : duckula.State.Erroring,
       },
     },
 
-    [duckula.State.Responding]: {
+    [duckula.State.Loaded]: {
       entry: [
-        actions.log<Context, AnyEventObject>((_, e) => `states.Responding.entry [${e.type}]`, duckula.id),
+        actions.log<Context, AnyEventObject>((_, e) => `states.Loaded.entry [${e.type}]`, duckula.id),
         actions.send<Context, Events['INTENTS']>(
           (ctx, e) => duckula.Event.INTENTS(
             e.payload.intents,
@@ -92,7 +92,7 @@ const machine = createMachine<
         ),
       ],
       on: {
-        [duckula.Type.INTENTS]: duckula.State.Responded,
+        [duckula.Type.INTENTS]: duckula.State.Responding,
       },
     },
 
