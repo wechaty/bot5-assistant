@@ -47,17 +47,14 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
-    'GET_MESSAGE_FILE_QUERY_RESPONSE',
   ] ],
   states: [ duck.State, [
-    'Erroring',
-    'Errored',
-    'Idle',
-    'Loading',
-    'Loaded',
     'Classifying',
+    'Erroring',
+    'Idle',
+    'Loaded',
+    'Loading',
     'Responding',
-    'Responded',
   ] ],
   initialContext: {} as Context,
 })

@@ -23,13 +23,14 @@ import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import { responseStates }   from '../../actor-utils/mod.js'
+import * as WechatyActor    from '../../wechaty-actor/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import { fileMessageTypes }                   from './file-message-types.js'
 
 const machine = createMachine<
   Context,
-  Event
+  Event | ReturnType<typeof CQRS.duck.actions.GET_MESSAGE_FILE_QUERY_RESPONSE> | WechatyActor.Events['GERROR']
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
@@ -59,29 +60,23 @@ const machine = createMachine<
     /**
      * Classifying
      *
-     *  1. received MESSAGE -> TEXT / LOAD
+     *  1. received MESSAGE -> MESSAGE / NO_FILE
      */
 
     [duckula.State.Classifying]: {
       entry: [
         actions.log('states.Classifying.entry', duckula.id),
-        actions.choose<
-          Context,
-          Events['MESSAGE']
-        >([
+        actions.choose<Context, Events['MESSAGE']>([
           {
             cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
             actions: actions.send((_, e) => e),
           },
-          {
-            actions: actions.send(duckula.Event.NO_FILE()),
-          },
+          { actions: actions.send(duckula.Event.NO_FILE()) },
         ]),
       ],
       on: {
         [duckula.Type.MESSAGE] : duckula.State.Loading,
-        [duckula.Type.GERROR]  : duckula.State.Erroring,
-        [duckula.Type.NO_FILE]  : duckula.State.Loaded,
+        [duckula.Type.NO_FILE] : duckula.State.Loaded,
       },
     },
 
@@ -106,12 +101,7 @@ const machine = createMachine<
         ),
       ],
       on: {
-        '*': {
-          actions: [
-            actions.log((_, e) => `states.Loading.on.* ${JSON.stringify(e)}`, duckula.id),
-          ],
-        },
-        [duckula.Type.GET_MESSAGE_FILE_QUERY_RESPONSE]: {
+        [CQRS.duck.types.GET_MESSAGE_FILE_QUERY_RESPONSE]: {
           actions: [
             actions.log('states.Loading.on.GET_MESSAGE_FILE_QUERY_RESPONSE', duckula.id),
             actions.send((_, e) => e.payload.file
@@ -120,6 +110,9 @@ const machine = createMachine<
               ,
             ),
           ],
+        },
+        [WechatyActor.Type.GERROR]: {
+          actions: actions.send((_, e) => duckula.Event.GERROR(e.payload.gerror)),
         },
         [duckula.Type.FILE]    : duckula.State.Loaded,
         [duckula.Type.NO_FILE] : duckula.State.Loaded,
