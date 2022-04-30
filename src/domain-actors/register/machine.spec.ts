@@ -132,12 +132,12 @@ test('register machine smoke testing', async t => {
     t.equal(registerState(), duckula.State.Idle, 'should be back to idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      duckula.Type.MENTIONS,
+      duckula.Type.CONTACTS,
       duckula.Type.NEXT,
       duckula.Type.INTRODUCE,
       duckula.Type.NEXT,
       duckula.Type.NOTICE,
-    ], 'should be BATCH_RESPONSE, MENTION, NEXT, INTRODUCE, NOTICE events')
+    ], 'should be BATCH_RESPONSE, CONTACTS, NEXT, INTRODUCE, NOTICE events')
     t.same(registerContext().contacts, [], 'should have empty mentioned id list before onDone')
 
     /**
@@ -177,13 +177,8 @@ test('register machine smoke testing', async t => {
       [
         Mailbox.Event.ACTOR_IDLE(),
         Mailbox.Event.ACTOR_REPLY(
-          duckula.Event.MENTIONS(
+          duckula.Event.CONTACTS(
             CONTACT_MENTION_LIST.map(c => c.payload!),
-            messageEventList
-              .filter(isActionOf(duckula.Event.MESSAGE))
-              .at(-1)!
-              .payload
-              .message,
           ),
         ),
       ],
@@ -192,12 +187,12 @@ test('register machine smoke testing', async t => {
     t.equal(registerState(), duckula.State.Idle, 'should be in idle state')
     t.same(registerEventList.map(e => e.type), [
       WechatyActor.Type.BATCH_RESPONSE,
-      duckula.Type.MENTIONS,
+      duckula.Type.CONTACTS,
       duckula.Type.NEXT,
       duckula.Type.NOTICE,
       duckula.Type.REPORT,
       Mailbox.Type.ACTOR_IDLE,
-      duckula.Type.MENTIONS,
+      duckula.Type.CONTACTS,
     ], 'should got BATCH_RESPONSE, MENTION, NEXT, REPORT, ACTOR_IDLE, MENTIONS event')
     t.same(
       Object.values(registerContext().contacts).map(c => c.id),
@@ -301,7 +296,7 @@ test('register actor smoke testing', async t => {
     const mentionsFuture = new Promise(resolve =>
       interpreter.onEvent(e => {
         // console.info('event:', e)
-        if (e.type === duckula.Type.MENTIONS) {
+        if (e.type === duckula.Type.CONTACTS) {
           resolve(e)
         }
       }),
@@ -312,14 +307,7 @@ test('register actor smoke testing', async t => {
     // console.info(eventList)
     t.same(
       mentionsEvent,
-      duckula.Event.MENTIONS(
-        CONTACT_PAYLOAD_LIST,
-        eventList
-          .filter(isActionOf(duckula.Event.MESSAGE))
-          .at(-1)!
-          .payload
-          .message,
-      ),
+      duckula.Event.CONTACTS(CONTACT_PAYLOAD_LIST),
       'should get CONTACT events with mention list',
     )
 

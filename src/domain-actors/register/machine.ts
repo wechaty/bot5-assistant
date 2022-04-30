@@ -135,7 +135,7 @@ const machine = createMachine<
               )),
             )
           },
-          { to: ctx => ctx.actors!.wechaty },
+          { to: ctx => ctx.actors.wechaty },
         ),
       ],
       on: {
@@ -154,7 +154,7 @@ const machine = createMachine<
               e.payload.responseList.length,
             ].join(''), duckula.id),
             actions.send((_, e) =>
-              duckula.Event.MENTIONS(
+              duckula.Event.CONTACTS(
                 e.payload.responseList
                   .filter(CQRS.is(CQRS.responses.GetContactPayloadQueryResponse))
                   .map(response => response.payload.contact)
@@ -164,14 +164,14 @@ const machine = createMachine<
           ],
         },
         [WechatyActor.Type.GERROR] : duckula.State.Errored,
-        [duckula.Type.MENTIONS]    : duckula.State.Mentioning,
+        [duckula.Type.CONTACTS]    : duckula.State.Mentioning,
       },
     },
 
     [duckula.State.Mentioning]: {
       entry: [
-        actions.log<Context, Events['MENTIONS']>((_, e) => `states.Mentioning.entry ${e.payload.contacts.map(c => c.name).join(',')}`, duckula.id),
-        actions.assign<Context, Events['MENTIONS']>({
+        actions.log<Context, Events['CONTACTS']>((_, e) => `states.Mentioning.entry ${e.payload.contacts.map(c => c.name).join(',')}`, duckula.id),
+        actions.assign<Context, Events['CONTACTS']>({
           contacts: (ctx, e) => ({
             ...ctx.contacts,
             ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
@@ -183,6 +183,7 @@ const machine = createMachine<
         [duckula.Type.NEXT]: duckula.State.Confirming,
       },
     },
+
     [duckula.State.Confirming]: {
       entry: [
         actions.log(ctx => `states.Confirming.entry contacts/${selectors.contactNum(ctx)}`, duckula.id),
@@ -233,10 +234,7 @@ const machine = createMachine<
             cond: ctx => selectors.contactNum(ctx) > 0,
             actions: [
               actions.log(_ => 'states.Reporting.entry -> [CONTACTS]', duckula.id),
-              actions.send(ctx => duckula.Event.MENTIONS(
-                Object.values(ctx.contacts),
-                ctx.message,
-              )),
+              actions.send(ctx => duckula.Event.CONTACTS(Object.values(ctx.contacts))),
             ],
           },
           {
@@ -249,7 +247,7 @@ const machine = createMachine<
         ]),
       ],
       on: {
-        [duckula.Type.MENTIONS] : duckula.State.Responded,
+        [duckula.Type.CONTACTS] : duckula.State.Responded,
         [duckula.Type.NEXT]     : duckula.State.Idle,
       },
     },

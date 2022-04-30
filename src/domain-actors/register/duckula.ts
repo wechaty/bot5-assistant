@@ -28,8 +28,12 @@ export interface Context {
   /**
    * Required
    */
-  actors: { wechaty: string }
-  chairs: { [id: string]: PUPPET.payloads.Contact }
+  actors: {
+    wechaty: string
+  }
+  chairs: {
+    [id: string]: PUPPET.payloads.Contact
+  }
   /**
    * To-be-filled
    */
@@ -48,7 +52,7 @@ const duckula = Mailbox.duckularize({
     /**
      * Response
      */
-    'MENTIONS',
+    'CONTACTS',
     'GERROR',
     /**
      * Config
@@ -58,7 +62,6 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'INTRODUCE',
-    'PARSE',
     'NEXT',
     'NOTICE',
     // WechatyActor
