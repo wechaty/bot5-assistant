@@ -20,12 +20,12 @@
  */
 import { test } from 'tstest'
 
-import { getSilkFixtures }   from './get-silk-fixtures.js'
+import { FIXTURES }   from './fixtures.js'
 
 test('silk fixture existance testing', async t => {
-  const silkFixtures = await getSilkFixtures()
+  const [ [ fileBox ] ] = await FIXTURES()
   await t.resolves(
-    () => silkFixtures.fileBox.toBase64(),
+    () => fileBox.toBase64(),
     'should be able to read file to base64',
   )
 })

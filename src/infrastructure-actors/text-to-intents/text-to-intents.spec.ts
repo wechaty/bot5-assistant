@@ -22,11 +22,12 @@
 
 import { test }   from 'tstest'
 
+import { FIXTURES }   from './fixtures.js'
+
 import { textToIntents }  from './text-to-intents.js'
-import { FIXTURES }       from './fixtures.js'
 
 test('textToIntents()', async t => {
-  for (const [ text, intents ] of FIXTURES) {
+  for (const [ text, intents ] of FIXTURES()) {
     const result = await textToIntents(text)
     t.same(result, intents, `should get duck.Intent.[${intents}] for ${text}`)
   }

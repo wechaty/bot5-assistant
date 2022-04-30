@@ -33,15 +33,10 @@ import { isActionOf }                   from 'typesafe-actions'
 
 import * as duck from '../../duck/mod.js'
 
-import machine    from './machine.js'
+import { FIXTURES }   from './fixtures.js'
+import machine        from './machine.js'
 
 test('IntentActor happy path smoke testing', async t => {
-  const FIXTURES = [
-    [ '开始',             [ duck.Intent.Start ] ],
-    [ '停止',             [ duck.Intent.Stop ] ],
-    [ '三个Intents的测试', [ duck.Intent.Start, duck.Intent.Stop, duck.Intent.Unknown ] ],
-  ] as const
-
   const mailbox = Mailbox.from(machine)
   mailbox.open()
 
@@ -60,7 +55,7 @@ test('IntentActor happy path smoke testing', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
-  for (const [ text, expectedIntents ] of FIXTURES) {
+  for (const [ text, expectedIntents ] of FIXTURES()) {
 
     const future = firstValueFrom<EventObject>(
       new Observable<EventObject>(
