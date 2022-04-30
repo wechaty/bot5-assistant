@@ -105,12 +105,12 @@ const machine = createMachine<
             )),
           ],
         },
-        [WechatyActor.Type.GERROR] : duckula.State.Errored,
-        [duckula.Type.CONTACTS]    : duckula.State.Responding,
+        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.CONTACTS]    : duckula.State.Loaded,
       },
     },
 
-    [duckula.State.Responding]: {
+    [duckula.State.Loaded]: {
       entry: [
         actions.send<Context, Events['CONTACTS']>(
           (ctx, e) => duckula.Event.MENTIONS(
@@ -120,7 +120,7 @@ const machine = createMachine<
         ),
       ],
       on: {
-        [duckula.Type.MENTIONS] : duckula.State.Responded,
+        [duckula.Type.MENTIONS] : duckula.State.Responding,
       },
     },
 
