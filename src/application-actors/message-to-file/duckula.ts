@@ -41,7 +41,8 @@ const duckula = Mailbox.duckularize({
     /**
      * Response
      */
-    'FILE_BOX',
+    'FILE',
+    'NO_FILE',
     'GERROR',
     /**
      * Internal

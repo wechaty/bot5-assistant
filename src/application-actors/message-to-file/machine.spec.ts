@@ -96,8 +96,8 @@ test('MessageToFile actor smoke testing', async t => {
     )
 
     const FIXTURES = [
-      [ 'hello world', duckula.Event.GERROR('Message type "Text" is not supported by the messageToFileBox actor') ],
-      [ FILE_BOX_FIXTURE, duckula.Event.FILE_BOX(FILE_BOX_FIXTURE) ],
+      [ 'hello world', duckula.Event.NO_FILE() ],
+      [ FILE_BOX_FIXTURE, duckula.Event.FILE(JSON.stringify(FILE_BOX_FIXTURE)) ],
     ] as const
 
     for (const [ sayable, expected ] of FIXTURES) {
@@ -107,8 +107,8 @@ test('MessageToFile actor smoke testing', async t => {
       const future = new Promise(resolve =>
         interpreter.onEvent(e =>
           isActionOf([
-            duckula.Event.FILE_BOX,
-            duckula.Event.GERROR,
+            duckula.Event.FILE,
+            duckula.Event.NO_FILE,
           ], e) && resolve(e),
         ),
       )
@@ -119,21 +119,23 @@ test('MessageToFile actor smoke testing', async t => {
       // eventList.forEach(e => console.info(e))
       t.same(
         eventList
-          .filter(isActionOf([ duckula.Event.FILE_BOX, duckula.Event.GERROR ]))
-          .map(e => JSON.parse(JSON.stringify(e))),
+          .filter(isActionOf([
+            duckula.Event.FILE,
+            duckula.Event.NO_FILE,
+          ]))
+        ,
         [
-          JSON.parse(JSON.stringify(
-            isActionOf(duckula.Event.GERROR, expected)
-              ? expected
-              : duckula.Event.FILE_BOX(
-                expected.payload.fileBox,
-                eventList
-                  .filter(isActionOf(duckula.Event.MESSAGE))
-                  .at(-1)!
-                  .payload
-                  .message,
-              ),
-          )),
+          {
+            ...expected,
+            payload: {
+              ...expected.payload,
+              message: eventList
+                .filter(isActionOf(duckula.Event.MESSAGE))
+                .at(-1)!
+                .payload
+                .message,
+            },
+          },
         ],
         `should get expected "${expected}" for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
       )

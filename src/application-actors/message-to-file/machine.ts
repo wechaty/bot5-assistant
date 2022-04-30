@@ -20,8 +20,6 @@
 /* eslint-disable sort-keys */
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
-import { FileBox }                  from 'file-box'
-import * as PUPPET                  from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import { responseStates }   from '../../actor-utils/mod.js'
@@ -76,13 +74,14 @@ const machine = createMachine<
             actions: actions.send((_, e) => e),
           },
           {
-            actions: actions.send((_, e) => duckula.Event.GERROR(`Message type "${PUPPET.types.Message[e.payload.message.type]}" is not supported by the messageToFileBox actor`)),
+            actions: actions.send(duckula.Event.NO_FILE()),
           },
         ]),
       ],
       on: {
         [duckula.Type.MESSAGE] : duckula.State.Loading,
         [duckula.Type.GERROR]  : duckula.State.Erroring,
+        [duckula.Type.NO_FILE]  : duckula.State.Loaded,
       },
     },
 
@@ -115,25 +114,35 @@ const machine = createMachine<
         [duckula.Type.GET_MESSAGE_FILE_QUERY_RESPONSE]: {
           actions: [
             actions.log('states.Loading.on.GET_MESSAGE_FILE_QUERY_RESPONSE', duckula.id),
-            actions.send((_, e) => duckula.Event.FILE_BOX(FileBox.fromJSON(e.payload.file!))),
+            actions.send((_, e) => e.payload.file
+              ? duckula.Event.FILE(e.payload.file)
+              : duckula.Event.NO_FILE()
+              ,
+            ),
           ],
         },
-        [duckula.Type.FILE_BOX] : duckula.State.Loaded,
-        [duckula.Type.GERROR]   : duckula.State.Erroring,
+        [duckula.Type.FILE]    : duckula.State.Loaded,
+        [duckula.Type.NO_FILE] : duckula.State.Loaded,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 
     [duckula.State.Loaded]: {
       entry: [
         actions.log((_, e) => `states.Loaded.entry [${e.type}]`, duckula.id),
-        actions.send<Context, Events['FILE_BOX']>(
-          (ctx, e) => duckula.Event.FILE_BOX(
-            e.payload.fileBox,
-            ctx.message,
-          )),
+        actions.send<Context, Events['FILE'] | Events['NO_FILE']>(
+          (ctx, e) => ({
+            ...e,
+            payload: {
+              ...e.payload,
+              message: ctx.message,
+            },
+          }),
+        ),
       ],
       on: {
-        [duckula.Type.FILE_BOX] : duckula.State.Responding,
+        [duckula.Type.FILE]    : duckula.State.Responding,
+        [duckula.Type.NO_FILE] : duckula.State.Responding,
       },
     },
 
