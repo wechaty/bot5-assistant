@@ -25,12 +25,12 @@ import { FileBox }                  from 'file-box'
 
 import { responseStates }     from '../../actor-utils/response-states.js'
 
-import { speechToText }       from './speech-to-text.js'
-import duckula, { Events }    from './duckula.js'
+import { speechToText }                       from './speech-to-text.js'
+import duckula, { Context, Event, Events }    from './duckula.js'
 
 const machine = createMachine<
-  ReturnType<typeof duckula.initialContext>,
-  ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
+  Context,
+  Event
 >({
   id: duckula.id,
   initial: duckula.State.Idle,
