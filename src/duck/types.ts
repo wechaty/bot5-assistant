@@ -67,7 +67,7 @@ export const WECHATY = 'bot5-assistant/WECHATY'
 export const DELIVER = 'bot5-assistant/DELIVER'
 export const INTENTS = 'bot5-assistant/INTENTS'
 
-export const INTRODUCE = 'bot5-assistant/INTRODUCE'
+export const HELP = 'bot5-assistant/HELP'
 export const REPORT = 'bot5-assistant/REPORT'
 
 export const IDLE = 'bot5-assistant/IDLE'
@@ -90,7 +90,6 @@ export const FILE_BOX = 'bot5-assistant/FILE_BOX'
 export const LOAD = 'bot5-assisstant/LOAD'
 
 export const REGISTER = 'bot5-assistant/REGISTER'
-export const HELP = 'bot5-assistant/HELP'
 
 export const CHECKIN = 'bot5-assistant/CHECKIN'
 export const TALK = 'bot5-assistant/TALK'

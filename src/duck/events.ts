@@ -89,7 +89,7 @@ export const INTENTS = createAction(Type.INTENTS, payloadIntents)()
 export const FINISH   = createAction(Type.FINISH, payloadData)()
 export const COMPLETE = createAction(Type.COMPLETE, payloadData)()
 
-export const INTRODUCE  = createAction(Type.INTRODUCE)()
+export const HELP  = createAction(Type.HELP)()
 export const REPORT     = createAction(Type.REPORT)()
 
 const payloadIdle = (data?: string) => ({ reason: data })
@@ -122,8 +122,6 @@ const payloadLoad = (id: string) => ({ id })
 export const LOAD = createAction(Type.LOAD, payloadLoad)()
 
 export const REGISTER = createAction(Type.REGISTER)()
-
-export const HELP = createAction(Type.HELP)()
 
 export const payloadTalk = (contact: PUPPET.payloads.Contact, topic: string, outlines: string) => ({ contact, outlines, topic })
 export const TALK = createAction(Type.TALK, payloadTalk)()
