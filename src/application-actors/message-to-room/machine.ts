@@ -32,10 +32,10 @@ const machine = createMachine<
   Event | WechatyActor.Events[keyof WechatyActor.Events] | ReturnType<typeof CQRS.duck.actions.GET_ROOM_PAYLOAD_QUERY_RESPONSE>
 >({
   id: duckula.id,
-  initial: duckula.State.Idle,
   context: duckula.initialContext,
-  states: {
 
+  initial: duckula.State.Idle,
+  states: {
     /**
      *
      * Idle
@@ -59,7 +59,7 @@ const machine = createMachine<
     /**
      * Loading:
      *
-     *  1. received MESSAGE                                             -> emit BATCH_EXECUTE(GET_CONTACT_PAYLOAD_QUERY) / GERROR / CONTACTS
+     *  1. received MESSAGE                                             -> emit BATCH(GET_CONTACT_PAYLOAD_QUERY) / GERROR / CONTACTS
      *  2. received BATCH_RESPONSE(GET_CONTACT_PAYLOAD_QUERY_RESPONSE)  -> emit CONTACTS
      *
      *  3. received CONTACTS -> transition to Responding
@@ -86,7 +86,11 @@ const machine = createMachine<
       ],
       on: {
         [CQRS.duck.types.GET_ROOM_PAYLOAD_QUERY_RESPONSE] : {
-          actions: actions.send((_, e) => e.payload.room ? duckula.Event.ROOM(e.payload.room) : duckula.Event.NO_ROOM()),
+          actions: actions.send(
+            (_, e) => e.payload.room
+              ? duckula.Event.ROOM(e.payload.room)
+              : duckula.Event.NO_ROOM())
+          ,
         },
         [WechatyActor.Type.GERROR] : {
           actions: (_, e) => actions.send(duckula.Event.GERROR(e.payload.gerror)),
