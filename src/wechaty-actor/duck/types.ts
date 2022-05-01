@@ -18,12 +18,12 @@
  *
  */
 
-export const NOP    = 'wechaty-actor/NO P'
+export const NOP    = 'wechaty-actor/NOP'
 export const IDLE   = 'wechaty-actor/IDLE'
 export const GERROR = 'wechaty-actor/GERROR'
 
 export const EXECUTE  = 'wechaty-actor/EXECUTE'
 export const RESPONSE = 'wechaty-actor/RESPONSE'
 
-export const BATCH_EXECUTE  = 'wechaty-actor/BATCH_EXECUTE'
+export const BATCH          = 'wechaty-actor/BATCH'
 export const BATCH_RESPONSE = 'wechaty-actor/BATCH_RESPONSE'

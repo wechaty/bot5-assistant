@@ -29,7 +29,7 @@ export const batch = async (
   e: AnyEventObject,
 ) => {
 
-  if (!isActionOf(duckula.Event.BATCH_EXECUTE, e)) {
+  if (!isActionOf(duckula.Event.BATCH, e)) {
     throw new Error(`${duckula.id} service.batch: unknown event [${e.type}]`)
   }
 

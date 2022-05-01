@@ -316,7 +316,7 @@ test('wechatyMachine EXECUTE & RESPONSE events', async t => {
 
 })
 
-test('wechatyMachine BATCH_EXECUTE & BATCH_RESPONSE events', async t => {
+test('Wechaty machine BATCH & BATCH_RESPONSE events', async t => {
   for await (const {
     wechaty: {
       wechaty,
@@ -362,7 +362,7 @@ test('wechatyMachine BATCH_EXECUTE & BATCH_RESPONSE events', async t => {
     )
 
     interpreter.send(
-      duck.Event.BATCH_EXECUTE([
+      duck.Event.BATCH([
         CQRS.queries.GetIsLoggedInQuery(puppetId),
         CQRS.queries.GetCurrentUserIdQuery(puppetId),
         CQRS.queries.GetAuthQrCodeQuery(puppetId),

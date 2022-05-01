@@ -17,6 +17,7 @@
  *   limitations under the License.
  *
  */
+export const Initializing = 'wechaty-actor/Initializing'
 export const Idle         = 'wechaty-actor/Idle'
 export const Classifying  = 'wechaty-actor/Classifying'
 export const Erroring     = 'wechaty-actor/Erroring'

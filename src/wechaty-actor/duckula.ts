@@ -34,20 +34,24 @@ const duckula = Mailbox.duckularize({
     /**
      * Request
      */
-    'EXECUTE',
-    'BATCH_EXECUTE',
+    // CQRS.commands.*,
+    // CQRS.queries.*,
+    'BATCH',
     /**
      * Response
      */
-    'RESPONSE',
+    // CQRS.responses.*
     'BATCH_RESPONSE',
     'GERROR',
     /**
      * Internal
      */
     'IDLE',
+    'EXECUTE',
+    'RESPONSE',
   ] ],
   states: [ duck.State, [
+    'Initializing',
     'Idle',
     'Classifying',
     'Erroring',
