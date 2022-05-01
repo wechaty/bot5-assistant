@@ -33,9 +33,16 @@ const machine = createMachine<
   Event | ReturnType<typeof CQRS.duck.actions.GET_MESSAGE_FILE_QUERY_RESPONSE> | WechatyActor.Events['GERROR']
 >({
   id: duckula.id,
-  initial: duckula.State.Idle,
   context: duckula.initialContext,
+
+  initial: duckula.State.Initializing,
   states: {
+    [duckula.State.Initializing]: {
+      entry: [
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify(ctx)}`, duckula.id),
+      ],
+      always: duckula.State.Idle,
+    },
 
     /**
      *

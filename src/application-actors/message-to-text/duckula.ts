@@ -67,6 +67,7 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'Messaging',
+    'Initializing',
     'Filing',
     'Recognizing',
     'Recognized',

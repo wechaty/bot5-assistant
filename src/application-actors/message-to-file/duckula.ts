@@ -52,6 +52,7 @@ const duckula = Mailbox.duckularize({
     'Classifying',
     'Erroring',
     'Idle',
+    'Initializing',
     'Loaded',
     'Loading',
     'Responding',

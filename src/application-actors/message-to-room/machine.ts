@@ -34,8 +34,15 @@ const machine = createMachine<
   id: duckula.id,
   context: duckula.initialContext,
 
-  initial: duckula.State.Idle,
+  initial: duckula.State.Initializing,
   states: {
+    [duckula.State.Initializing]: {
+      entry: [
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify(ctx)}`, duckula.id),
+      ],
+      always: duckula.State.Idle,
+    },
+
     /**
      *
      * Idle

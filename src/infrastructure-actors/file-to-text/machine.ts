@@ -33,9 +33,17 @@ const machine = createMachine<
   Event
 >({
   id: duckula.id,
-  initial: duckula.State.Idle,
   context: duckula.initialContext,
+
+  initial: duckula.State.Initializing,
   states: {
+    [duckula.State.Initializing]: {
+      entry: [
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify(ctx)}`, duckula.id),
+      ],
+      always: duckula.State.Idle,
+    },
+
     [duckula.State.Idle]: {
       entry: [
         Mailbox.actions.idle(duckula.id),

@@ -62,6 +62,7 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
+    'Initializing',
     'Textualizing',
     'Understanding',
     'Understood',

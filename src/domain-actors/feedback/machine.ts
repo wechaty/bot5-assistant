@@ -58,6 +58,9 @@ const machine = createMachine<Context, Event>({
   initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
+      entry: [
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify(ctx)}`, duckula.id),
+      ],
       always: duckula.State.Idle,
     },
 
