@@ -20,7 +20,6 @@
 /* eslint-disable sort-keys */
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
-import type * as PUPPET             from 'wechaty-puppet'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
@@ -28,15 +27,20 @@ import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
 import { responseStates }     from '../../actor-utils/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
+import * as selectors                         from './selectors.js'
 
-const machine = createMachine<
-  Context,
-  Event
->({
+const machine = createMachine<Context, Event>({
   id: duckula.id,
-  initial: duckula.State.Idle,
   context: duckula.initialContext,
+
+  initial: duckula.State.Initializing,
   states: {
+    [duckula.State.Initializing]: {
+      entry: [
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify(ctx)}`, duckula.id),
+      ],
+      always: duckula.State.Idle,
+    },
 
     /**
      *
@@ -61,7 +65,7 @@ const machine = createMachine<
     /**
      * Loading:
      *
-     *  1. received MESSAGE                                             -> emit BATCH_EXECUTE(GET_CONTACT_PAYLOAD_QUERY) / GERROR / CONTACTS
+     *  1. received MESSAGE                                             -> emit BATCH(GET_CONTACT_PAYLOAD_QUERY) / GERROR / CONTACTS
      *  2. received BATCH_RESPONSE(GET_CONTACT_PAYLOAD_QUERY_RESPONSE)  -> emit CONTACTS
      *
      *  3. received CONTACTS -> transition to Responding
@@ -72,16 +76,14 @@ const machine = createMachine<
       entry: [
         actions.choose<Context, Events['MESSAGE']>([
           {
-            cond: (_, e) => ((e.payload.message as PUPPET.payloads.MessageRoom).mentionIdList ?? []).length > 0,
+            cond: (_, e) => selectors.mentionIdList(e.payload.message).length > 0,
             actions: actions.send(
-              (_, e) => WechatyActor.Event.BATCH_EXECUTE(
-                (
-                  (e.payload.message as PUPPET.payloads.MessageRoom)
-                    .mentionIdList ?? []
-                ).map(contactId => CQRS.duck.actions.GET_CONTACT_PAYLOAD_QUERY(
-                  CQRS.uuid.NIL,
-                  contactId,
-                )),
+              (_, e) => WechatyActor.Event.BATCH(
+                selectors.mentionIdList(e.payload.message)
+                  .map(contactId => CQRS.duck.actions.GET_CONTACT_PAYLOAD_QUERY(
+                    CQRS.uuid.NIL,
+                    contactId,
+                  )),
               ),
               { to: ctx => ctx.actors.wechaty },
             ),
@@ -105,7 +107,10 @@ const machine = createMachine<
             )),
           ],
         },
-        [WechatyActor.Type.GERROR] : duckula.State.Erroring,
+        [WechatyActor.Type.GERROR] : {
+          actions: actions.send((_, e) => duckula.Event.GERROR(e.payload.gerror)),
+        },
+        [duckula.Type.GERROR]      : duckula.State.Erroring,
         [duckula.Type.CONTACTS]    : duckula.State.Loaded,
       },
     },

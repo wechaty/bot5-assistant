@@ -35,11 +35,11 @@ const machine = createMachine<
 >({
   id: duckula.id,
 
-  initial: duckula.State.Idle,
+  initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
       entry: [
-        actions.log(ctx => `states.Initializing.entry context: ${JSON.stringify(ctx)}`, duckula.id),
+        actions.log(ctx => `states.Initializing.entry context ${JSON.stringify({ ...ctx, bus$: 'bus$' })}`, duckula.id),
       ],
       always: duckula.State.Idle,
     },
