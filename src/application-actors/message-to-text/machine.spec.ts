@@ -29,13 +29,12 @@ import * as Mailbox                     from 'mailbox'
 import { filter, map, mergeMap }        from 'rxjs/operators'
 import { isActionOf }                   from 'typesafe-actions'
 import * as CQRS                        from 'wechaty-cqrs'
-import path                             from 'path'
-import { fileURLToPath }                from 'url'
-import { FileBox, FileBoxInterface }    from 'file-box'
+import { FileBox }                      from 'file-box'
 
 import * as duck            from '../../duck/mod.js'
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
+import { FileToText }       from '../../infrastructure-actors/mod.js'
 
 import machine    from './machine.js'
 import duckula    from './duckula.js'
@@ -52,7 +51,7 @@ test('MessageToText actor smoke testing', async t => {
     }))
     mailbox.open()
 
-    const consumerMachine = createMachine({
+    const testMachine = createMachine({
       on: {
         '*': {
           actions: [
@@ -63,7 +62,7 @@ test('MessageToText actor smoke testing', async t => {
     })
 
     const eventList: AnyEventObject[] = []
-    const interpreter = interpret(consumerMachine)
+    const interpreter = interpret(testMachine)
       .onEvent(e => eventList.push(e))
       .start()
 
@@ -80,20 +79,14 @@ test('MessageToText actor smoke testing', async t => {
       interpreter.send(e)
     })
 
-    const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-    const SIL_FILE_BOX_FIXTURE_LOCAL = FileBox.fromFile(path.join(
-      __dirname,
-      '../../../tests/fixtures/sample.sil',
-    )) as FileBoxInterface
-    const SIL_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64(await SIL_FILE_BOX_FIXTURE_LOCAL.toBase64(), SIL_FILE_BOX_FIXTURE_LOCAL.name)
-    const SIL_EXPECTED_TEXT           = '大可乐两个统一，冰红茶三箱。'
-    const DAT_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64('aGVsbG8=', 'test.unknown')
+    const JPG_FILE_NAME = 'test.jpg'
+    const FILE_TO_TEXT_FIXTURES = await FileToText.FIXTURES()
+    const JPG_FILE_BOX_FIXTURE_BASE64 = FileBox.fromBase64('aGVsbG8=', JPG_FILE_NAME)
 
     const FIXTURES = [
       [ 'hello world', 'hello world' ],
-      [ SIL_FILE_BOX_FIXTURE_BASE64, SIL_EXPECTED_TEXT ],
-      [ DAT_FILE_BOX_FIXTURE_BASE64, 'Message type "Unknown" is not supported by the messageToFileBox actor' ],
+      ...FILE_TO_TEXT_FIXTURES,
+      [ JPG_FILE_BOX_FIXTURE_BASE64, undefined ],
     ] as const
 
     for (const [ sayable, expectedText ] of FIXTURES) {
@@ -104,27 +97,38 @@ test('MessageToText actor smoke testing', async t => {
         interpreter.onEvent(e =>
           isActionOf([
             duckula.Event.TEXT,
+            duckula.Event.NO_TEXT,
             duckula.Event.GERROR,
           ], e) && resolve(e),
         ),
       )
 
+      console.info('############')
       fixtures.mocker.player.say(sayable).to(fixtures.mocker.bot)
       await future
 
       // eventList.forEach(e => console.info(e))
       t.same(
-        eventList.filter(isActionOf([ duckula.Event.TEXT, duckula.Event.GERROR ])),
+        eventList.filter(isActionOf([
+          duckula.Event.TEXT,
+          duckula.Event.NO_TEXT,
+        ])),
         [
-          FileBox.valid(sayable) && sayable.name === 'test.unknown'
-            ? duckula.Event.GERROR(expectedText)
-            : duckula.Event.TEXT(
+          expectedText
+            ? duckula.Event.TEXT(
               expectedText,
               eventList
                 .filter(isActionOf(duck.Event.MESSAGE))
                 .at(-1)!
                 .payload
                 .message,
+            )
+            : duckula.Event.NO_TEXT(
+                eventList
+                  .filter(isActionOf(duck.Event.MESSAGE))
+                  .at(-1)!
+                  .payload
+                  .message,
             ),
         ],
         `should get expected [TEXT(${fixtures.mocker.player.id}, "${expectedText}")] for "${FileBox.valid(sayable) ? sayable.name : sayable}"`,
