@@ -21,6 +21,7 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
+import * as PUPPET                  from 'wechaty-puppet'
 
 import { responseStates }   from '../../actor-utils/mod.js'
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
@@ -72,7 +73,7 @@ const machine = createMachine<
 
     [duckula.State.Classifying]: {
       entry: [
-        actions.log('states.Classifying.entry', duckula.id),
+        actions.log<Context, Events['MESSAGE']>((_, e) => `states.Classifying.entry ${PUPPET.types.Message[e.payload.message.type]}`, duckula.id),
         actions.choose<Context, Events['MESSAGE']>([
           {
             cond: (_, e) => fileMessageTypes.includes(e.payload.message.type),
