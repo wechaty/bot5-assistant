@@ -34,9 +34,9 @@ export interface Context {
   /**
    * To-be-filled
    */
-  attendees : { [id: string]: PUPPET.payloads.Contact }
-  chairs    : { [id: string]: PUPPET.payloads.Contact }
-  talks     : string[]
+  attendees : { [contactId: string]: PUPPET.payloads.Contact }
+  chairs    : { [contactId: string]: PUPPET.payloads.Contact }
+  talks     : { [contactId: string]: string }
   message?  : PUPPET.payloads.Message
   room?     : PUPPET.payloads.Room
 }
@@ -52,7 +52,9 @@ const duckula = Mailbox.duckularize({
     /**
      * Response
      */
-    'CONTACTS',
+    'CHAIRS',
+    'ATTENDEES',
+    'TALKS',
     'GERROR',
     /**
      * Config
@@ -67,7 +69,9 @@ const duckula = Mailbox.duckularize({
     'MENTIONS',
     'NO_MENTION',
     'NEXT',
+    'VALIDATE',
     'NOTICE',
+    'INTENTS',
   ] ],
   states: [ duck.State, [
     'Idle',
@@ -84,15 +88,18 @@ const duckula = Mailbox.duckularize({
     'RegisteredTalks',
     'Confirming',
     'Initializing',
+    'Initialized',
     'Loading',
     'Mentioning',
     'Reporting',
     'Resetting',
+    'Resetted',
+    'Summarizing',
   ] ],
   initialContext: {
     attendees : {},
     chairs    : {},
-    talks     : [],
+    talks     : {},
     message   : undefined,
     room      : undefined,
   },

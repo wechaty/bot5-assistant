@@ -27,10 +27,12 @@ import { FIXTURES }   from './fixtures.js'
 import { textToIntents }  from './text-to-intents.js'
 
 test('textToIntents()', async t => {
-  for (const [ texts, intents ] of FIXTURES()) {
-    for (const text of texts) {
-      const result = await textToIntents(text)
-      t.same(result, intents, `should get Intent.[${intents}] for "${text}"`)
+  for (const [ textList, intentList ] of FIXTURES()) {
+    for (const text of textList) {
+      const results = await textToIntents(text)
+      for (const intent of intentList) {
+        t.ok(results.includes(intent), `should contain Intent.${intent} in "${text}" intents: [${results}]`)
+      }
     }
   }
 })

@@ -30,7 +30,7 @@ const INTENT_PATTERNS = [
       Intent.Unknown,
     ],
     [
-      /^三个Intents的测试（23a6f026-f861-48b6-b691-ab11f364774e）$/i,
+      /^测试三个Intents（f861-48b6-b691）$/i,
     ],
   ],
   [

@@ -31,7 +31,7 @@ const payloadAbort     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadData      = (data?: string) => ({ data })
 
-const payloadMentions = (contacts: PUPPET.payloads.Contact[], message?: PUPPET.payloads.Message) => ({ contacts, message })
+const payloadMentions = (contacts: [PUPPET.payloads.Contact, ...PUPPET.payloads.Contact[]], message?: PUPPET.payloads.Message) => ({ contacts, message })
 export const MENTIONS = createAction(Type.MENTIONS, payloadMentions)()
 export const NO_MENTION  = createAction(Type.NO_MENTION)()
 
@@ -136,3 +136,4 @@ export const payloadTalks = (talks: { [contactId: string]: string }) => ({ talks
 export const TALKS = createAction(Type.TALKS, payloadTalks)()
 
 export const TEST = createAction(Type.TEST)()
+export const VALIDATE = createAction(Type.VALIDATE)()

@@ -97,8 +97,10 @@ export const LOAD = 'bot5-assisstant/LOAD'
 export const REGISTER = 'bot5-assistant/REGISTER'
 
 export const CHECKIN = 'bot5-assistant/CHECKIN'
-export const TALK = 'bot5-assistant/TALK'
+export const TALK   = 'bot5-assistant/TALK'
+export const TALKS  = 'bot5-assistant/TALKS'
 
 export const ADD_CONTACT = 'bot5-assistant/ADD_CONTACT'
 
 export const TEST = 'bot5-assistant/TEST'
+export const VALIDATE = 'bot5-assistant/VALIDATE'

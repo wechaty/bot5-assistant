@@ -27,6 +27,9 @@ export const CocaCola = 'CocaCola'
 
 export const Start  = 'Start'
 export const Stop   = 'Stop'
+
+export const Complete = 'Complete'
+export const Finish   = 'Finish'
 /**
  * When to use previous/next vs. back/forward? (and what about back/next?)
  *  @link https://ux.stackexchange.com/questions/3364/when-to-use-previous-next-vs-back-forward-and-what-about-back-next
@@ -41,5 +44,7 @@ export const Cancel = 'Cancel'
 
 export const Add = 'Add'
 
-export const Pause = 'Papuse'
+export const Pause    = 'Pause'
 export const Continue = 'Continue'
+
+export const Help = 'Help'
