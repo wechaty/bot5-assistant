@@ -20,6 +20,37 @@
 import { Intent } from '../../duck/mod.js'
 
 const INTENT_PATTERNS = [
+  /**
+   * Testing only
+   */
+  [
+    [
+      Intent.Start,
+      Intent.Stop,
+      Intent.Unknown,
+    ],
+    [
+      /^三个Intents的测试（23a6f026-f861-48b6-b691-ab11f364774e）$/i,
+    ],
+  ],
+  [
+    [
+      Intent.CocaCola,
+    ],
+    [
+      /**
+       * Match all keywords in the sentence
+       *
+       *  SO: Regex to match string containing two names in any order
+       *    @link https://stackoverflow.com/a/4389683/1123955
+       */
+      /^(?=.*可乐)(?=.*两个)(?=.*统一)(?=.*红茶)(?=.*三箱).*$/,
+    ],
+  ],
+
+  /**
+   * Production values
+   */
   [
     [ Intent.Start ],
     [
@@ -38,59 +69,42 @@ const INTENT_PATTERNS = [
     [ Intent.Affirm ],
     [
       /^\/(confirm|affirm|yes|ok)$/i,
-      /是|是的|对的|好的|没错|可以啊|好啊|可以的|可以的/i,
+      /^yes|ok|对|好|是|是的|对的|好的|没错|可以啊|好啊|可以的|可以的$/i,
     ],
   ],
   [
     [ Intent.Deny ],
     [
       /^\/(no|deny|cancel)$/i,
-      /不|不是|不确认|不对|不要|不好|不行|不可以|没有/i,
+      /^no|否|不|不是|不确认|不对|不要|不好|不行|不可以|没有$/i,
     ],
   ],
   [
     [ Intent.Next ],
     [
       /^\/(next|forward)$/i,
-      /下一步|继续/i,
+      /^next|下一步$/i,
     ],
   ],
   [
     [ Intent.Back ],
     [
       /^\/(back|prev|previous)$/i,
-      /上一步|回退|退回|后退/i,
+      /^back|上一步|回退|退回|后退$/i,
     ],
   ],
   [
     [ Intent.Cancel ],
     [
       /^\/cancel$/i,
-      /取消/i,
+      /取消|cancel/i,
     ],
   ],
   [
+    [ Intent.Continue ],
     [
-      Intent.Start,
-      Intent.Stop,
-      Intent.Unknown,
-    ],
-    [
-      /^三个Intents的测试$/i,
-    ],
-  ],
-  [
-    [
-      Intent.CocaCola,
-    ],
-    [
-      /**
-       * Match all keywords in the sentence
-       *
-       *  SO: Regex to match string containing two names in any order
-       *    @link https://stackoverflow.com/a/4389683/1123955
-       */
-      /^(?=.*可乐)(?=.*两个)(?=.*统一)(?=.*红茶)(?=.*三箱).*$/,
+      /^\/continue$/i,
+      /^继续$/i,
     ],
   ],
 ] as const
