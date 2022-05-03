@@ -20,6 +20,11 @@
 
 export const Unknown = 'Unknown'
 
+/**
+ * For Debuging & Testing
+ */
+export const CocaCola = 'CocaCola'
+
 export const Start  = 'Start'
 export const Stop   = 'Stop'
 /**
