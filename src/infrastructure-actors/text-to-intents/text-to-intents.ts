@@ -79,6 +79,20 @@ const INTENT_PATTERNS = [
       /^三个Intents的测试$/i,
     ],
   ],
+  [
+    [
+      Intent.CocaCola,
+    ],
+    [
+      /**
+       * Match all keywords in the sentence
+       *
+       *  SO: Regex to match string containing two names in any order
+       *    @link https://stackoverflow.com/a/4389683/1123955
+       */
+      /^(?=.*可乐)(?=.*两个)(?=.*统一)(?=.*红茶)(?=.*三箱).*$/,
+    ],
+  ],
 ] as const
 
 export const textToIntents = async (text?: string): Promise<Intent[]> => {
@@ -94,6 +108,10 @@ export const textToIntents = async (text?: string): Promise<Intent[]> => {
         intentList.push(...intents)
       }
     }
+  }
+
+  if (intentList.length <= 0) {
+    intentList.push(Intent.Unknown)
   }
 
   return intentList

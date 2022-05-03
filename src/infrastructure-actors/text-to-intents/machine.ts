@@ -86,7 +86,10 @@ const machine = createMachine<
           ? textToIntents(e.payload.text)
           : () => { throw new Error(`isActionOf(${e.type}) unexpected.`) },
         onDone: {
-          actions: actions.send((_, e) => duckula.Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
+          actions: [
+            actions.log((_, e) => `states.Understanding.invoke.onDone INTENTS: ${JSON.stringify(e.data)}`, duckula.id),
+            actions.send((_, e) => duckula.Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
+          ],
         },
         onError: {
           actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))),

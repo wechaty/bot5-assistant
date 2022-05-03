@@ -19,7 +19,6 @@
  */
 /* eslint-disable sort-keys */
 import * as Mailbox       from 'mailbox'
-import * as CQRS          from 'wechaty-cqrs'
 import type * as PUPPET   from 'wechaty-puppet'
 
 import * as duck    from '../../duck/mod.js'
@@ -67,7 +66,7 @@ const duckula = Mailbox.duckularize({
     'Understanding',
     'Understood',
   ] ],
-  initialContext: {} as Context,
+  initialContext: {},
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
