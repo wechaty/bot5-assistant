@@ -40,3 +40,6 @@ export const Deny   = 'Deny'
 export const Cancel = 'Cancel'
 
 export const Add = 'Add'
+
+export const Pause = 'Papuse'
+export const Continue = 'Continue'

@@ -21,7 +21,7 @@ import { createAction }   from 'typesafe-actions'
 import type * as PUPPET   from 'wechaty-puppet'
 
 import { Type }         from './type-fancy-enum.js'
-import type { Intent }  from './intent-fancy-enum.js'
+import type { Intent }  from '../intents/mod.js'
 
 const payloadOptionalMessage = (message?: PUPPET.payloads.Message) => ({ message })
 
@@ -131,5 +131,8 @@ export const REGISTER = createAction(Type.REGISTER)()
 
 export const payloadTalk = (contact: PUPPET.payloads.Contact, topic: string, outlines: string) => ({ contact, outlines, topic })
 export const TALK = createAction(Type.TALK, payloadTalk)()
+
+export const payloadTalks = (talks: { [contactId: string]: string }) => ({ talks })
+export const TALKS = createAction(Type.TALKS, payloadTalks)()
 
 export const TEST = createAction(Type.TEST)()

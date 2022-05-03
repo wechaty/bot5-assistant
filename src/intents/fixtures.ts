@@ -1,4 +1,4 @@
-import * as duck from '../../duck/mod.js'
+import { Intent } from './intent-fancy-enum.js'
 
 export const FIXTURES = () => [
   /**
@@ -6,11 +6,11 @@ export const FIXTURES = () => [
    */
   [
     [ '三个Intents的测试（23a6f026-f861-48b6-b691-ab11f364774e）' ],
-    [ duck.Intent.Start, duck.Intent.Stop, duck.Intent.Unknown ],
+    [ Intent.Start, Intent.Stop, Intent.Unknown ],
   ],
   [
     [ '大可乐两个，统一冰红茶三箱。' ],
-    [ duck.Intent.CocaCola ],
+    [ Intent.CocaCola ],
   ],
 
   /**
@@ -22,7 +22,7 @@ export const FIXTURES = () => [
   ],
   [
     [ '!@#$%^&*()_+-=' ],
-    [ duck.Intent.Unknown ],
+    [ Intent.Unknown ],
   ],
 
   /**
@@ -30,14 +30,14 @@ export const FIXTURES = () => [
    */
   [
     [ '开始' ],
-    [ duck.Intent.Start ],
+    [ Intent.Start ],
   ],
   [
     [
       '停止',
       '结束',
     ],
-    [ duck.Intent.Stop ],
+    [ Intent.Stop ],
   ],
   [
     [
@@ -46,7 +46,7 @@ export const FIXTURES = () => [
       '好',
       '对',
     ],
-    [ duck.Intent.Affirm ],
+    [ Intent.Affirm ],
   ],
   [
     [
@@ -54,7 +54,7 @@ export const FIXTURES = () => [
       '不',
       '否',
     ],
-    [ duck.Intent.Deny ],
+    [ Intent.Deny ],
   ],
   [
     [
@@ -62,7 +62,7 @@ export const FIXTURES = () => [
       '/next',
       'next',
     ],
-    [ duck.Intent.Next ],
+    [ Intent.Next ],
   ],
   [
     [
@@ -70,17 +70,17 @@ export const FIXTURES = () => [
       '/back',
       'back',
     ],
-    [ duck.Intent.Back ],
+    [ Intent.Back ],
   ],
   [
     [
       '取消',
       'cancel',
     ],
-    [ duck.Intent.Cancel ],
+    [ Intent.Cancel ],
   ],
   [
     [ '继续' ],
-    [ duck.Intent.Continue ],
+    [ Intent.Continue ],
   ],
 ] as const

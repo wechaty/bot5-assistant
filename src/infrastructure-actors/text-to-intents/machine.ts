@@ -23,10 +23,8 @@ import * as Mailbox                 from 'mailbox'
 import { isActionOf }               from 'typesafe-actions'
 import { GError }                   from 'gerror'
 
-import * as duck            from '../../duck/mod.js'
-import { responseStates }   from '../../actor-utils/response-states.js'
-
-import { textToIntents }    from './text-to-intents.js'
+import { responseStates }           from '../../actor-utils/response-states.js'
+import { textToIntents, Intent }    from '../../intents/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 
@@ -88,7 +86,7 @@ const machine = createMachine<
         onDone: {
           actions: [
             actions.log((_, e) => `states.Understanding.invoke.onDone INTENTS: ${JSON.stringify(e.data)}`, duckula.id),
-            actions.send((_, e) => duckula.Event.INTENTS(e.data || [ duck.Intent.Unknown ])),
+            actions.send((_, e) => duckula.Event.INTENTS(e.data || [ Intent.Unknown ])),
           ],
         },
         onError: {

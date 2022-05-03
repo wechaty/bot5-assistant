@@ -33,7 +33,7 @@ import { isActionOf }                   from 'typesafe-actions'
 
 import * as duck from '../../duck/mod.js'
 
-import { FIXTURES }   from './fixtures.js'
+import { FIXTURES }   from '../../intents/fixtures.js'
 import machine        from './machine.js'
 
 test('IntentActor happy path smoke testing', async t => {
@@ -55,34 +55,35 @@ test('IntentActor happy path smoke testing', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
-  for (const [ text, expectedIntents ] of FIXTURES()) {
+  for (const [ texts, expectedIntents ] of FIXTURES()) {
+    for (const text of texts) {
+      const future = firstValueFrom<EventObject>(
+        new Observable<EventObject>(
+          subscribe => {
+            interpreter.onEvent(e => subscribe.next(e))
+          },
+        ).pipe(
+          filter(isActionOf(duck.Event.INTENTS)),
+        ),
+      )
 
-    const future = firstValueFrom<EventObject>(
-      new Observable<EventObject>(
-        subscribe => {
-          interpreter.onEvent(e => subscribe.next(e))
-        },
-      ).pipe(
-        filter(isActionOf(duck.Event.INTENTS)),
-      ),
-    )
+      const TEXT = duck.Event.TEXT(text)
 
-    const TEXT = duck.Event.TEXT(text)
+      eventList.length = 0
+      interpreter.send(TEXT)
 
-    eventList.length = 0
-    interpreter.send(TEXT)
-
-    // await new Promise(resolve => setTimeout(resolve, 10))
-    // eventList.forEach(e => console.info(e))
-    await future
-    t.same(
-      eventList,
-      [
-        TEXT,
-        duck.Event.INTENTS(expectedIntents),
-      ],
-      `should get expected intents [${expectedIntents}] for text "${text}"`,
-    )
+      // await new Promise(resolve => setTimeout(resolve, 10))
+      // eventList.forEach(e => console.info(e))
+      await future
+      t.same(
+        eventList,
+        [
+          TEXT,
+          duck.Event.INTENTS(expectedIntents),
+        ],
+        `should get expected intents [${expectedIntents}] for text "${text}"`,
+      )
+    }
   }
 
   interpreter.stop()

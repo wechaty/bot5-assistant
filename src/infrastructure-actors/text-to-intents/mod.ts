@@ -17,10 +17,10 @@
  *   limitations under the License.
  *
  */
-import duckula from './duckula.js'
-import machine from './machine.js'
+import duckula      from './duckula.js'
+import machine      from './machine.js'
 
-export { FIXTURES } from './fixtures.js'
+export { Intent, FIXTURES }   from '../../intents/mod.js'
 
 export const {
   id,
