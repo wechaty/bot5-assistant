@@ -33,7 +33,7 @@ export interface Context {
 }
 
 const duckula = Mailbox.duckularize({
-  id: 'MessageToFile',
+  id: 'MessageToMentions',
   events: [ { ...duck.Event, ...CQRS.duck.actions, ...ACTOR.Event }, [
     /**
      * Request
@@ -43,6 +43,7 @@ const duckula = Mailbox.duckularize({
      * Response
      */
     'MENTIONS',
+    'NO_MENTION',
     'GERROR',
     /**
      * Internal

@@ -118,14 +118,17 @@ const machine = createMachine<Context, Event>({
     [duckula.State.Loaded]: {
       entry: [
         actions.send<Context, Events['CONTACTS']>(
-          (ctx, e) => duckula.Event.MENTIONS(
-            e.payload.contacts,
-            ctx.message,
-          ),
+          (ctx, e) => e.payload.contacts[0]
+            ? duckula.Event.MENTIONS(
+              [ e.payload.contacts[0], ...e.payload.contacts.slice(1) ],
+              ctx.message,
+            )
+            : duckula.Event.NO_MENTION(ctx.message),
         ),
       ],
       on: {
-        [duckula.Type.MENTIONS] : duckula.State.Responding,
+        [duckula.Type.MENTIONS]   : duckula.State.Responding,
+        [duckula.Type.NO_MENTION] : duckula.State.Responding,
       },
     },
 

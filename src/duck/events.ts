@@ -25,15 +25,13 @@ import type { Intent }  from '../intents/mod.js'
 
 const payloadOptionalMessage = (message?: PUPPET.payloads.Message) => ({ message })
 
-const payloadSay       = (text: string, conversation: string, mentions: string[] = []) => ({ conversation, mentions, text })
-
 const payloadAbort     = (reason: string) => ({ reason })
 const payloadCancel    = (reason: string) => ({ reason })
 const payloadData      = (data?: string) => ({ data })
 
 const payloadMentions = (contacts: [PUPPET.payloads.Contact, ...PUPPET.payloads.Contact[]], message?: PUPPET.payloads.Message) => ({ contacts, message })
-export const MENTIONS = createAction(Type.MENTIONS, payloadMentions)()
-export const NO_MENTION  = createAction(Type.NO_MENTION)()
+export const MENTIONS     = createAction(Type.MENTIONS,   payloadMentions)()
+export const NO_MENTION   = createAction(Type.NO_MENTION, payloadOptionalMessage)()
 
 const payloadContacts   = (contacts: PUPPET.payloads.Contact[])  => ({ contacts })
 export const CONTACTS   = createAction(Type.CONTACTS,  payloadContacts)()
@@ -64,8 +62,6 @@ export const STOP        = createAction(Type.STOP)()
 const  payloadText   = (text: string, message?: PUPPET.payloads.Message) => ({ message, text })
 export const TEXT    = createAction(Type.TEXT,    payloadText)()
 export const NO_TEXT = createAction(Type.NO_TEXT, payloadOptionalMessage)()
-
-export const SAY         = createAction(Type.SAY, payloadSay)()
 
 const payloadFeedbacks  = (feedbacks: { [contactId: string]: string }) => ({ feedbacks })
 export const FEEDBACKS    = createAction(Type.FEEDBACKS, payloadFeedbacks)()
@@ -113,7 +109,7 @@ export const NOTICE = createAction(Type.NOTICE, payloadNotice)()
 const payloadMinute = (minutes: string) => ({ minutes })
 export const MINUTES = createAction(Type.MINUTES, payloadMinute)()
 
-const payloadConversation = (conversationId: string) => ({ conversationId })
+const payloadConversation = (id: string) => ({ id })
 export const CONVERSATION = createAction(Type.CONVERSATION, payloadConversation)()
 
 export const NOP = createAction(Type.NOP)()

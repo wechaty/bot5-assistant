@@ -33,8 +33,6 @@ const machine = createMachine<
   Event
 >({
   id: duckula.id,
-  context: duckula.initialContext,
-
   initial: duckula.State.Initializing,
   states: {
     [duckula.State.Initializing]: {
@@ -55,9 +53,9 @@ const machine = createMachine<
         [duckula.Type.NOTICE]: duckula.State.Busy,
         [duckula.Type.CONVERSATION]: {
           actions: [
-            actions.log((_, e) => `states.Idle.on.CONVERSATION ${e.payload.conversationId}`, duckula.id),
+            actions.log((_, e) => `states.Idle.on.CONVERSATION ${e.payload.id}`, duckula.id),
             actions.assign({
-              conversationId: (_, e) => e.payload.conversationId,
+              conversation: (_, e) => e.payload.id,
             }),
           ],
           target: duckula.State.Idle,  // enforce external transition
@@ -70,12 +68,12 @@ const machine = createMachine<
         actions.log('states.Busy.entry', duckula.id),
         actions.choose<Context, Events['NOTICE']>([
           {
-            cond: ctx => !!ctx.conversationId,
+            cond: ctx => !!ctx.conversation,
             actions: [
               actions.send(
                 (ctx, e) => CQRS.commands.SendMessageCommand(
                   CQRS.uuid.NIL,
-                  ctx.conversationId!,
+                  ctx.conversation!,
                   CQRS.sayables.text(
                     `【系统通知】${e.payload.text}`,
                     e.payload.mentions,

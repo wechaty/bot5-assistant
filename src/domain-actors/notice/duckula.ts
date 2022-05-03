@@ -23,7 +23,7 @@ import * as Mailbox   from 'mailbox'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
-  conversationId?: string,
+  conversation: string,
   actors: {
     wechaty: string,
   },
@@ -43,7 +43,7 @@ const duckula = Mailbox.duckularize({
     'Idle',
     'Busy',
   ] ],
-  initialContext: ({}) as Context,
+  initialContext: {},
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>
