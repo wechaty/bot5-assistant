@@ -21,15 +21,11 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import type * as WechatyActor   from '../../wechaty-actor/mod.js'
-import { responseStates }       from '../../actor-utils/response-states.js'
-import {
-  MessageToRoom,
-  MessageToMentions,
-  MessageToIntents,
-}                               from '../../application-actors/mod.js'
-import { invokeId }             from '../../actor-utils/invoke-id.js'
-import { Intent }               from '../../intents/mod.js'
+import type * as WechatyActor                     from '../../wechaty-actor/mod.js'
+import { responseStates }                         from '../../actor-utils/response-states.js'
+import { MessageToMentions, MessageToIntents }    from '../../application-actors/mod.js'
+import { invokeId }                               from '../../actor-utils/invoke-id.js'
+import { Intent }                                 from '../../intents/mod.js'
 
 import * as Notice    from '../notice/mod.js'
 
@@ -46,17 +42,6 @@ const machine = createMachine<
    * Spawn Notice, MessageToIntent, MessageToMention, MessageToRoom Actors
    */
   invoke: [
-    {
-      id: invokeId(Notice.id, duckula.id),
-      src: ctx => Mailbox.wrap(
-        Notice.machine.withContext({
-          ...Notice.initialContext(),
-          actors: {
-            wechaty: ctx.actors.wechaty,
-          },
-        }),
-      ),
-    },
     {
       id: invokeId(MessageToIntents.id, duckula.id),
       src: ctx => Mailbox.wrap(
@@ -79,17 +64,6 @@ const machine = createMachine<
         }),
       ),
     },
-    {
-      id: invokeId(MessageToRoom.id, duckula.id),
-      src: ctx => Mailbox.wrap(
-        MessageToRoom.machine.withContext({
-          ...MessageToRoom.initialContext(),
-          actors: {
-            wechaty: ctx.actors.wechaty,
-          },
-        }),
-      ),
-    },
   ],
 
   /**
@@ -103,7 +77,7 @@ const machine = createMachine<
           '【注册系统】' + e.payload.text,
           e.payload.mentions,
         ),
-        { to: invokeId(Notice.id, duckula.id) },
+        { to: ctx => ctx.actors.notice },
       ),
     },
     [duckula.Type.HELP]: {
@@ -174,50 +148,7 @@ const machine = createMachine<
     },
 
     [duckula.State.Busy]: {
-      always: duckula.State.RegisteringRoom,
-    },
-
-    [duckula.State.RegisteringRoom]: {
-      entry: [
-        actions.send(duckula.Event.VALIDATE()),
-      ],
-      on: {
-        [duckula.Type.HELP]: {
-          actions: actions.send(duckula.Event.NOTICE(
-            '定位参会人员的活动群中... 在群内发送任意消息，完成活动群定位。',
-          )),
-        },
-        [duckula.Type.MESSAGE]: {
-          actions: actions.send((_, e) => e, { to: invokeId(MessageToRoom.id, duckula.id) }),
-        },
-        [duckula.Type.ROOM]: {
-          actions: [
-            actions.assign({ room: (_, e) => e.payload.room }),
-            actions.send(duckula.Event.VALIDATE()),
-          ],
-        },
-        [duckula.Type.VALIDATE]: {
-          actions: [
-            actions.choose<Context, any>([
-              {
-                cond: ctx => !!ctx.room,
-                actions: [
-                  actions.send(ctx => duckula.Event.NOTICE(
-                    `活动群已经完成定位。设置为：${ctx.room?.topic}`,
-                  )),
-                  actions.send(duckula.Event.NEXT()),
-                ],
-              },
-              { actions: actions.send(duckula.Event.HELP()) },
-            ]),
-          ],
-        },
-        [duckula.Type.NO_ROOM] : {
-          actions: actions.send(duckula.Event.HELP()),
-        },
-        [duckula.Type.GERROR]  : duckula.State.Erroring,
-        [duckula.Type.NEXT]    : duckula.State.RegisteringChairs,
-      },
+      always: duckula.State.RegisteringChairs,
     },
 
     [duckula.State.RegisteringChairs]: {
@@ -247,7 +178,10 @@ const machine = createMachine<
         [duckula.Type.MENTIONS]: {
           actions: [
             actions.assign({
-              chairs: (_, e) => e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+              chairs: (ctx, e) => ({
+                ...ctx.chairs,
+                ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+              }),
             }),
             actions.send((ctx, e) => duckula.Event.NOTICE(
               [
@@ -266,7 +200,10 @@ const machine = createMachine<
               cond: (_, e) => e.payload.intents.includes(Intent.Next),
               actions: actions.send(duckula.Event.VALIDATE()),
             },
-            { actions: actions.send(duckula.Event.HELP()) },
+            {
+              cond: (_, e) => e.payload.intents.length > 0 && !e.payload.intents.includes(Intent.Unknown),
+              actions: actions.send(duckula.Event.HELP()),
+            },
           ]),
         },
         [duckula.Type.VALIDATE]: {
@@ -284,9 +221,7 @@ const machine = createMachine<
             { actions: actions.send(duckula.Event.HELP()) },
           ]),
         },
-        [duckula.Type.NO_MENTION] : {
-          actions: actions.send(duckula.Event.HELP()),
-        },
+        [duckula.Type.NO_MENTION] : {},
         [duckula.Type.GERROR]     : duckula.State.Erroring,
         [duckula.Type.NEXT]       : duckula.State.RegisteringTalks,
       },
@@ -316,7 +251,7 @@ const machine = createMachine<
           ],
         },
         [duckula.Type.NO_MENTION]: {
-          actions: actions.send(duckula.Event.HELP()),
+          // actions: actions.send(duckula.Event.HELP()),
         },
         [duckula.Type.MENTIONS]: {
           actions: [
@@ -349,7 +284,10 @@ const machine = createMachine<
               cond: (_, e) => e.payload.intents.includes(Intent.Next),
               actions: actions.send(duckula.Event.VALIDATE()),
             },
-            { actions: actions.send(duckula.Event.HELP()) },
+            {
+              cond: (_, e) => e.payload.intents.length > 0 && !e.payload.intents.includes(Intent.Unknown),
+              actions: actions.send(duckula.Event.HELP()),
+            },
           ]),
         },
         [duckula.Type.VALIDATE]: {
@@ -398,7 +336,10 @@ const machine = createMachine<
         [duckula.Type.MENTIONS]: {
           actions: [
             actions.assign({
-              attendees: (_, e) => e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+              attendees: (ctx, e) => ({
+                ...ctx.attendees,
+                ...e.payload.contacts.reduce((acc, cur) => ({ ...acc, [cur.id]: cur }), {}),
+              }),
             }),
             actions.send((ctx, e) => duckula.Event.NOTICE(
               [
@@ -417,13 +358,16 @@ const machine = createMachine<
               cond: (_, e) => e.payload.intents.includes(Intent.Next),
               actions: actions.send(duckula.Event.VALIDATE()),
             },
-            { actions: actions.send(duckula.Event.HELP()) },
+            // {
+            //   cond: (_, e) => e.payload.intents.length > 0 && !e.payload.intents.includes(Intent.Unknown),
+            //   actions: actions.send(duckula.Event.HELP()),
+            // },
           ]),
         },
         [duckula.Type.VALIDATE]: {
           actions: actions.choose<Context, any>([
             {
-              cond: ctx => Object.keys(ctx.chairs).length > 0,
+              cond: ctx => Object.keys(ctx.attendees).length > 0,
               actions: [
                 actions.send(ctx => duckula.Event.NOTICE(
                   '沙龙活动成员登记完成。名单：',
@@ -439,7 +383,7 @@ const machine = createMachine<
           actions: actions.send(duckula.Event.HELP()),
         },
         [duckula.Type.GERROR] : duckula.State.Erroring,
-        [duckula.Type.NEXT]   : duckula.State.RegisteringTalks,
+        [duckula.Type.NEXT]   : duckula.State.Summarizing,
       },
     },
 
@@ -448,7 +392,6 @@ const machine = createMachine<
         actions.log(
           ctx => [
             'states.Summarizing.entry ',
-            `room/${ctx.room?.id} `,
             `chairs/${Object.keys(ctx.chairs).length} `,
             `talks/${Object.keys(ctx.talks).length} `,
             `attendees/${Object.keys(ctx.attendees).length} `,
@@ -466,7 +409,7 @@ const machine = createMachine<
         actions.send(duckula.Event.NEXT()),
       ],
       on: {
-        [duckula.Type.NEXT]   : duckula.State.Reporting,
+        [duckula.Type.NEXT]: duckula.State.Reporting,
       },
     },
 

@@ -21,7 +21,6 @@
 import type * as PUPPET     from 'wechaty-puppet'
 import * as Mailbox         from 'mailbox'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import * as duck            from '../../duck/mod.js'
 
 export interface Context {
@@ -29,7 +28,8 @@ export interface Context {
    * Required
    */
   actors: {
-    wechaty: string
+    wechaty : string
+    notice  : string
   }
   /**
    * To-be-filled
@@ -38,7 +38,6 @@ export interface Context {
   chairs    : { [contactId: string]: PUPPET.payloads.Contact }
   talks     : { [contactId: string]: string }
   message?  : PUPPET.payloads.Message
-  room?     : PUPPET.payloads.Room
 }
 
 const duckula = Mailbox.duckularize({
@@ -101,7 +100,6 @@ const duckula = Mailbox.duckularize({
     chairs    : {},
     talks     : {},
     message   : undefined,
-    room      : undefined,
   },
 })
 
