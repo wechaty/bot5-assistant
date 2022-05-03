@@ -65,7 +65,7 @@ const machine = createMachine<
 
     [duckula.State.Busy]: {
       entry: [
-        actions.log('states.Busy.entry', duckula.id),
+        actions.log<Context, Events['NOTICE']>((_, e) => `states.Busy.entry NOTICE ${e.payload.text}`, duckula.id),
         actions.choose<Context, Events['NOTICE']>([
           {
             cond: ctx => !!ctx.conversation,
