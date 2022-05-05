@@ -24,14 +24,15 @@ import {
   createMachine,
   interpret,
   actions,
+  Interpreter,
 }                       from 'xstate'
 import { test }         from 'tstest'
 import * as Mailbox     from 'mailbox'
+import { isActionOf }   from 'typesafe-actions'
 
 import * as duck    from '../duck/mod.js'
 
 import { responseStates } from './response-states.js'
-import { isActionOf } from 'typesafe-actions'
 
 test('statesResponse() smoke testing', async t => {
   const childId = 'child-id'
@@ -41,8 +42,9 @@ test('statesResponse() smoke testing', async t => {
     states: {
       [duck.State.Idle]: {
         on: {
-          [duck.Type.TEST]   : duck.State.Responded,
-          [duck.Type.GERROR] : duck.State.Errored,
+          [duck.Type.TEST]   : duck.State.Responding,
+          [duck.Type.BATCH]  : duck.State.Responding,
+          [duck.Type.GERROR] : duck.State.Erroring,
         },
       },
       ...responseStates(childId),
@@ -67,6 +69,11 @@ test('statesResponse() smoke testing', async t => {
           actions.send((_, e) => e, { to: childId }),
         ],
       },
+      [duck.Type.BATCH]: {
+        actions: [
+          actions.send((_, e) => e, { to: childId }),
+        ],
+      },
     },
   })
 
@@ -75,8 +82,11 @@ test('statesResponse() smoke testing', async t => {
     .onEvent(e => eventList.push(e))
     .start()
 
+  const childInterpreter = interpreter.children.get(childId) as Interpreter<any>
+  const childState = () => childInterpreter.getSnapshot().value
+
   /**
-   * Responded
+   * Responding
    */
   const TEST = duck.Event.TEST()
   interpreter.send(TEST)
@@ -92,11 +102,12 @@ test('statesResponse() smoke testing', async t => {
       TEST,
       Mailbox.Event.ACTOR_REPLY(duck.Event.TEST()),
     ],
-    'should process TEST with Responded and respond ACTOR_REPLY',
+    'should process TEST with Responding and respond ACTOR_REPLY',
   )
+  t.equal(childState(), duck.State.Idle, 'should back to State.Idle')
 
   /**
-   * Errored
+   * Erroring
    */
   eventList.length = 0
   const GERROR = duck.Event.GERROR('test')
@@ -113,8 +124,32 @@ test('statesResponse() smoke testing', async t => {
       GERROR,
       Mailbox.Event.ACTOR_REPLY(GERROR),
     ],
-    'should process GERROR with Responded and respond ACTOR_REPLY',
+    'should process GERROR with Responding and respond ACTOR_REPLY',
   )
+  t.equal(childState(), duck.State.Idle, 'should back to State.Idle')
+
+  /**
+   * Batching
+   */
+  eventList.length = 0
+  const BATCH = duck.Event.BATCH([ duck.Event.TEST(), duck.Event.TEST() ])
+  interpreter.send(BATCH)
+  await new Promise(resolve => setTimeout(resolve, 0))
+
+  eventList.forEach(e => console.info(e))
+  t.same(
+    eventList.filter(isActionOf([
+      duck.Event.BATCH,
+      Mailbox.Event.ACTOR_REPLY,
+    ])),
+    [
+      BATCH,
+      Mailbox.Event.ACTOR_REPLY(duck.Event.TEST()),
+      Mailbox.Event.ACTOR_REPLY(duck.Event.TEST()),
+    ],
+    'should process BATCH with Responding and respond two ACTOR_REPLYs',
+  )
+  t.equal(childState(), duck.State.Idle, 'should back to State.Idle')
 
   interpreter.stop()
 })
