@@ -62,6 +62,7 @@ const duckula = Mailbox.duckularize({
     /**
      * Internal
      */
+    'BATCH',
     'HELP',
     'ROOM',
     'NO_ROOM',
@@ -71,6 +72,7 @@ const duckula = Mailbox.duckularize({
     'VALIDATE',
     'NOTICE',
     'INTENTS',
+    'FINISH',
   ] ],
   states: [ duck.State, [
     'Idle',

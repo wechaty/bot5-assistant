@@ -374,6 +374,14 @@ test('register machine smoke testing', async t => {
       duckula.Type.NEXT,
       duckula.Type.NOTICE,
       duckula.Type.NEXT,
+      duckula.Type.BATCH,
+      duckula.Type.CHAIRS,
+      duckula.Type.ATTENDEES,
+      duckula.Type.TALKS,
+      duckula.Type.FINISH,
+      duckula.Type.FINISH,
+      duckula.Type.FINISH,
+      duckula.Type.FINISH,
     ], 'should got bunch of events after process from registering attendees')
     t.equal(registerState(), duckula.State.Idle, 'should next to State.Idle')
 

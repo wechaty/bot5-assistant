@@ -423,11 +423,15 @@ const machine = createMachine<
     [duckula.State.Reporting]: {
       entry: [
         actions.log('states.Reporting.entry', duckula.id),
-        Mailbox.actions.reply(ctx => duckula.Event.CHAIRS(Object.values(ctx.chairs))),
-        Mailbox.actions.reply(ctx => duckula.Event.ATTENDEES(Object.values(ctx.attendees))),
-        Mailbox.actions.reply(ctx => duckula.Event.TALKS(ctx.talks)),
+        actions.send(ctx => duckula.Event.BATCH([
+          duckula.Event.CHAIRS(Object.values(ctx.chairs)),
+          duckula.Event.ATTENDEES(Object.values(ctx.attendees)),
+          duckula.Event.TALKS(ctx.talks),
+        ])),
       ],
-      always: duckula.State.Idle,
+      on: {
+        [duckula.Type.BATCH]: duckula.State.Responding,
+      },
     },
 
     ...responseStates(duckula.id),
