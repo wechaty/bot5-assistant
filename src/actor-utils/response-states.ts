@@ -1,8 +1,8 @@
 /* eslint-disable sort-keys */
-import { actions, AnyEventObject, EventObject }      from 'xstate'
-import * as Mailbox     from 'mailbox'
-import { isActionOf }   from 'typesafe-actions'
-import { GError }       from 'gerror'
+import { actions, AnyEventObject, EventObject }     from 'xstate'
+import * as Mailbox                                 from 'mailbox'
+import { isActionOf }                               from 'typesafe-actions'
+import { GError }                                   from 'gerror'
 
 import * as duck    from '../duck/mod.js'
 

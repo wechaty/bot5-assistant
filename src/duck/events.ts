@@ -17,11 +17,13 @@
  *   limitations under the License.
  *
  */
-import { createAction }   from 'typesafe-actions'
-import type * as PUPPET   from 'wechaty-puppet'
+import { createAction }         from 'typesafe-actions'
+import type * as PUPPET         from 'wechaty-puppet'
+import type { AnyEventObject }  from 'xstate'
 
-import { Type }         from './type-fancy-enum.js'
 import type { Intent }  from '../intents/mod.js'
+
+import { Type }   from './type-fancy-enum.js'
 
 const payloadOptionalMessage = (message?: PUPPET.payloads.Message) => ({ message })
 
@@ -133,3 +135,6 @@ export const TALKS = createAction(Type.TALKS, payloadTalks)()
 
 export const TEST = createAction(Type.TEST)()
 export const VALIDATE = createAction(Type.VALIDATE)()
+
+export const payloadBatch = (events: AnyEventObject[]) => ({ events })
+export const BATCH = createAction(Type.BATCH, payloadBatch)()

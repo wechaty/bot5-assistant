@@ -104,3 +104,5 @@ export const ADD_CONTACT = 'bot5-assistant/ADD_CONTACT'
 
 export const TEST = 'bot5-assistant/TEST'
 export const VALIDATE = 'bot5-assistant/VALIDATE'
+
+export const BATCH = 'bot5-assistant/BATCH'
