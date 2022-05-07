@@ -28,8 +28,8 @@ export interface Context {
    * Required
    */
   actors: {
-    register : string
     wechaty  : string
+    notice   : string
   }
   room     : PUPPET.payloads.Room
   chairs   : { [id: string]: PUPPET.payloads.Contact }
@@ -82,6 +82,7 @@ const duckula = Mailbox.duckularize({
      */
     'Initializing',
     'Resetting',
+    'Reporting',
     'Completing',
     'Completed',
     /**

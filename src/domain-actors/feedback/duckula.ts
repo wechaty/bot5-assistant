@@ -30,8 +30,8 @@ export interface Context {
   feedbacks : { [id: string]: string }
   message?: PUPPET.payloads.Message
   actors: {
-    register: string
     wechaty: string
+    notice: string
   }
 }
 
@@ -41,8 +41,6 @@ const duckula = Mailbox.duckularize({
     /**
      * Config
      */
-    'ADMINS',
-    'CONTACTS',
     'RESET',
     /**
      * Requests
@@ -62,6 +60,7 @@ const duckula = Mailbox.duckularize({
     'IDLE',
     'PROCESS',
     'NEXT',
+    'NO_TEXT',
     'NOTICE',
     // Mailbox
     'ACTOR_REPLY',
@@ -69,12 +68,14 @@ const duckula = Mailbox.duckularize({
   states: [ duck.State, [
     'Feedbacking',
     'Idle',
+    'Resetting',
     'Initializing',
     'Textualizing',
     'Processing',
     'Registering',
     'Reporting',
     'Nexting',
+    'Completing',
     'Erroring',
     'Errored',
     'Responding',
@@ -82,7 +83,6 @@ const duckula = Mailbox.duckularize({
   ] ],
   initialContext: ({
     admins: [ 'lizhuohuan' ],
-    contacts: {},
     feedbacks: {},
     message: undefined,
   }),

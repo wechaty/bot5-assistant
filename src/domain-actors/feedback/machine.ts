@@ -19,9 +19,9 @@
  */
 /* eslint-disable no-redeclare */
 /* eslint-disable sort-keys */
-import { actions, AnyEventObject, createMachine }     from 'xstate'
-import { GError }                                     from 'gerror'
-import * as Mailbox                                   from 'mailbox'
+import { actions, createMachine }   from 'xstate'
+import { GError }                   from 'gerror'
+import * as Mailbox                 from 'mailbox'
 
 import { MessageToText }    from '../../application-actors/mod.js'
 import { responseStates }   from '../../actor-utils/mod.js'
@@ -34,24 +34,15 @@ import * as selectors                         from './selectors.js'
 const machine = createMachine<Context, Event>({
   id: duckula.id,
 
-  invoke: [
-    {
-      id: NoticeActor.id,
-      src: ctx => NoticeActor.machine.withContext({
-        ...NoticeActor.initialContext(),
-        actors: {
-          wechaty: ctx.actors.wechaty,
-        },
-      }),
-    },
-  ],
-
   /**
    * Internal events only
    */
   on: {
     [NoticeActor.Type.NOTICE]: {
-      actions: actions.forwardTo(NoticeActor.id),
+      actions: actions.send(
+        (_, e) => NoticeActor.Event.NOTICE('【反馈系统】' + e.payload.text, e.payload.mentions),
+        { to: ctx => ctx.actors.notice },
+      ),
     },
   },
 
@@ -63,14 +54,21 @@ const machine = createMachine<Context, Event>({
       ],
       always: duckula.State.Idle,
     },
+    [duckula.State.Resetting]: {
+      entry: [
+        actions.log('states.Resetting', duckula.id),
+        actions.assign(ctx => ({
+          ...ctx,
+          ...duckula.initialContext(),
+        })),
+      ],
+      always: duckula.State.Initializing,
+    },
 
     /**
-     *
-     * 1. received CONTACTS -> save to context.contacts
-     *
-     * 2. received MESSAGE  -> transition to Parsing
-     * 3. received RESET    -> transition to Initializing
-     * 4. received REPORT   -> transition to Reporting
+     * 0. received MESSAGE  -> transition to Textualizing
+     * 1. received REPORT   -> transition to Reporting
+     * 2. received RESET    -> transition to Initializing
      *
      */
     [duckula.State.Idle]: {
@@ -94,55 +92,58 @@ const machine = createMachine<Context, Event>({
           ],
           target: duckula.State.Textualizing,
         },
-
-        [duckula.Type.RESET]: {
-          actions: [
-            actions.log('states.Idle.on.RESET', duckula.id),
-            actions.assign(ctx => ({
-              ...ctx,
-              ...duckula.initialContext(),
-            })),
-          ],
-          target: duckula.State.Initializing,
-        },
-
-        [duckula.Type.CONTACTS]: {
-          actions: [
-            actions.assign({
-              contacts: (_, e) => e.payload.contacts.reduce((acc, cur) => ({
-                ...acc,
-                [cur.id]: cur,
-              }), {}),
-            }),
-          ],
-          target: duckula.State.Idle,
-        },
-
         [duckula.Type.REPORT]: {
           actions: [
             actions.log('states.Idle.on.REPORT', duckula.id),
           ],
-          target: duckula.State.Processing,
+          target: duckula.State.Reporting,
         },
+        [duckula.Type.RESET]: duckula.State.Resetting,
+      },
+    },
+
+    [duckula.State.Reporting]: {
+      entry: [
+        actions.log(ctx => `states.Reporting.entry feedbacks/contacts(${selectors.feedbackNum(ctx)}/${selectors.contactNum(ctx)})`, duckula.id),
+        actions.choose<Context, any>([
+          {
+            cond: ctx => selectors.feedbackNum(ctx) >= selectors.contactNum(ctx),
+            actions: [
+              actions.log('states.Reporting.entry replying [FEEDBACKS]', duckula.id),
+              actions.send(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
+            ],
+          },
+          {
+            actions: [
+              actions.log('states.Reporting.entry feedbacks is not enough', duckula.id),
+              actions.send(duckula.Event.NEXT()),
+            ],
+          },
+        ]),
+      ],
+      on: {
+        [duckula.Type.FEEDBACKS] : duckula.State.Responding,
+        [duckula.Type.NEXT]      : duckula.State.Idle,
       },
     },
 
     /**
      * 1. received MESSAGE  -> TEXT / GERROR
-     * 2. received TEXT     -> FEEDBACK
      *
-     * 3. received FEEDBACK -> transition to Feedbacking
+     * 2. received TEXT     -> transition to Feedbacking
      * 4. received GERROR   -> transition to Errored
      */
     [duckula.State.Textualizing]: {
       invoke: {
         id: MessageToText.id,
-        src: ctx => MessageToText.machine.withContext({
-          ...MessageToText.initialContext(),
-          actors: {
-            wechaty: ctx.actors.wechaty,
-          },
-        }),
+        src: ctx => Mailbox.wrap(
+          MessageToText.machine.withContext({
+            ...MessageToText.initialContext(),
+            actors: {
+              wechaty: ctx.actors.wechaty,
+            },
+          }),
+        ),
         onDone:   { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
         onError:  { actions: actions.send((_, e) => duckula.Event.GERROR(GError.stringify(e.data))) },
       },
@@ -151,14 +152,9 @@ const machine = createMachine<Context, Event>({
         actions.send((_, e) => e, { to: MessageToText.id }),
       ],
       on: {
-        [duckula.Type.ACTOR_REPLY]: {
-          actions: [
-            actions.log((_, e) => `states.Textualizing.on.ACTOR_REPLY [${e.payload.message.type}]`, duckula.id),
-            actions.send((_, e) => e.payload.message),
-          ],
-        },
-        [duckula.Type.TEXT]   : duckula.State.Feedbacking,
-        [duckula.Type.GERROR] : duckula.State.Erroring,
+        [duckula.Type.TEXT]    : duckula.State.Feedbacking,
+        [duckula.Type.NO_TEXT] : duckula.State.Idle,
+        [duckula.Type.GERROR]  : duckula.State.Erroring,
       },
     },
 
@@ -174,10 +170,9 @@ const machine = createMachine<Context, Event>({
         actions.send<Context, Events['TEXT']>(
           (ctx, e) => NoticeActor.Event.NOTICE(
             [
-              '【反馈系统】',
               `收到${(e.payload.message && ctx.contacts[e.payload.message.talkerId])?.name}的反馈：`,
               `“${e.payload.text}”`,
-            ].join(''),
+            ].join('\n'),
           ),
         ),
         actions.send(duckula.Event.NEXT()),
@@ -218,105 +213,7 @@ const machine = createMachine<Context, Event>({
         actions.send(duckula.Event.NEXT()),
       ],
       on: {
-        [duckula.Type.NEXT]:  duckula.State.Processing,
-      },
-    },
-
-    [duckula.State.Registering]: {
-      entry: [
-        actions.log('states.Registering.entry', duckula.id),
-        actions.send(
-          duckula.Event.REPORT(),
-          { to: ctx => ctx.actors.register },
-        ),
-      ],
-      on: {
-        /**
-         * Forward the REPORT event to the registering machine.
-         */
-        [duckula.Type.MESSAGE]: {
-          actions: [
-            actions.send(
-              (_, e) => e,
-              { to: ctx => ctx.actors.register },
-            ),
-          ],
-        },
-        /**
-         * Accept the CONTACTS (in response to REPORT) event from the registering machine.
-         */
-        [duckula.Type.CONTACTS]: {
-          actions: [
-            actions.assign({
-              contacts: (_, e) => e.payload.contacts.reduce((acc, cur) => ({
-                ...acc,
-                [cur.id]: cur,
-              }), {}),
-            }),
-            actions.send(duckula.Event.NEXT()),
-          ],
-        },
-        /**
-         * All done. Continue.
-         */
-        [duckula.Type.NEXT]: duckula.State.Processing,
-      },
-    },
-
-    [duckula.State.Processing]: {
-      entry: [
-        actions.log('states.processing.entry', duckula.id),
-        actions.choose<Context, AnyEventObject>([
-          {
-            cond: ctx => selectors.contactNum(ctx) <= 0,
-            actions:[
-              actions.log('states.processing.entry no contacts', duckula.id),
-              actions.send(duckula.Event.NO_CONTACT()),
-            ],
-          },
-          {
-            actions: [
-              actions.log('states.processing.entry transition to NEXT', duckula.id),
-              actions.send(duckula.Event.NEXT()),
-            ],
-          },
-        ]),
-      ],
-      on: {
-        [duckula.Type.NO_CONTACT] : duckula.State.Registering,
-        [duckula.Type.NEXT]       : duckula.State.Reporting,
-      },
-    },
-
-    [duckula.State.Reporting]: {
-      entry: [
-        actions.log(ctx => `states.Reporting.entry feedbacks/contacts(${selectors.feedbackNum(ctx)}/${selectors.contactNum(ctx)})`, duckula.id),
-        actions.choose<Context, any>([
-          {
-            cond: ctx => selectors.contactNum(ctx) <= 0,
-            actions: [
-              actions.log(_ => 'state.reporting.entry contacts is not set', duckula.id),
-              actions.send(duckula.Event.NEXT()),
-            ],
-          },
-          {
-            cond: ctx => selectors.feedbackNum(ctx) < selectors.contactNum(ctx),
-            actions: [
-              actions.log('states.Reporting.entry feedbacks is not enough', duckula.id),
-              actions.send(duckula.Event.NEXT()),
-            ],
-          },
-          {
-            actions: [
-              actions.log('states.Reporting.entry replying [FEEDBACKS]', duckula.id),
-              actions.send(ctx => duckula.Event.FEEDBACKS(ctx.feedbacks)),
-            ],
-          },
-        ]),
-      ],
-      on: {
-        [duckula.Type.FEEDBACKS] : duckula.State.Responding,
-        [duckula.Type.NEXT]      : duckula.State.Idle,
+        [duckula.Type.NEXT]:  duckula.State.Reporting,
       },
     },
 
