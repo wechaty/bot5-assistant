@@ -128,7 +128,7 @@ const machine = createMachine<Context, Event>({
     },
 
     /**
-     * 1. received MESSAGE  -> TEXT / GERROR
+     * 1. entry MESSAGE  -> TEXT / GERROR
      *
      * 2. received TEXT     -> transition to Feedbacking
      * 4. received GERROR   -> transition to Errored
@@ -190,7 +190,6 @@ const machine = createMachine<Context, Event>({
             actions: [
               actions.send(ctx => NoticeActor.Event.NOTICE(
                 [
-                  '【反馈系统】',
                   `下一位：@${selectors.nextContact(ctx)?.name}`,
                   selectors.contactAfterNext(ctx)?.name ? `。（请@${selectors.contactAfterNext(ctx)?.name}做准备）` : '',
                 ].join(''),
@@ -203,7 +202,7 @@ const machine = createMachine<Context, Event>({
           {
             actions: [
               actions.send(ctx => NoticeActor.Event.NOTICE([
-                '【反馈系统】：已完成收集所有人反馈：',
+                '已完成收集所有人反馈：',
                 Object.values(ctx.contacts).map(contact => contact.name).join('，'),
                 `共 ${Object.keys(ctx.contacts).length} 人。`,
               ].join(''))),

@@ -35,11 +35,11 @@ export const responseStates = (id: string) => ({
         },
         { actions: Mailbox.actions.reply((_, e) => e) },
       ]),
-      actions.send(duck.Event.FINISH()),
+      actions.send(duck.Event.NEXT()),
     ],
     on: {
       '*': duck.State.Responding,
-      [duck.Type.FINISH]: duck.State.Idle,
+      [duck.Type.NEXT]: duck.State.Idle,
     },
   },
 
