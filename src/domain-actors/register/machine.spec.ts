@@ -24,25 +24,23 @@ import {
   interpret,
   createMachine,
   Interpreter,
-  AnyInterpreter,
 }                                   from 'xstate'
 import { of }                       from 'rxjs'
-import { map, mergeMap, filter, tap }    from 'rxjs/operators'
+import { map, mergeMap, filter }    from 'rxjs/operators'
 import { test, sinon }              from 'tstest'
-import type * as WECHATY            from 'wechaty'
 import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
+import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
-import { isDefined }    from '../../pure-functions/is-defined.js'
+import { isDefined }          from '../../pure-functions/is-defined.js'
 import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
+import { invokeId }           from '../../actor-utils/invoke-id.js'
 
 import * as Notice    from '../notice/mod.js'
 
-import duckula, { Context, Events }   from './duckula.js'
-import machine                        from './machine.js'
-import { invokeId } from '../../actor-utils/invoke-id.js'
-import { isActionOf } from 'typesafe-actions'
+import duckula, { Context }   from './duckula.js'
+import machine                from './machine.js'
 
 test('register machine smoke testing', async t => {
   for await (const {
