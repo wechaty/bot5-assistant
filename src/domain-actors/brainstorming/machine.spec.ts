@@ -26,25 +26,23 @@ import {
   createMachine,
   EventObject,
   StateValue,
-}                                   from 'xstate'
-import { of }                       from 'rxjs'
-import { map, mergeMap, filter }    from 'rxjs/operators'
-import { test, sinon }              from 'tstest'
-import * as CQRS                    from 'wechaty-cqrs'
-import { inspect }                  from '@xstate/inspect/lib/server.js'
-import { WebSocketServer }          from 'ws'
-import * as Mailbox                 from 'mailbox'
+}                             from 'xstate'
+import { map }                from 'rxjs/operators'
+import { test, sinon }        from 'tstest'
+import * as CQRS              from 'wechaty-cqrs'
+import { inspect }            from '@xstate/inspect/lib/server.js'
+import { WebSocketServer }    from 'ws'
+import * as Mailbox           from 'mailbox'
 
-import { FileToText }         from '../../infrastructure-actors/mod.js'
-import * as WechatyActor      from '../../wechaty-actor/mod.js'
-import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
-import { isDefined }          from '../../pure-functions/is-defined.js'
+import { FileToText }                 from '../../infrastructure-actors/mod.js'
+import * as WechatyActor              from '../../wechaty-actor/mod.js'
+import { skipSelfMessagePayload$ }    from '../../wechaty-actor/cqrs/skip-self-message-payload$.js'
+import { bot5Fixtures }               from '../../fixtures/bot5-fixture.js'
 
 import * as Notice    from '../notice/mod.js'
 
 import duckula, { Context }   from './duckula.js'
 import machine                from './machine.js'
-import { skipSelfMessagePayload$ } from '../../wechaty-actor/cqrs/skip-self-message-payload$.js'
 
 test('Brainstorming actor smoke testing', async t => {
   for await (
@@ -75,12 +73,12 @@ test('Brainstorming actor smoke testing', async t => {
 
     inspect({ server })
 
-    const [ [ FILE, TEXT ] ] = await FileToText.FIXTURES()
+    const [ [ _FILE, TEXT ] ] = await FileToText.FIXTURES()
 
     const FEEDBACKS = {
-      [mockerFixture.mary.id]: 'im mary',
-      [mockerFixture.mike.id]: 'im mike',
-      [mockerFixture.player.id]: TEXT,
+      [mockerFixture.mary.id]:    [ 'im mary',  'im mary' ],
+      [mockerFixture.mike.id]:    [ 'im mike',  'im mike' ],
+      [mockerFixture.player.id]:  [ TEXT,       TEXT ],
     } as const
 
     const CONTACTS = {
@@ -172,7 +170,7 @@ test('Brainstorming actor smoke testing', async t => {
     actorEventList.length = 0
     actorStateList.length = 0
     mockerFixture.mary
-      .say(FEEDBACKS[mockerFixture.mary.id])
+      .say(FEEDBACKS[mockerFixture.mary.id]![0])
       .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
     t.same(
@@ -197,19 +195,19 @@ test('Brainstorming actor smoke testing', async t => {
     actorEventList.length = 0
     actorStateList.length = 0
     mockerFixture.mike
-      .say(FEEDBACKS[mockerFixture.mike.id])
+      .say(FEEDBACKS[mockerFixture.mike.id]![0])
       .to(mockerFixture.groupRoom)
     // await sandbox.clock.runAllAsync()
     mockerFixture.player
-      .say(FEEDBACKS[mockerFixture.player.id])
+      .say(FEEDBACKS[mockerFixture.player.id]![0])
       .to(mockerFixture.groupRoom)
     await sandbox.clock.runAllAsync()
     t.same(
       actorContext().feedbacks,
       {
-        [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id],
-        [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id],
-        [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id],
+        [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]![1],
+        [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]![1],
+        [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]![1],
       },
       'should set feedbacks because all members have replied',
     )
@@ -237,9 +235,9 @@ test('Brainstorming actor smoke testing', async t => {
         .filter(e => e.type === duckula.Type.FEEDBACKS),
       [
         duckula.Event.FEEDBACKS({
-          [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]!,
-          [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]!,
-          [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]!,
+          [mockerFixture.mary.id]: FEEDBACKS[mockerFixture.mary.id]![1],
+          [mockerFixture.mike.id]: FEEDBACKS[mockerFixture.mike.id]![1],
+          [mockerFixture.player.id]: FEEDBACKS[mockerFixture.player.id]![1],
         }),
       ],
       'should have FEEDBACKS event with feedbacks',
