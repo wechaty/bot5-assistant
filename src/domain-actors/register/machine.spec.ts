@@ -34,7 +34,7 @@ import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
-import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
+import { isDefined }    from '../../pure-functions/is-defined.js'
 import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
 
 import * as Notice    from '../notice/mod.js'
@@ -107,7 +107,7 @@ test('register machine smoke testing', async t => {
         map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixture.wechaty.puppet.id, e.payload.messageId)),
         mergeMap(CQRS.execute$(bus$)),
         map(response => response.payload.message),
-        filter(removeUndefined),
+        filter(isDefined),
         filter(message => message.talkerId !== currentUserId),
         map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
       )),
@@ -491,7 +491,7 @@ test('register actor smoke testing', async t => {
         map(e => CQRS.queries.GetMessagePayloadQuery(fixture.wechaty.wechaty.puppet.id, e.payload.messageId)),
         mergeMap(CQRS.execute$(bus$)),
         map(response => response.payload.message),
-        filter(removeUndefined),
+        filter(isDefined),
         filter(message => message.talkerId !== currentUserId),
         map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
       )),

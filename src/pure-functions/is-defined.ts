@@ -17,6 +17,10 @@
  *   limitations under the License.
  *
  */
-export function removeUndefined <T extends any> (value: T, ..._args: any[]): value is Exclude<T, undefined> {
+/**
+ * SO: Filter undefined from RxJS Observable
+ *  @link https://stackoverflow.com/a/65959350/1123955
+ */
+export function isDefined <T extends any> (value: T, ..._: any[]): value is Exclude<T, undefined | null> {
   return !!value
 }

@@ -23,7 +23,7 @@ import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
-import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
+import { isDefined }          from '../../pure-functions/is-defined.js'
 import { responseStates }     from '../../actor-utils/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
@@ -103,7 +103,7 @@ const machine = createMachine<Context, Event>({
                     .payload
                     .contact,
                 )
-                .filter(removeUndefined),
+                .filter(isDefined),
             )),
           ],
         },

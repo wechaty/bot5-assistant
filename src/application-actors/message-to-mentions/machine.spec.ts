@@ -32,7 +32,6 @@ import * as CQRS                        from 'wechaty-cqrs'
 
 import * as WechatyActor    from '../../wechaty-actor/mod.js'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
-import { removeUndefined }  from '../../pure-functions/remove-undefined.js'
 
 import machine    from './machine.js'
 import duckula    from './duckula.js'
@@ -78,27 +77,31 @@ test('MessageToMentions actor smoke testing', async t => {
     })
 
     const FIXTURES = [
-      [ undefined, [] ],
-      [ [], [] ],
+      [ undefined, duckula.Event.NO_MENTION() ],
+      [ [],        duckula.Event.NO_MENTION() ],
+
       [
         [
           fixtures.mocker.mary,
           fixtures.mocker.mike,
         ],
-        [
-          fixtures.wechaty.mary.payload,
-          fixtures.wechaty.mike.payload,
-        ],
+        duckula.Event.MENTIONS([
+          fixtures.wechaty.mary.payload!,
+          fixtures.wechaty.mike.payload!,
+        ]),
       ],
     ] as const
 
-    for (const [ mentionList, expectedList ] of FIXTURES) {
+    for (const [ mentionList, expected ] of FIXTURES) {
 
       eventList.length = 0
 
       const future = new Promise(resolve =>
         interpreter.onEvent(e =>
-          isActionOf(duckula.Event.MENTIONS, e) && resolve(e),
+          isActionOf([
+            duckula.Event.MENTIONS,
+            duckula.Event.NO_MENTION,
+          ], e) && resolve(e),
         ),
       )
 
@@ -108,20 +111,25 @@ test('MessageToMentions actor smoke testing', async t => {
       // eventList.forEach(e => console.info(e))
       t.same(
         eventList
-          .filter(isActionOf(duckula.Event.MENTIONS)),
+          .filter(isActionOf([
+            duckula.Event.MENTIONS,
+            duckula.Event.NO_MENTION,
+          ]))
+        ,
         [
-          duckula.Event.MENTIONS(
-            expectedList
-              .filter(removeUndefined)
-              .filter(removeUndefined),
-            eventList
-              .filter(isActionOf(duckula.Event.MESSAGE))
-              .at(-1)!
-              .payload
-              .message,
-          ),
+          {
+            ...expected,
+            payload: {
+              ...expected.payload,
+              message: eventList
+                .filter(isActionOf(duckula.Event.MESSAGE))
+                .at(-1)!
+                .payload
+                .message,
+            },
+          },
         ],
-        `should get expected [CONTACTS] for "${mentionList}"`,
+        `should get expected event for "${mentionList}"`,
       )
     }
 
