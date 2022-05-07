@@ -425,8 +425,8 @@ const machine = createMachine<
         actions.log('states.Reporting.entry', duckula.id),
         actions.send(ctx => duckula.Event.BATCH([
           duckula.Event.CHAIRS(Object.values(ctx.chairs)),
-          duckula.Event.ATTENDEES(Object.values(ctx.attendees)),
           duckula.Event.TALKS(ctx.talks),
+          duckula.Event.ATTENDEES(Object.values(ctx.attendees)),
         ])),
       ],
       on: {

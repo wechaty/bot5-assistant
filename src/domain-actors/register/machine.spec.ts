@@ -373,68 +373,44 @@ test('register machine smoke testing', async t => {
       duckula.Type.NOTICE,
       duckula.Type.NEXT,
       duckula.Type.BATCH,
-      duckula.Type.CHAIRS,
-      duckula.Type.ATTENDEES,
-      duckula.Type.TALKS,
-      duckula.Type.FINISH,
-      duckula.Type.FINISH,
-      duckula.Type.FINISH,
-      duckula.Type.FINISH,
-    ], 'should got bunch of events after process from registering attendees')
+    ], 'should got bunch of events after /Next')
     t.equal(registerState(), duckula.State.Idle, 'should next to State.Idle')
 
     /**
      * Response CHAIRS, ATTENDEES, TALKS
      */
-    // testEventList.forEach(e => console.info(e.type, JSON.stringify(e.payload)))
+    testEventList.forEach(e => console.info(e.type, JSON.stringify(e.payload)))
 
     t.same(
       testEventList
-        .filter(e => e.type === 'mailbox/ACTOR_REPLY')
+        .filter(isActionOf(Mailbox.Event.ACTOR_REPLY))
         .map(e => (e as any).payload.message)
-        .filter(isActionOf(duckula.Event.CHAIRS)),
+        .filter(isActionOf(duckula.Event.BATCH)),
       [
-        duckula.Event.CHAIRS([
-          mockerFixture.player.payload,
-          mockerFixture.mike.payload,
+        duckula.Event.BATCH([
+          duckula.Event.CHAIRS([
+            mockerFixture.player.payload,
+            mockerFixture.mike.payload,
+          ]),
+          duckula.Event.TALKS({
+            [TALKER1.id]: TALK1_TEXT,
+            [TALKER2.id]: TALK2_TEXT,
+          }),
+          duckula.Event.ATTENDEES([
+            mockerFixture.mike.payload,
+            mockerFixture.mary.payload,
+          ]),
         ]),
       ],
-      'should get response CHAIRS',
+      'should get response BATCH([CHAIRS, TALKS, ATTENDEES])',
     )
 
-    t.same(
-      testEventList
-        .filter(e => e.type === 'mailbox/ACTOR_REPLY')
-        .map(e => (e as any).payload.message)
-        .filter(isActionOf(duckula.Event.TALKS)),
-      [
-        duckula.Event.TALKS({
-          [TALKER1.id]: TALK1_TEXT,
-          [TALKER2.id]: TALK2_TEXT,
-        }),
-      ],
-      'should get response TALKS',
-    )
-
-    t.same(
-      testEventList
-        .filter(e => e.type === 'mailbox/ACTOR_REPLY')
-        .map(e => (e as any).payload.message)
-        .filter(isActionOf(duckula.Event.ATTENDEES)),
-      [
-        duckula.Event.ATTENDEES([
-          mockerFixture.mike.payload,
-          mockerFixture.mary.payload,
-        ]),
-      ],
-      'should get response ATTENDEES',
-    )
     testInterpreter.stop()
     sandbox.restore()
   }
 })
 
-test('register actor smoke testing', async t => {
+test.only('register actor smoke testing', async t => {
   for await (const fixture of bot5Fixtures()) {
 
     const sandbox = sinon.createSandbox({
@@ -536,34 +512,22 @@ test('register actor smoke testing', async t => {
     // eventList.forEach(e => console.info(e.type, e.payload))
 
     t.same(
-      eventList.filter(isActionOf(duckula.Event.CHAIRS)),
+      eventList.filter(isActionOf(duckula.Event.BATCH)),
       [
-        duckula.Event.CHAIRS([
-          fixture.mocker.player.payload,
+        duckula.Event.BATCH([
+          duckula.Event.CHAIRS([
+            fixture.mocker.player.payload,
+          ]),
+          duckula.Event.TALKS({
+            [fixture.mocker.mary.id]: 'register talk',
+          }),
+          duckula.Event.ATTENDEES([
+            fixture.mocker.mary.payload,
+            fixture.mocker.mike.payload,
+          ]),
         ]),
       ],
-      'should get response CHAIRS',
-    )
-
-    t.same(
-      eventList.filter(isActionOf(duckula.Event.TALKS)),
-      [
-        duckula.Event.TALKS({
-          [fixture.mocker.mary.id]: 'register talk',
-        }),
-      ],
-      'should get response TALKS',
-    )
-
-    t.same(
-      eventList.filter(isActionOf(duckula.Event.ATTENDEES)),
-      [
-        duckula.Event.ATTENDEES([
-          fixture.mocker.mary.payload,
-          fixture.mocker.mike.payload,
-        ]),
-      ],
-      'should get response ATTENDEES',
+      'should get response BATCH([CHAIRS, TALKS, ATTENDEES])',
     )
 
     sandbox.restore()
