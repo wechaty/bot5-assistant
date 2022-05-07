@@ -17,12 +17,12 @@
  *   limitations under the License.
  *
  */
-import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
+import { isDefined }    from '../../pure-functions/is-defined.js'
 
 import type { Context }   from './duckula.js'
 
 export const feedbacksNum = (ctx: Context) => Object.values(ctx.feedbacks)
-  .filter(removeUndefined)
+  .filter(isDefined)
   .length
 
 export const contactsNum  = (ctx: Context) => Object.keys(ctx.contacts)
