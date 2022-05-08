@@ -8,6 +8,99 @@ BOT5 Meeting Assistant BOT powered by RSVP.ai & Wechaty & XState.
 
 ![BOT5 Club](docs/images/caq-bot5-qingyu.webp)
 
+## BOT5 Club Seminar Flow Chart
+
+```mermaid
+flowchart TD
+  Initializing --> Loading
+  subgraph Loading
+    LoadSavedState
+  end
+
+  Loading --> Restoring
+  subgraph Restoring
+    SetContext
+    TransitionToLastStateOrCalling
+  end
+
+  Restoring --> Calling
+  subgraph Calling
+    SetChairs
+    SetTalks
+    SetSchedule
+  end
+
+  Calling --> Registering
+  subgraph Registering
+    attendees
+    EveryDay
+    8h
+    4h
+    2h
+    1h
+    20m
+    10m
+  end
+
+  Registering --> Checkining
+  Checkining --> Starting
+  Starting --> Introducing
+  Introducing --> Retrospecting
+  Retrospecting --> Welcoming
+  subgraph Welcoming
+    Joining
+    introducing
+  end
+
+  Welcoming --> Presenting
+  Presenting --> Promoting
+  subgraph Promoting
+    Newcomer
+    TrialMember
+    Member
+    TrialChair
+    Chair
+  end
+
+  Promoting --> Brainstorming
+  Brainstorming --> Roasting
+  Roasting --> Chairing  
+  subgraph Chairing
+    Electing
+      Naming
+      Voting
+      Deciding
+    Summarizing
+    Pledging
+  end
+
+  Chairing --> Photoing
+  subgraph Photoing
+    ShootingChairs
+    ShootingAll
+  end
+
+  Photoing --> Housekeeping
+  Housekeeping --> AfterParty
+  subgraph AfterParty
+    Chatting
+    Drinking
+    ShootingDrinkers
+    Paying
+  end
+
+  AfterParty --> Completing
+  Completing --> Completed
+```
+
+```
+
+
+
+```
+
+See also: [BOT5 Club Chair Manual](http://bot5.ml/manuals/chair/)
+
 ## User Journey Diagram
 
 Learn more from [BOT Friday Club Seminar Chair Manual](http://bot5.ml/manuals/chair/)

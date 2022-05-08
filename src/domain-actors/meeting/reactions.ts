@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 import { actions }    from 'xstate'
 
-import * as duck    from '../../duck/mod.js'
+import { Intent }   from '../../intents/mod.js'
 
 import duckula, { Context, Events }   from './duckula.js'
 
@@ -28,14 +28,14 @@ export const messageToIntents = actions.send<Context, Events['MESSAGE']>((_, e) 
 
 export const chairMessageToIntents = actions.choose<Context, Events['MESSAGE']>([
   {
-    cond: (ctx, e) => ctx.chairs.map(c => c.id).includes(e.payload.message.talkerId),
+    cond: (ctx, e) => Object.keys(ctx.chairs).includes(e.payload.message.talkerId),
     actions: messageToIntents,
   },
 ])
 
 export const nextIntentToNext = actions.choose<Context, Events['INTENTS']>([
   {
-    cond: (_, e) => e.payload.intents.includes(duck.Intent.Next),
+    cond: (_, e) => e.payload.intents.includes(Intent.Next),
     actions: actions.send(duckula.Event.NEXT()),
   },
 ])

@@ -37,7 +37,7 @@ import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor      from '../../wechaty-actor/mod.js'
 import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
-import { removeUndefined }    from '../../pure-functions/remove-undefined.js'
+import { isDefined }    from '../../pure-functions/is-defined.js'
 
 import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 
@@ -72,7 +72,7 @@ test('meeting machine smoke testing', async t => {
           ...duckula.initialContext(),
           actors: {
             wechaty: String(wechatyActor.address),
-            noticing: String(Mailbox.nil.address),
+            notice: String(Mailbox.nil.address),
             register: String(Mailbox.nil.address),
           },
         }),
@@ -116,7 +116,7 @@ test('meeting machine smoke testing', async t => {
       map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixtures.wechaty.puppet.id, e.payload.messageId)),
       mergeMap(CQRS.execute$(bus$)),
       map(response => response.payload.message),
-      filter(removeUndefined),
+      filter(isDefined),
       map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
     ).subscribe(e => {
       // console.info('### duckula.Event.MESSAGE', e)
@@ -156,7 +156,7 @@ test('meeting machine smoke testing', async t => {
       duckula.Event.CONTACTS(
         FIXTURES.members
           .map(c => c.payload)
-          .filter(removeUndefined),
+          .filter(isDefined),
       ),
     )
     // console.info(snapshot.history)
@@ -309,7 +309,7 @@ test('feedback actor smoke testing', async t => {
     const feedbackMachine = machine.withContext({
       ...duckula.initialContext(),
       actors: {
-        noticing : String(Mailbox.nil.address),
+        notice : String(Mailbox.nil.address),
         register : String(Mailbox.nil.address),
         wechaty  : String(wechatyActor.address),
       },
@@ -339,7 +339,7 @@ test('feedback actor smoke testing', async t => {
       map(e => CQRS.queries.GetMessagePayloadQuery(wechatyFixtures.wechaty.puppet.id, e.payload.messageId)),
       mergeMap(CQRS.execute$(bus$)),
       map(response => response.payload.message),
-      filter(removeUndefined),
+      filter(isDefined),
       map(messagePayload => duckula.Event.MESSAGE(messagePayload)),
     ).subscribe(e => {
       // console.info('### duckula.Event.MESSAGE', e)
@@ -358,7 +358,7 @@ test('feedback actor smoke testing', async t => {
 
     const MEMBER_LIST = (await wechatyFixtures.groupRoom.memberAll())
       .map(m => m.payload)
-      .filter(removeUndefined)
+      .filter(isDefined)
 
     // console.info('MEMBER_LIST', MEMBER_LIST)
 

@@ -27,17 +27,18 @@ import * as NoticeActor   from '../notice/mod.js'
 
 export interface Context {
   minutes?    : string
-  room?       : PUPPET.payloads.Room
+  room        : PUPPET.payloads.Room
   admins      : string[]
-  chairs      : PUPPET.payloads.Contact[]
-  attendees   : { [id: string]: PUPPET.payloads.Contact }
-  brainstorms : { [key: string]: string }
+  chairs      : { [contactId: string]: PUPPET.payloads.Contact }
+  attendees   : { [contactId: string]: PUPPET.payloads.Contact }
+  brainstorms : { [contactId: string]: string }
+  talks       : { [contactId: string]: string }
   actors: {
-    noticing      : string,
-    register      : string,
+    notice        : string,
     feedback      : string,
     brainstorming : string,
     intent        : string,
+    wechaty       : string,
   }
 }
 
@@ -47,7 +48,6 @@ const duckula = Mailbox.duckularize({
     /**
      * Config
      */
-    'ROOM',
     'CHAIRS',
     'ATTENDEES',
     'RESET',
@@ -64,8 +64,10 @@ const duckula = Mailbox.duckularize({
      * Internal
      */
     'BACK',
+    'BATCH',
     'CONTACTS',
     'FEEDBACKS',
+    'TALKS',
     'HELP',
     'INTENTS',
     'MESSAGE',
