@@ -30,7 +30,7 @@ import { test, sinon }  from 'tstest'
 import * as CQRS        from 'wechaty-cqrs'
 import * as Mailbox     from 'mailbox'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from 'wechaty-actor'
 import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 
 import machine    from './machine.js'

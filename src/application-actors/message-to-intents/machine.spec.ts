@@ -33,7 +33,7 @@ import { FileBox }                    from 'file-box'
 
 import * as duck    from '../../duck/mod.js'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from 'wechaty-actor'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
 import { FileToText, TextToIntents }    from '../../infrastructure-actors/mod.js'
 

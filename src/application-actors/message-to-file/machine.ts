@@ -24,7 +24,7 @@ import * as CQRS                    from 'wechaty-cqrs'
 import * as PUPPET                  from 'wechaty-puppet'
 
 import { responseStates }   from '../../actor-utils/mod.js'
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from 'wechaty-actor'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 import { fileMessageTypes }                   from './file-message-types.js'

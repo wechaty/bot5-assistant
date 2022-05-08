@@ -31,7 +31,7 @@ import { isActionOf }                   from 'typesafe-actions'
 import * as CQRS                        from 'wechaty-cqrs'
 import { FileBox }                      from 'file-box'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from 'wechaty-actor'
 import { bot5Fixtures }     from '../../fixtures/bot5-fixture.js'
 
 import machine    from './machine.js'

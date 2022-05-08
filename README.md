@@ -89,14 +89,8 @@ flowchart TD
     Paying
   end
 
-  AfterParty --> Completing
-  Completing --> Completed
-```
-
-```
-
-
-
+  AfterParty --> Ending
+  Ending --> Ended
 ```
 
 See also: [BOT5 Club Chair Manual](http://bot5.ml/manuals/chair/)

@@ -35,7 +35,7 @@ import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
 
-import * as WechatyActor      from '../../wechaty-actor/mod.js'
+import * as WechatyActor      from 'wechaty-actor'
 import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
 import { isDefined }    from '../../pure-functions/is-defined.js'
 

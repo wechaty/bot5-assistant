@@ -80,6 +80,7 @@
     "typed-inject": "^3.0.1",
     "typesafe-actions": "^5.1.0",
     "uuid": "^8.3.2",
+    "wechaty-actor": "^0.5.1",
     "wechaty-cqrs": "^0.15.4",
     "xstate": "^4.31.0"
   },

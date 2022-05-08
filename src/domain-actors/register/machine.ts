@@ -21,7 +21,7 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import type * as WechatyActor                     from '../../wechaty-actor/mod.js'
+import type * as WechatyActor                     from 'wechaty-actor'
 import { responseStates }                         from '../../actor-utils/response-states.js'
 import { MessageToMentions, MessageToIntents }    from '../../application-actors/mod.js'
 import { invokeId }                               from '../../actor-utils/invoke-id.js'

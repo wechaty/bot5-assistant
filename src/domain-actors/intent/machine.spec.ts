@@ -33,7 +33,7 @@ import type { mock }                from 'wechaty-puppet-mock'
 import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 
-import * as WechatyActor    from '../../wechaty-actor/mod.js'
+import * as WechatyActor    from 'wechaty-actor'
 import { MessageToText }    from '../../application-actors/mod.js'
 import { TextToIntents }    from '../../infrastructure-actors/mod.js'
 

@@ -22,7 +22,7 @@ import * as Mailbox       from 'mailbox'
 import * as CQRS          from 'wechaty-cqrs'
 import type * as PUPPET   from 'wechaty-puppet'
 
-import * as ACTOR   from '../../wechaty-actor/mod.js'
+import * as ACTOR   from 'wechaty-actor'
 import * as duck    from '../../duck/mod.js'
 
 export interface Context {
