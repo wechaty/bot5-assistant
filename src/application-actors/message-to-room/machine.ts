@@ -21,9 +21,9 @@
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
+import * as WechatyActor            from 'wechaty-actor'
 
-import * as WechatyActor      from 'wechaty-actor'
-import { responseStates }     from '../../actor-utils/mod.js'
+import { responseStates }     from '../../pure/mod.js'
 
 import duckula, { Context, Event, Events }    from './duckula.js'
 

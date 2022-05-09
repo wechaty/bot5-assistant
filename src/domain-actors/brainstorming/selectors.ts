@@ -17,7 +17,7 @@
  *   limitations under the License.
  *
  */
-import { isDefined }    from '../../pure-functions/is-defined.js'
+import { isDefined }    from '../../pure/mod.js'
 
 import type { Context }   from './duckula.js'
 

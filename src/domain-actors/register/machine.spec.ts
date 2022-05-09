@@ -31,11 +31,10 @@ import { test, sinon }              from 'tstest'
 import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
+import * as WechatyActor            from 'wechaty-actor'
 
-import * as WechatyActor      from 'wechaty-actor'
-import { isDefined }          from '../../pure-functions/is-defined.js'
-import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
-import { invokeId }           from '../../actor-utils/invoke-id.js'
+import { isDefined, invokeId }    from '../../pure/mod.js'
+import { bot5Fixtures }           from '../../fixtures/bot5-fixture.js'
 
 import * as Notice    from '../notice/mod.js'
 

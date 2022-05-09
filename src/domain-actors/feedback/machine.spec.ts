@@ -34,12 +34,11 @@ import { filter, map, mergeMap }      from 'rxjs/operators'
 import * as Mailbox                   from 'mailbox'
 import * as CQRS                      from 'wechaty-cqrs'
 import { isActionOf }                 from 'typesafe-actions'
+import * as WechatyActor              from 'wechaty-actor'
 
-import * as WechatyActor      from 'wechaty-actor'
-import { isDefined }          from '../../pure-functions/is-defined.js'
-import { FileToText }         from '../../infrastructure-actors/mod.js'
-import { bot5Fixtures }       from '../../fixtures/bot5-fixture.js'
-import { skipSelfMessagePayload$ }   from '../../wechaty-actor/cqrs/skip-self-message-payload$.js'
+import { isDefined, skipSelfMessagePayload$ }   from '../../pure/mod.js'
+import { FileToText }                           from '../../infrastructure-actors/mod.js'
+import { bot5Fixtures }                         from '../../fixtures/bot5-fixture.js'
 
 import * as Notice    from '../notice/mod.js'
 

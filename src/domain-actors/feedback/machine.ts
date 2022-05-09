@@ -24,7 +24,7 @@ import { GError }                   from 'gerror'
 import * as Mailbox                 from 'mailbox'
 
 import { MessageToText }    from '../../application-actors/mod.js'
-import { responseStates }   from '../../actor-utils/mod.js'
+import { responseStates }   from '../../pure/mod.js'
 
 import * as NoticeActor    from '../notice/mod.js'
 

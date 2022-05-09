@@ -33,10 +33,10 @@ import * as CQRS              from 'wechaty-cqrs'
 import { inspect }            from '@xstate/inspect/lib/server.js'
 import { WebSocketServer }    from 'ws'
 import * as Mailbox           from 'mailbox'
+import * as WechatyActor      from 'wechaty-actor'
 
 import { FileToText }                 from '../../infrastructure-actors/mod.js'
-import * as WechatyActor              from 'wechaty-actor'
-import { skipSelfMessagePayload$ }    from '../../wechaty-actor/cqrs/skip-self-message-payload$.js'
+import { skipSelfMessagePayload$ }    from '../../pure/mod.js'
 import { bot5Fixtures }               from '../../fixtures/bot5-fixture.js'
 
 import * as Notice    from '../notice/mod.js'

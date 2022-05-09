@@ -23,7 +23,7 @@ import * as Mailbox                 from 'mailbox'
 import * as CQRS                    from 'wechaty-cqrs'
 import * as PUPPET                  from 'wechaty-puppet'
 
-import { responseStates }   from '../../actor-utils/mod.js'
+import { responseStates }   from '../../pure/mod.js'
 import * as WechatyActor    from 'wechaty-actor'
 
 import duckula, { Context, Event, Events }    from './duckula.js'

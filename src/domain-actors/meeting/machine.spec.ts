@@ -36,8 +36,7 @@ import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
 
 import * as WechatyActor      from 'wechaty-actor'
-import { getSilkFixtures }    from '../../fixtures/get-silk-fixtures.js'
-import { isDefined }    from '../../pure-functions/is-defined.js'
+import { isDefined }    from '../../pure/mod.js'
 
 import { bot5Fixtures }   from '../../fixtures/bot5-fixture.js'
 

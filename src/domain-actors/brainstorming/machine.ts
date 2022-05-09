@@ -21,7 +21,7 @@
 import { actions, createMachine }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import { responseStates } from '../../actor-utils/mod.js'
+import { responseStates } from '../../pure/mod.js'
 
 import * as Notice     from '../notice/mod.js'
 import * as Feedback   from '../feedback/mod.js'
