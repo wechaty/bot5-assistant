@@ -11,86 +11,197 @@ BOT5 Meeting Assistant BOT powered by RSVP.ai & Wechaty & XState.
 ## BOT5 Club Seminar Flow Chart
 
 ```mermaid
-flowchart TD
-  Initializing --> Loading
-  subgraph Loading
-    LoadSavedState
-  end
+flowchart LR
+  Initializing --> Preparing
+  Preparing --> Talking
+  Talking --> Membershiping
+  Membershiping --> Chairshiping
+  Chairshiping --> Afterparty
+  Afterparty --> Minuting
+```
 
-  Loading --> Restoring
-  subgraph Restoring
-    SetContext
-    TransitionToLastStateOrCalling
-  end
+### 0. Initializing
 
-  Restoring --> Calling
-  subgraph Calling
-    SetChairs
-    SetTalks
-    SetSchedule
+```mermaid
+graph LR
+  subgraph Initializing
+    Loading --> Restoring
   end
+```
 
-  Calling --> Registering
-  subgraph Registering
-    attendees
-    EveryDay
-    8h
-    4h
-    2h
-    1h
-    20m
-    10m
+```mermaid
+journey
+  title Initializing
+  section Loading
+    Load state from storage: 3: Bot
+  section Restoring
+    Set context: 4: Bot
+    Set state: 5: Bot
+  section Saving
+    Save state to storage: 3: Bot
+```
+
+### 1. Preparing
+
+```mermaid
+graph LR
+  subgraph Preparing
+    Calling --> Publicity
+    Publicity --> Registering
+    Registering --> Checkining
+    Checkining --> Starting
   end
+```
 
-  Registering --> Checkining
-  Checkining --> Starting
-  Starting --> Introducing
-  Introducing --> Retrospecting
-  Retrospecting --> Welcoming
-  subgraph Welcoming
-    Joining
-    introducing
+```mermaid
+journey
+  title Preparing
+  section Calling
+    Call for chairs/talks: 3: Bot
+    Set chairs: 4: Admin
+    Set talks: 5: Chair
+    Set schedule: 4: Chair
+  section Publicity
+    Send post image twice per day: 3: Bot
+    8/4/2: 3: Bot
+  section Registering
+    Register: 3: Member
+    Send register image: 4: Bot
+    8/4/2/1h: 3: Bot
+    20/10m: 3: Bot
+  section Checkining
+    Check in: 3: Member
+    Send checkin image: 4: Bot
+  section Starting
+    Start: 4: Bot
+```
+
+### 2. Talking
+
+```mermaid
+graph LR
+  subgraph Talking
+    Introducing --> Retrospecting
+    Retrospecting --> Welcoming
+    Welcoming --> Presenting
   end
+```
 
-  Welcoming --> Presenting
-  Presenting --> Promoting
-  subgraph Promoting
-    Newcomer
-    TrialMember
-    Member
-    TrialChair
-    Chair
+```mermaid
+journey
+  title Talking
+  section Introducing
+    Introcude Club: 3: Bot
+    Introduce Talks: 4: Admin
+  section Retrospecting
+    Retrospect past seminar: 3: Chair
+  section Welcoming
+    Welcome newcomers: 4: Chair
+    Self introduction: 3: Newcomer
+  section Presenting
+    Present talks: 4: Speaker
+```
+
+### 3. Membershiping
+
+```mermaid
+graph LR
+  subgraph Membershiping
+    Thanking --> Upgrading
+    Upgrading --> Brainstorming
+    Brainstorming --> Photoing
   end
+```
 
-  Promoting --> Brainstorming
-  Brainstorming --> Roasting
-  Roasting --> Chairing  
-  subgraph Chairing
-    Electing
-      Naming
-      Voting
-      Deciding
-    Summarizing
-    Pledging
+```mermaid
+journey
+  title Membershiping
+  section Thanking
+    Thank speakers: 3: Chair
+  section Upgrading
+    Newcomer upgrade: 3: Newcomer
+    Trail member upgrade: 3: Member
+    Member upgrade: 4: Member
+    Trail chair upgrade: 4: Chair
+    Chair upgrade: 5: Chair
+  section Brainstorming
+    Brainstorm: 3: Member
+  section Photoing
+    Photo: 4: Member
+```
+
+### 4. Chairshiping
+
+```mermaid
+graph LR
+  subgraph Chairshiping
+    Rotating --> Summerizing
+    Summerizing --> Roasting
+    Roasting --> Pledging
+    Pledging --> Photoing
   end
+```
 
-  Chairing --> Photoing
-  subgraph Photoing
-    ShootingChairs
-    ShootingAll
+```mermaid
+journey
+  title Chairshiping
+  section Rotating
+    Naming: 3: Member
+    Voting: 3: Member
+    Deciding: 4: Member
+  section Summerizing
+    Summerize: 3: Chair
+  section Roasting
+    Roast: 2: Member
+  section Pledging
+    Pledge: 3: Vice
+  section Photoing
+    Photo: 4: Member
+```
+
+### 5. Afterparty
+
+```mermaid
+graph LR
+  subgraph Afterparty
+    Housekeeping --> Drinking
+    Drinking --> Photoing
+    Photoing --> Paying
   end
+```
 
-  Photoing --> Housekeeping
-  Housekeeping --> AfterParty
-  subgraph AfterParty
-    Chatting
-    Drinking
-    ShootingDrinkers
-    Paying
+```mermaid
+journey
+  title Afterparty
+  section Housekeeping
+    Housekeep: 3: Member
+  section Drinking
+    Drink: 5: Member
+  section Photoing
+    Photo: 5: Member
+  section Paying
+    Pay: 3: Member
+```
+
+### 6. Minuting
+
+```mermaid
+graph LR
+  subgraph Minuting
+    Recording --> Uploading
+    Uploading --> Blogging
   end
+```
 
-  AfterParty --> Ending
-  Ending --> Ended
+```mermaid
+journey
+  title Minuting
+  section Downloading
+    Download video: 3: Bot
+  section Uploading
+    Upload video: 3: Bot
+  section Blogging
+    Post blog PR: 4: Bot
 ```
 
 See also: [BOT5 Club Chair Manual](http://bot5.ml/manuals/chair/)
