@@ -63,13 +63,12 @@ journey
     Set schedule: 4: Chair
   section Publicity
     Send post image twice per day: 3: Bot
-    8/4/2: 3: Bot
   section Registering
     Register: 3: Member
     Send register image: 4: Bot
+  section Checkining
     8/4/2/1h: 3: Bot
     20/10m: 3: Bot
-  section Checkining
     Check in: 3: Member
     Send checkin image: 4: Bot
   section Starting
@@ -81,9 +80,9 @@ journey
 ```mermaid
 graph LR
   subgraph Talking
-    Introducing --> Retrospecting
-    Retrospecting --> Welcoming
-    Welcoming --> Presenting
+    Introducing --> Welcoming
+    Welcoming --> Retrospecting
+    Retrospecting --> Presenting
   end
 ```
 
@@ -93,11 +92,11 @@ journey
   section Introducing
     Introcude Club: 3: Bot
     Introduce Talks: 4: Admin
-  section Retrospecting
-    Retrospect past seminar: 3: Chair
   section Welcoming
     Welcome newcomers: 4: Chair
     Self introduction: 3: Newcomer
+  section Retrospecting
+    Retrospect past seminar: 3: Chair
   section Presenting
     Present talks: 4: Speaker
 ```
@@ -118,6 +117,7 @@ journey
   title Membershiping
   section Thanking
     Thank speakers: 3: Chair
+    Send certificate image: 4: Bot
   section Upgrading
     Newcomer upgrade: 3: Newcomer
     Trail member upgrade: 3: Member
@@ -205,42 +205,6 @@ journey
 ```
 
 See also: [BOT5 Club Chair Manual](http://bot5.ml/manuals/chair/)
-
-## User Journey Diagram
-
-Learn more from [BOT Friday Club Seminar Chair Manual](http://bot5.ml/manuals/chair/)
-
-To be writen...
-
-### Registering
-
-```mermaid
-journey
-  title Registering - BOT Friday Club Seminar
-  section Register
-    Make tea: 5: Chair
-    Go upstairs: 3: Chair
-    Do work: 1: Member
-    Miao: 3: Cat, Member
-  section Go home
-    Go downstairs: 5: Chair
-    Sit down: 5: Member
-```
-
-### Mindstorming
-
-```mermaid
-journey
-  title Mindstorming - BOT Friday Club Seminar
-  section Mindsotming
-    Make tea: 5: Chair
-    Go upstairs: 3: Chair
-    Do work: 1: Member
-    Miao: 3: Cat, Member
-  section Member PTT
-    Go downstairs: 5: Chair
-    Sit down: 5: Member
-```
 
 ## Getting Started
 
