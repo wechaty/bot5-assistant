@@ -27,13 +27,12 @@ import * as Mailbox                 from 'mailbox'
 
 import * as duck    from '../../duck/mod.js'
 
-import * as Notice           from '../notice/mod.js'
-import * as Register         from '../register/mod.js'
-import * as Brainstorming    from '../brainstorming/mod.js'
+import * as Notice           from '../../application-actors/notice/mod.js'
+import * as Register         from '../stage-1-preparing/1-1-calling/mod.js'
+import * as Brainstorming    from '../stage-3-membershiping/3-2-brainstorming/mod.js'
 
 import duckula, { Context, Event, Events }  from './duckula.js'
 import * as reactions                       from './reactions.js'
-import { Registering } from '../../duck/states/other-states.js'
 
 const machine = createMachine<Context, Event>({
   id: duckula.id,

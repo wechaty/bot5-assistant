@@ -39,8 +39,6 @@ export const RegisteredAttendees = 'bot5-assistant/RegisteringAteddees'
 export const RegisteringTalks     = 'bot5-assistant/RegisteringTalks'
 export const RegisteredTalks     = 'bot5-assistant/Registeriedalks'
 
-// Checkining - https://www.online-translator.com/conjugation%20and%20declination/english/checkin
-export const Checkining = 'bot5-assistant/Checkining'
 
 // Retrospect: a review of the past - https://wikidiff.com/reminisce/retrospect
 export const Retrospecting = 'bot5-assistant/Retrospecting'
@@ -72,3 +70,12 @@ export const Chatting     = 'bot5-assistant/Chatting'
 export const Drinking     = 'bot5-assistant/Drinking'
 export const Paying       = 'bot5-assistant/Paying'
 export const Announcing   = 'bot5-assistant/Announcing'
+
+/**
+ * Stage 1: Preparing
+ */
+export const Calling     = 'bot5-assistant/Calling'
+export const Publicity   = 'bot5-assistant/Publicity'
+// Registering
+export const Checkining  = 'bot5-assistant/Checkining'   // Checkining - https://www.online-translator.com/conjugation%20and%20declination/english/checkin
+// Starting

@@ -22,11 +22,10 @@ import { createMachine, actions, AnyEventObject }   from 'xstate'
 import * as PUPPET                                  from 'wechaty-puppet'
 import * as Mailbox                                 from 'mailbox'
 
-import { MessageToText }    from '../../application-actors/mod.js'
-import { TextToIntents }    from '../../infrastructure-actors/mod.js'
+import { MessageToText, TextToIntents }     from '../../infrastructure-actors/mod.js'
+import { responseStates }                   from '../../pure/mod.js'
 
 import duckula, { Context, Event, Events } from './duckula.js'
-import { responseStates } from '../../actor-utils/response-states.js'
 
 const machine = createMachine<
   Context,

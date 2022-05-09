@@ -18,87 +18,91 @@
  *
  */
 /* eslint-disable sort-keys */
-import type * as PUPPET   from 'wechaty-puppet'
-import * as Mailbox       from 'mailbox'
+import type * as PUPPET     from 'wechaty-puppet'
+import * as Mailbox         from 'mailbox'
 
-import * as duck    from '../../duck/mod.js'
+import * as duck            from '../../../duck/mod.js'
 
 export interface Context {
   /**
    * Required
    */
   actors: {
-    wechaty  : string
-    notice   : string
+    wechaty : string
+    notice  : string
   }
-  room     : PUPPET.payloads.Room
-  chairs   : { [id: string]: PUPPET.payloads.Contact }
-  contacts : { [id: string]: PUPPET.payloads.Contact }
   /**
    * To-be-filled
    */
-  feedbacks: { [id: string]: string }
+  attendees : { [contactId: string]: PUPPET.payloads.Contact }
+  chairs    : { [contactId: string]: PUPPET.payloads.Contact }
+  talks     : { [contactId: string]: string }
+  message?  : PUPPET.payloads.Message
 }
 
 const duckula = Mailbox.duckularize({
-  id: 'Brainstorming',
-  events: [ { ...duck.Event }, [
+  id: 'Calling',
+  events: [ duck.Event, [
     /**
-     * Requests
+     * Request
      */
     'REPORT',
     'MESSAGE',
     /**
-     * Responses
-     */
-    'FEEDBACKS',
-    'GERROR',
-    /**
-     * Internal
-     */
-    'CONTACTS',
-    'IDLE',
-    'NEXT',
-    'HELP',
-    'RESET',
-    'REGISTER',
-    // Notice Actor
-    'NOTICE',
-  ] ],
-  states: [ duck.State, [
-    /**
-     * Request
-     */
-    'Idle',
-    /**
      * Response
      */
-    'Responding',
-    'Responded',
-    'Erroring',
-    'Errored',
+    'CHAIRS',
+    'ATTENDEES',
+    'TALKS',
+    'GERROR',
+    /**
+     * Config
+     */
+    'RESET',
     /**
      * Internal
      */
-    'Initializing',
-    'Resetting',
-    'Reporting',
-    'Completing',
-    'Completed',
-    /**
-     * Register Actor
-     */
-    'Registering',
-    'Registered',
-    /**
-     * Feedback Actor
-     */
-    'Feedbacking',
-    'Feedbacked',
+    'BATCH',
+    'HELP',
+    'ROOM',
+    'NO_ROOM',
+    'MENTIONS',
+    'NO_MENTION',
+    'NEXT',
+    'VALIDATE',
+    'NOTICE',
+    'INTENTS',
+    'FINISH',
   ] ],
-  initialContext: ({
-    feedbacks: {},
-  }),
+  states: [ duck.State, [
+    'Idle',
+    'Busy',
+    'Responding',
+    'Erroring',
+    'RegisteringRoom',
+    'RegisteredRoom',
+    'RegisteringChairs',
+    'RegisteredChairs',
+    'RegisteringAttendees',
+    'RegisteredAttendees',
+    'RegisteringTalks',
+    'RegisteredTalks',
+    'Confirming',
+    'Initializing',
+    'Initialized',
+    'Loading',
+    'Mentioning',
+    'Reporting',
+    'Resetting',
+    'Resetted',
+    'Summarizing',
+  ] ],
+  initialContext: {
+    attendees : {},
+    chairs    : {},
+    talks     : {},
+    message   : undefined,
+  },
 })
 
 export type Event = ReturnType<typeof duckula.Event[keyof typeof duckula.Event]>

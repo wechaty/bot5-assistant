@@ -21,10 +21,10 @@
 import { actions, createMachine }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
 
-import { responseStates } from '../../pure/mod.js'
+import { responseStates } from '../../../pure/mod.js'
 
-import * as Notice     from '../notice/mod.js'
-import * as Feedback   from '../feedback/mod.js'
+import * as Notice     from '../../../application-actors/notice/mod.js'
+import * as Feedback   from '../../../application-actors/feedback/mod.js'
 
 import duckula, { Context, Event }    from './duckula.js'
 import * as selectors                 from './selectors.js'

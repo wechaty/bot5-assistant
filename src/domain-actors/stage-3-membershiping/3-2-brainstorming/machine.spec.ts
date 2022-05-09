@@ -35,11 +35,11 @@ import { WebSocketServer }    from 'ws'
 import * as Mailbox           from 'mailbox'
 import * as WechatyActor      from 'wechaty-actor'
 
-import { FileToText }                 from '../../infrastructure-actors/mod.js'
-import { skipSelfMessagePayload$ }    from '../../pure/mod.js'
-import { bot5Fixtures }               from '../../fixtures/bot5-fixture.js'
+import { FileToText }                 from '../../../infrastructure-actors/mod.js'
+import { skipSelfMessagePayload$ }    from '../../../pure/mod.js'
+import { bot5Fixtures }               from '../../../fixtures/bot5-fixture.js'
 
-import * as Notice    from '../notice/mod.js'
+import * as Notice    from '../../../application-actors/notice/mod.js'
 
 import duckula, { Context }   from './duckula.js'
 import machine                from './machine.js'

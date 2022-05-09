@@ -23,7 +23,7 @@ import { actions, createMachine }   from 'xstate'
 import { GError }                   from 'gerror'
 import * as Mailbox                 from 'mailbox'
 
-import { MessageToText }    from '../../application-actors/mod.js'
+import { MessageToText }    from '../../infrastructure-actors/mod.js'
 import { responseStates }   from '../../pure/mod.js'
 
 import * as NoticeActor    from '../notice/mod.js'

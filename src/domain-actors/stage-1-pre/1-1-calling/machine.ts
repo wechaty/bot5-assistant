@@ -20,14 +20,12 @@
 /* eslint-disable sort-keys */
 import { createMachine, actions }   from 'xstate'
 import * as Mailbox                 from 'mailbox'
+import type * as WechatyActor       from 'wechaty-actor'
 
-import type * as WechatyActor                     from 'wechaty-actor'
-import { responseStates }                         from '../../actor-utils/response-states.js'
-import { MessageToMentions, MessageToIntents }    from '../../application-actors/mod.js'
-import { invokeId }                               from '../../actor-utils/invoke-id.js'
-import { Intent }                                 from '../../intents/mod.js'
-
-import * as Notice    from '../notice/mod.js'
+import { MessageToMentions, MessageToIntents }    from '../../../infrastructure-actors/mod.js'
+import { Notice }                                 from '../../../application-actors/mod.js'
+import { invokeId, responseStates }               from '../../../pure/mod.js'
+import { Intent }                                 from '../../../intents/mod.js'
 
 import duckula, { Context, Event }    from './duckula.js'
 

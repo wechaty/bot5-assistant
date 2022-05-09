@@ -17,5 +17,10 @@
  *   limitations under the License.
  *
  */
-export * as FileToText    from './file-to-text/mod.js'
-export * as TextToIntents from './text-to-intents/mod.js'
+export * as FileToText          from './file-to-text/mod.js'
+export * as TextToIntents       from './text-to-intents/mod.js'
+export * as MessageToFile       from './message-to-file/mod.js'
+export * as MessageToIntents    from './message-to-intents/mod.js'
+export * as MessageToMentions   from './message-to-mentions/mod.js'
+export * as MessageToRoom       from './message-to-room/mod.js'
+export * as MessageToText       from './message-to-text/mod.js'

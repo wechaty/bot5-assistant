@@ -33,10 +33,10 @@ import * as CQRS                    from 'wechaty-cqrs'
 import { isActionOf }               from 'typesafe-actions'
 import * as WechatyActor            from 'wechaty-actor'
 
-import { isDefined, invokeId }    from '../../pure/mod.js'
-import { bot5Fixtures }           from '../../fixtures/bot5-fixture.js'
+import { isDefined, invokeId }    from '../../../pure/mod.js'
+import { bot5Fixtures }           from '../../../fixtures/bot5-fixture.js'
 
-import * as Notice    from '../notice/mod.js'
+import * as Notice    from '../../../application-actors/notice/mod.js'
 
 import duckula, { Context }   from './duckula.js'
 import machine                from './machine.js'

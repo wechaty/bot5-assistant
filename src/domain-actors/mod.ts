@@ -1,7 +1,6 @@
-export * as Feedback      from './feedback/mod.js'
-export * as Notice        from './notice/mod.js'
-export * as Register      from './register/mod.js'
-export * as Brainstorming from './brainstorming/mod.js'
-export * as Meeting       from './meeting/machine.js'
-
-export * as Assistant     from './assistant-actor.js'
+export * as Stage1Pre               from './stage-1-pre/mod.js'
+export * as Stage2Presenting        from './stage-2-presenting/mod.js'
+export * as Stage3Membershiping     from './stage-3-membershiping/mod.js'
+export * as Stage4Chairshiping      from './stage-4-chairshiping/mod.js'
+export * as Stage5Afterparty        from './stage-5-afterparty/mod.js'
+export * as Stage6Post              from './stage-6-post/mod.js'

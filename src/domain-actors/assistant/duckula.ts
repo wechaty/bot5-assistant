@@ -23,8 +23,6 @@ import * as Mailbox       from 'mailbox'
 
 import * as duck    from '../../duck/mod.js'
 
-import * as NoticeActor   from '../notice/mod.js'
-
 export interface Context {
   minutes?    : string
   room        : PUPPET.payloads.Room
@@ -43,8 +41,8 @@ export interface Context {
 }
 
 const duckula = Mailbox.duckularize({
-  id: 'Meeting',
-  events: [ { ...NoticeActor.Event, ...duck.Event }, [
+  id: 'Bot5Assistant',
+  events: [ duck.Event, [
     /**
      * Config
      */
