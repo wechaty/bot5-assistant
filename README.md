@@ -8,6 +8,8 @@ BOT5 Meeting Assistant BOT powered by RSVP.ai & Wechaty & XState.
 
 ![BOT5 Club](docs/images/caq-bot5-qingyu.webp)
 
+> Blog post: [基于Wechaty+轻语实现会议主持助手，崔安颀，Oct 29, 2021, BOT5 Club](https://bot5.ml/events/seminar-minutes-2021-08/#1--%E4%BC%9A%E8%AE%AE%E4%B8%BB%E6%8C%81%E5%8A%A9%E6%89%8B%E6%9C%BA%E5%99%A8%E4%BA%BA)
+
 ## BOT5 Club Seminar Flow Chart
 
 ```mermaid
